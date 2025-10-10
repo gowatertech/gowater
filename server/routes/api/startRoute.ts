@@ -14,7 +14,7 @@ import { routes, orders } from "../../../shared/schema";
  * Con validación para evitar que un conductor tenga múltiples rutas activas
  */
 export function registerStartRouteEndpoint(app: Express) {
-  app.post("/api/routes/:id/start", async (req: Request, res: Response) => {
+  app.post("/routes/:id/start", async (req: Request, res: Response) => {
     try {
       const routeId = parseInt(req.params.id);
       

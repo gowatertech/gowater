@@ -10,7 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 10, 2025 - Mobile Map Enhancements
+### October 10, 2025 - Mobile App Bug Fixes and Enhancements
+
+#### Route Start Endpoint Fix (Critical Bug Fix)
+- **Fixed route start functionality** returning HTML instead of JSON
+  - **Root cause**: Double `/api` prefix - endpoint registered as `/api/routes/:id/start` inside router already mounted at `/api`
+  - **Result**: Effective path was `/api/api/routes/:id/start`, causing requests to `/api/routes/:id/start` to fall through to Vite middleware
+  - **Solution**: Removed `/api` prefix from endpoint registration in `server/routes/api/startRoute.ts` (changed to `/routes/:id/start`)
+  - **Verification**: Endpoint now correctly returns JSON with `Content-Type: application/json` and proper response structure: `{"success":true,"route":{...}}`
+  - Active route validation working correctly - prevents drivers from starting multiple routes simultaneously
 
 #### Route List/Map Two-View System
 - **Implemented dual-view navigation** for mobile map interface
