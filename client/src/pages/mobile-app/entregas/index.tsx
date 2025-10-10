@@ -49,7 +49,7 @@ interface Delivery {
   address: string;
   status: "pending" | "in_progress" | "delivered" | "cancelled";
   scheduledTime: string;
-  products: { id: number; name: string; quantity: number; price: number }[];
+  products: { id: number; name: string; quantity: number; price: number; isReturnable?: boolean }[];
   total: number;
   bottleReturns: BottleReturn[];
 }
@@ -103,11 +103,25 @@ export default function DriverDeliveries() {
       
       console.log('Datos recibidos de /api/orders:', ordersData);
       
-      // Para cada orden, obtener sus retornos de botellas
-      const deliveriesWithBottleReturns = await Promise.all(
+      // Para cada orden, obtener sus detalles completos y retornos de botellas
+      const deliveriesWithDetails = await Promise.all(
         ordersData.map(async (order: any) => {
+          let orderDetails: any = {};
           let bottleReturnsData: BottleReturn[] = [];
           
+          // Obtener detalles completos de la orden (incluye productos)
+          try {
+            const orderDetailsResponse = await fetch(`/api/orders/${order.id}`, {
+              credentials: 'include'
+            });
+            if (orderDetailsResponse.ok) {
+              orderDetails = await orderDetailsResponse.json();
+            }
+          } catch (error) {
+            console.error(`Error al obtener detalles para orden ${order.id}:`, error);
+          }
+          
+          // Obtener retornos de botellas
           try {
             const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`, {
               credentials: 'include'
@@ -119,6 +133,15 @@ export default function DriverDeliveries() {
           } catch (error) {
             console.error(`Error al obtener retornos para orden ${order.id}:`, error);
           }
+          
+          // Mapear los productos desde orderDetails
+          const products = (orderDetails.items || []).map((item: any) => ({
+            id: item.product?.id || item.productId,
+            name: item.product?.name || '',
+            quantity: item.quantity,
+            price: parseFloat(item.product?.price || item.unitPrice || '0'),
+            isReturnable: item.product?.isReturnable || false
+          }));
           
           // Convertir los datos de la API al formato requerido por nuestra interfaz
           return {
@@ -132,14 +155,14 @@ export default function DriverDeliveries() {
               hour: '2-digit',
               minute: '2-digit'
             }),
-            products: [],
+            products: products,
             total: parseFloat(order.total),
             bottleReturns: bottleReturnsData
           };
         })
       );
       
-      setDeliveries(deliveriesWithBottleReturns);
+      setDeliveries(deliveriesWithDetails);
     } catch (error) {
       console.error('Error al cargar entregas:', error);
       toast({
@@ -324,14 +347,27 @@ export default function DriverDeliveries() {
                     </div>
                     
                     {/* Información de retornos de envases */}
-                    {delivery.bottleReturns && delivery.bottleReturns.length > 0 && (
-                      <div className="mt-2 pt-2 border-t">
-                        <div className="flex items-center text-xs text-muted-foreground mb-1">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          <span>Envases por retornar: {delivery.bottleReturns.reduce((total, br) => total + br.pendingQuantity, 0)}</span>
-                        </div>
-                      </div>
-                    )}
+                    {(() => {
+                      // Verificar si hay productos retornables
+                      const returnableProducts = delivery.products.filter(p => p.isReturnable);
+                      
+                      if (returnableProducts.length > 0) {
+                        // Calcular envases pendientes de retornar
+                        const pendingBottles = delivery.bottleReturns && delivery.bottleReturns.length > 0
+                          ? delivery.bottleReturns.reduce((total, br) => total + br.pendingQuantity, 0)
+                          : returnableProducts.reduce((total, p) => total + p.quantity, 0);
+                        
+                        return (
+                          <div className="mt-2 pt-2 border-t">
+                            <div className="flex items-center text-xs text-muted-foreground mb-1">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              <span>Envases por retornar: {pendingBottles}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </CardContent>
                 </Card>
               ))
