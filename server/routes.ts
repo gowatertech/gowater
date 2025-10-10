@@ -2273,7 +2273,7 @@ export async function registerRoutes(router: express.Router) {
       }
       
       const whatsappMessage = encodeURIComponent(
-        `Hola ${customer.managername}, te estamos contactando de ${companySettings.name} para actualizar tu ubicación y darte un mejor servicio. Si tienes dudas llámanos ${companySettings.contactPhone}. Click este link para actualizar: ${captureUrl}`
+        `Hola ${customer.businessname}, te estamos contactando de ${companySettings.name} para actualizar tu ubicación y darte un mejor servicio. Si tienes dudas llámanos ${companySettings.contactPhone}. Click este link para actualizar: ${captureUrl}`
       );
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMessage}`;
 
