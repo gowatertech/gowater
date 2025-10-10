@@ -59,3 +59,30 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
 -   **Radix UI**: Accessible component primitives.
 -   **Lucide React**: Icon system.
 -   **shadcn/ui**: Pre-composed component patterns.
+
+## Recent Changes
+
+### October 10, 2025 - Payment System Improvements
+
+#### Delivery Processing Fix (Critical Bug Fix)
+- **Fixed orders staying in "pending" status** when marked as delivered by drivers
+  - **Root cause**: Frontend called non-existent endpoint instead of invoice-creating endpoint
+  - **Solution**: Changed to use `/api/mobile/orders/:id/deliver-and-invoice` which:
+    - Updates order status to "delivered"
+    - Sets `actualDeliveryTime` timestamp
+    - Creates invoice and payment records automatically
+    - Tracks which user delivered the order (new `deliveredBy` field)
+  - **Database change**: Added `delivered_by` column to `orders` table
+
+#### Credit Payment Visibility Fix (Bug Fix)
+- **Fixed missing evidence of credit payments** in payments page
+  - **Root cause**: System only created payment records for cash, skipping credit transactions
+  - **Solution**: Modified delivery endpoint to create payment records for ALL payment methods:
+    - Cash/Card/Transfer: payment amount = actual amount received
+    - Credit: payment amount = full invoice total (enables accounts receivable tracking)
+    - Credit notes: "Crédito pendiente de pago - Entrega en ruta [X] - Total adeudado: [amount]"
+  - **Benefits**:
+    - Credit transactions now visible in payments list
+    - Financial reporting includes credit sales
+    - Can filter payments by "credit" method
+  - **Verified**: E2E test confirmed credit payments appear with correct amount and can be filtered
