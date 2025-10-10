@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { apiRequest } from "@/lib/queryClient";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -156,26 +157,31 @@ export default function DeliveryDetails() {
     
     try {
       // Obtener orden específica
-      const orderResponse = await fetch(`/api/orders/${deliveryId}`);
-      if (!orderResponse.ok) {
-        throw new Error('Error al obtener la orden');
-      }
-      const orderData = await orderResponse.json();
+      const orderData = await apiRequest({
+        url: `/api/orders/${deliveryId}`,
+        method: 'GET'
+      });
       
       // Obtener retornos de botellas para esta orden
-      const bottleReturnsResponse = await fetch(`/api/orders/${deliveryId}/bottle-returns`);
       let bottleReturnsData: BottleReturn[] = [];
-      if (bottleReturnsResponse.ok) {
-        bottleReturnsData = await bottleReturnsResponse.json();
+      try {
+        bottleReturnsData = await apiRequest({
+          url: `/api/orders/${deliveryId}/bottle-returns`,
+          method: 'GET'
+        });
+      } catch (error) {
+        console.log('No se pudieron obtener retornos de botellas:', error);
       }
       
       // Obtener configuración de la empresa para la impresión y PDF
-      const settingsResponse = await fetch('/api/settings');
-      if (settingsResponse.ok) {
-        const settingsData = await settingsResponse.json();
+      try {
+        const settingsData = await apiRequest({
+          url: '/api/settings',
+          method: 'GET'
+        });
         setCompanySettings(settingsData);
-      } else {
-        console.error('No se pudo cargar la configuración de la empresa');
+      } catch (error) {
+        console.error('No se pudo cargar la configuración de la empresa:', error);
       }
       
       // Convertir los datos al formato necesario
@@ -220,23 +226,15 @@ export default function DeliveryDetails() {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/orders/${deliveryId}/bottle-returns`, {
+      const result = await apiRequest({
+        url: `/api/orders/${deliveryId}/bottle-returns`,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        data: {
           productId: productId,
           returnedQuantity: quantity,
           expectedQuantity: delivery?.products.find(p => p.id === productId)?.quantity || 0
-        })
+        }
       });
-      
-      if (!response.ok) {
-        throw new Error('Error al registrar el retorno de envases');
-      }
-      
-      const result = await response.json();
       
       // Recargar los datos actualizados
       loadDeliveryDetails();
@@ -298,20 +296,11 @@ export default function DeliveryDetails() {
       }));
       
       // Enviar la actualización al servidor
-      const response = await fetch(`/api/orders/${delivery.orderId}/products`, {
+      const result = await apiRequest({
+        url: `/api/orders/${delivery.orderId}/products`,
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ products: productsData })
+        data: { products: productsData }
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar los productos');
-      }
-      
-      const result = await response.json();
       
       // Actualizar el estado local con la respuesta del servidor
       setDelivery({
@@ -388,19 +377,11 @@ export default function DeliveryDetails() {
       console.log("Método de pago seleccionado:", paymentMethod);
       
       // Enviar datos al servidor
-      const response = await fetch(`/api/orders/${delivery.orderId}/deliver`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(updateData)
+      const responseData = await apiRequest({
+        url: `/api/orders/${delivery.orderId}/deliver`,
+        method: 'POST',
+        data: updateData
       });
-      
-      if (!response.ok) {
-        throw new Error("No se pudo procesar la entrega");
-      }
-
-      const responseData = await response.json();
       
       // Actualizar datos locales
       setDelivery({
@@ -445,18 +426,16 @@ export default function DeliveryDetails() {
       }
       
       // Cargar detalles de la orden completa (para obtener información adicional si es necesario)
-      const orderResponse = await fetch(`/api/orders/${delivery.orderId}`);
-      if (!orderResponse.ok) {
-        throw new Error('Error al cargar el pedido');
-      }
-      const orderData = await orderResponse.json();
+      const orderData = await apiRequest({
+        url: `/api/orders/${delivery.orderId}`,
+        method: 'GET'
+      });
       
       // Cargar items del pedido
-      const itemsResponse = await fetch(`/api/orders/${delivery.orderId}/items`);
-      if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido');
-      }
-      const orderItems = await itemsResponse.json();
+      const orderItems = await apiRequest({
+        url: `/api/orders/${delivery.orderId}/items`,
+        method: 'GET'
+      });
       
       // Crear el contenido del ticket
       const printContent = document.createElement("div");
@@ -627,18 +606,16 @@ export default function DeliveryDetails() {
       }
       
       // Cargar detalles de la orden completa
-      const orderResponse = await fetch(`/api/orders/${delivery.orderId}`);
-      if (!orderResponse.ok) {
-        throw new Error('Error al cargar el pedido');
-      }
-      const orderData = await orderResponse.json();
+      const orderData = await apiRequest({
+        url: `/api/orders/${delivery.orderId}`,
+        method: 'GET'
+      });
       
       // Cargar items del pedido
-      const itemsResponse = await fetch(`/api/orders/${delivery.orderId}/items`);
-      if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido');
-      }
-      const orderItems = await itemsResponse.json();
+      const orderItems = await apiRequest({
+        url: `/api/orders/${delivery.orderId}/items`,
+        method: 'GET'
+      });
       
       // Crear un documento PDF (tamaño ticket térmico)
       const doc = new jsPDF({
