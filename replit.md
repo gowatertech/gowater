@@ -116,6 +116,28 @@ Preferred communication style: Simple, everyday language.
     - Backend uses `consolidatedCompanyMiddleware` that validates session and extracts `companyId`
   - **Result**: All network calls now properly send session cookies, enabling authenticated access to API endpoints
 
+#### Order Products Update Endpoint Implementation
+- **Created missing PATCH endpoint** `/api/orders/:orderId/products` for updating order items
+  - **Root cause**: Frontend attempted to save product changes but backend endpoint didn't exist
+  - **Implementation details**:
+    - Uses SQL transactions to ensure data consistency
+    - Deletes existing `order_items` for the order
+    - Inserts new `order_items` with updated quantities
+    - Recalculates and updates order total
+    - Automatic rollback on errors
+  - **Column naming fix**: Changed `unit_price` to `price` to match database schema
+  - **Location**: `server/routes/orders.ts` (lines 551-668)
+  - **Result**: Drivers can now successfully update product quantities from mobile delivery details
+
+#### Delivery Sequence Order Fix
+- **Fixed delivery order inconsistency** after product updates
+  - **Root cause**: Mobile route view ordered deliveries by array index instead of `deliverySequence` field
+  - **Problem**: Backend could return orders in different order after updates, causing visual position changes
+  - **Solution**: Added sorting by `deliverySequence` before mapping orders to route stops
+  - **Implementation**: `const sortedOrders = [...response].sort((a, b) => (a.deliverySequence || 999) - (b.deliverySequence || 999))`
+  - **Location**: `client/src/pages/mobile-app/ruta/index.tsx` (lines 264-269)
+  - **Result**: Deliveries now maintain correct order regardless of backend response order
+
 ## System Architecture
 
 ### Multi-Tenancy Design
