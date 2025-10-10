@@ -358,124 +358,163 @@ export default function MobilePendingRoutes() {
           isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'
         }`}
       >
-        <div className="p-4">
-          {/* Información general de la ruta con indicador de estado */}
-          <div 
-            className="flex justify-between items-center cursor-pointer mb-2"
-            onClick={() => toggleRouteExpand(route.id)}
-          >
-            <div className="flex items-center">
-              <h3 className="font-semibold text-sm">{route.name}</h3>
-              <div className="ml-2 flex items-center">
-                {getRouteStatusIcon(route)}
-                <span className="text-xs ml-1 text-muted-foreground">
-                  {getRouteStatusText(route)}
+        <div className="flex">
+          {/* Sección de información principal */}
+          <div className="flex-1 p-4">
+            {/* Información general de la ruta con indicador de estado */}
+            <div 
+              className="flex justify-between items-center cursor-pointer mb-2"
+              onClick={() => toggleRouteExpand(route.id)}
+            >
+              <div className="flex items-center flex-1 min-w-0">
+                <h3 className="font-semibold text-sm truncate">{route.name}</h3>
+                <div className="ml-2 flex items-center flex-shrink-0">
+                  {getRouteStatusIcon(route)}
+                  <span className="text-xs ml-1 text-muted-foreground">
+                    {getRouteStatusText(route)}
+                  </span>
+                </div>
+              </div>
+              <Badge variant={(routeOrders.length > 0 || route.orderCount > 0) ? "default" : "outline"} className="ml-2 flex-shrink-0">
+                {routeOrders.length || route.orderCount || 0}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+              <div className="flex items-center text-muted-foreground">
+                <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate">
+                  {format(routeDate, 'dd/MM/yy', { locale: es })}
                 </span>
               </div>
+              <div className="flex items-center text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span>{stopCount} paradas</span>
+              </div>
+              <div className="flex items-center text-muted-foreground">
+                <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span>${totalRevenue.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center text-muted-foreground">
+                <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate">{route.totalDistance ? `${route.totalDistance} km` : 'N/D'}</span>
+              </div>
             </div>
-            <Badge variant={(routeOrders.length > 0 || route.orderCount > 0) ? "default" : "outline"}>
-              {routeOrders.length || route.orderCount || 0} pedidos
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-            <div className="flex items-center text-muted-foreground">
-              <CalendarIcon className="h-3 w-3 mr-1" />
-              <span>
-                {format(routeDate, 'PPP', { locale: es })}
-              </span>
-            </div>
-            <div className="flex items-center text-muted-foreground">
-              <MapPin className="h-3 w-3 mr-1" />
-              <span>{stopCount} paradas</span>
-            </div>
-            <div className="flex items-center text-muted-foreground">
-              <DollarSign className="h-3 w-3 mr-1" />
-              <span>${totalRevenue.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>{route.totalDistance ? `${route.totalDistance} km` : 'Dist. no disp.'}</span>
-            </div>
-          </div>
-          
-          {/* Mostrar los pedidos de la ruta si está expandida */}
-          {isExpanded && (
-            <div className={`text-xs ${
-              isDarkMode ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-              <Separator className="mb-2" />
-              
-              {routeOrders.length > 0 ? (
-                <div className="space-y-3 mb-3">
-                  <h4 className="font-medium">Pedidos en esta ruta:</h4>
-                  
-                  {routeOrders.map(order => (
-                    <div 
-                      key={order.id} 
-                      className={`rounded-md p-2 ${
-                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="font-medium flex items-center">
-                          <UserRound className="h-3 w-3 mr-1" />
-                          {order.customerName}
+            
+            {/* Mostrar los pedidos de la ruta si está expandida */}
+            {isExpanded && (
+              <div className={`text-xs ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
+                <Separator className="mb-2" />
+                
+                {routeOrders.length > 0 ? (
+                  <div className="space-y-3 mb-3">
+                    <h4 className="font-medium">Pedidos en esta ruta:</h4>
+                    
+                    {routeOrders.map(order => (
+                      <div 
+                        key={order.id} 
+                        className={`rounded-md p-2 ${
+                          isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-1">
+                          <div className="font-medium flex items-center">
+                            <UserRound className="h-3 w-3 mr-1" />
+                            {order.customerName}
+                          </div>
+                          <span className="text-primary font-medium">${parseFloat(order.total).toFixed(2)}</span>
                         </div>
-                        <span className="text-primary font-medium">${parseFloat(order.total).toFixed(2)}</span>
+                        
+                        <div className="text-muted-foreground flex items-start mb-1">
+                          <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-1">{order.customerAddress}</span>
+                        </div>
+                        
+                        <div className="mt-2">
+                          <h5 className="font-medium mb-1 flex items-center">
+                            <Package className="h-3 w-3 mr-1" />
+                            Productos
+                          </h5>
+                          <ul className="space-y-1 pl-4 list-disc">
+                            {order.products.map((product, idx) => (
+                              <li key={idx} className="flex justify-between">
+                                <span className="truncate mr-2">{product.quantity}x {product.name}</span>
+                                <span className="flex-shrink-0">${(parseFloat(product.price) * product.quantity).toFixed(2)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
-                      
-                      <div className="text-muted-foreground flex items-start mb-1">
-                        <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
-                        <span className="line-clamp-1">{order.customerAddress}</span>
-                      </div>
-                      
-                      <div className="mt-2">
-                        <h5 className="font-medium mb-1 flex items-center">
-                          <Package className="h-3 w-3 mr-1" />
-                          Productos
-                        </h5>
-                        <ul className="space-y-1 pl-4 list-disc">
-                          {order.products.map((product, idx) => (
-                            <li key={idx} className="flex justify-between">
-                              <span className="truncate mr-2">{product.quantity}x {product.name}</span>
-                              <span className="flex-shrink-0">${(parseFloat(product.price) * product.quantity).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-2 mb-2">
+                    <span className="text-muted-foreground">No hay pedidos asignados a esta ruta</span>
+                  </div>
+                )}
+                
+                <Separator className="mt-2 mb-3" />
+              </div>
+            )}
+            
+            {/* Botón para iniciar o continuar ruta */}
+            <button 
+              onClick={() => handleStartRoute(route.id)}
+              className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center mb-2"
+            >
+              <ButtonIcon className="h-3 w-3 mr-1" />
+              {buttonText}
+            </button>
+            
+            {/* Botón para finalizar ruta - solo visible para rutas en progreso */}
+            {(route.localStatus === 'in_progress' || route.status === 'in_progress') && (
+              <button 
+                onClick={() => setLocation(`/mobile-app/ruta/${route.id}`)}
+                className="w-full py-2 px-4 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                FINALIZAR RUTA
+              </button>
+            )}
+          </div>
+          
+          {/* Mini visualización de ruta a la derecha */}
+          <div className="w-20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent relative flex items-center justify-center border-l">
+            <div className="flex flex-col items-center gap-1.5 py-4">
+              {/* Punto de inicio (almacén) */}
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-green-200 shadow-sm" />
+              
+              {/* Línea de ruta */}
+              <div className="w-0.5 h-6 bg-gradient-to-b from-green-500 via-primary to-red-500" />
+              
+              {/* Indicador de paradas intermedias */}
+              {stopCount > 0 && (
+                <div className="flex flex-col items-center gap-0.5">
+                  {[...Array(Math.min(stopCount, 3))].map((_, i) => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary" />
                   ))}
-                </div>
-              ) : (
-                <div className="text-center py-2 mb-2">
-                  <span className="text-muted-foreground">No hay pedidos asignados a esta ruta</span>
+                  {stopCount > 3 && (
+                    <span className="text-[9px] text-muted-foreground font-medium">
+                      +{stopCount - 3}
+                    </span>
+                  )}
                 </div>
               )}
               
-              <Separator className="mt-2 mb-3" />
+              {/* Línea de ruta continuación */}
+              <div className="w-0.5 h-6 bg-gradient-to-b from-primary to-red-500" />
+              
+              {/* Punto final */}
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-200 shadow-sm" />
             </div>
-          )}
-          
-          {/* Botón para iniciar o continuar ruta */}
-          <button 
-            onClick={() => handleStartRoute(route.id)}
-            className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center mb-2"
-          >
-            <ButtonIcon className="h-3 w-3 mr-1" />
-            {buttonText}
-          </button>
-          
-          {/* Botón para finalizar ruta - solo visible para rutas en progreso */}
-          {(route.localStatus === 'in_progress' || route.status === 'in_progress') && (
-            <button 
-              onClick={() => setLocation(`/mobile-app/ruta/${route.id}`)}
-              className="w-full py-2 px-4 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center"
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              FINALIZAR RUTA
-            </button>
-          )}
+            
+            {/* Badge con número de pedidos */}
+            <div className="absolute bottom-2 right-2 bg-primary text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+              {routeOrders.length || route.orderCount || 0}
+            </div>
+          </div>
         </div>
       </div>
     );

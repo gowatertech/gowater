@@ -121,48 +121,91 @@ export default function MobileRoutesInProgress() {
               const localStatus = localStorage.getItem(`routeStatus_${route.id}`);
               const routeStatus = localStatus || route.status;
               
+              const stopCount = route.stops ? route.stops.length - 1 : 0;
+              
               return (
                 <Card key={route.id} className={`overflow-hidden shadow-sm ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
-                  <div className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold text-sm">{route.name}</h3>
-                      <Badge variant={
-                        routeStatus === 'in_progress' ? "default" : 
-                        routeStatus === 'paused' ? "outline" : "secondary"
-                      }>
-                        {routeStatus === 'in_progress' ? 'En curso' : 
-                         routeStatus === 'paused' ? 'Pausada' : 'Estado desconocido'}
-                      </Badge>
+                  <div className="flex">
+                    {/* Información principal */}
+                    <div className="flex-1 p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-semibold text-sm">{route.name}</h3>
+                        <Badge variant={
+                          routeStatus === 'in_progress' ? "default" : 
+                          routeStatus === 'paused' ? "outline" : "secondary"
+                        }>
+                          {routeStatus === 'in_progress' ? 'En curso' : 
+                           routeStatus === 'paused' ? 'Pausada' : 'Estado desconocido'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-4">
+                        <div className="flex items-center text-muted-foreground">
+                          <CalendarIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">
+                            {format(routeDate, 'dd/MM/yy', { locale: es })}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span>{stopCount} paradas</span>
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <DollarSign className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span>${route.totalRevenue?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate">{route.totalDistance ? `${route.totalDistance} km` : 'N/D'}</span>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => continueRoute(route.id)}
+                        className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        {routeStatus === 'paused' ? 'Continuar Ruta' : 'Ver Ruta'}
+                      </button>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                      <div className="flex items-center text-muted-foreground">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        <span>
-                          {format(routeDate, 'PPP', { locale: es })}
-                        </span>
+                    {/* Mini visualización de ruta */}
+                    <div className="w-20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent relative flex items-center justify-center border-l">
+                      <div className="flex flex-col items-center gap-1.5 py-4">
+                        {/* Punto de inicio */}
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-green-200 shadow-sm" />
+                        
+                        {/* Línea de ruta */}
+                        <div className="w-0.5 h-6 bg-gradient-to-b from-green-500 via-primary to-red-500" />
+                        
+                        {/* Paradas */}
+                        {stopCount > 0 && (
+                          <div className="flex flex-col items-center gap-0.5">
+                            {[...Array(Math.min(stopCount, 3))].map((_, i) => (
+                              <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            ))}
+                            {stopCount > 3 && (
+                              <span className="text-[9px] text-muted-foreground font-medium">
+                                +{stopCount - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Línea continuación */}
+                        <div className="w-0.5 h-6 bg-gradient-to-b from-primary to-red-500" />
+                        
+                        {/* Punto final */}
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-red-200 shadow-sm" />
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        <span>{route.stops ? route.stops.length - 1 : 0} paradas</span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        <span>${route.totalRevenue?.toFixed(2) || '0.00'}</span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{route.totalDistance ? `${route.totalDistance} km` : 'Dist. no disp.'}</span>
+                      
+                      {/* Indicador de estado */}
+                      <div className={`absolute bottom-2 right-2 ${
+                        routeStatus === 'in_progress' ? 'bg-blue-500' : 'bg-orange-500'
+                      } text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold`}>
+                        {routeStatus === 'in_progress' ? '▶' : '⏸'}
                       </div>
                     </div>
-                    
-                    <button 
-                      onClick={() => continueRoute(route.id)}
-                      className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      {routeStatus === 'paused' ? 'Continuar Ruta' : 'Ver Ruta'}
-                    </button>
                   </div>
                 </Card>
               );
