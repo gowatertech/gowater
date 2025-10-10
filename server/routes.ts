@@ -2229,6 +2229,16 @@ export async function registerRoutes(router: express.Router) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
 
+      // Obtener información de la empresa
+      const [companySettings] = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.companyId, companyId));
+
+      if (!companySettings) {
+        return res.status(500).json({ error: "No se encontró la configuración de la empresa" });
+      }
+
       // Generar token único
       const { randomUUID } = await import('crypto');
       const token = randomUUID();
@@ -2263,13 +2273,15 @@ export async function registerRoutes(router: express.Router) {
       }
       
       const whatsappMessage = encodeURIComponent(
-        `Hola ${customer.managername}, por favor comparte tu ubicación usando este enlace: ${captureUrl}`
+        `Hola ${customer.managername}, te estamos contactando de ${companySettings.name} para actualizar tu ubicación y darte un mejor servicio. Si tienes dudas llámanos ${companySettings.contactPhone}. Click este link para actualizar: ${captureUrl}`
       );
       const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMessage}`;
 
       console.log(`[WhatsApp] Generando enlace para cliente ${customer.businessname}`);
-      console.log(`[WhatsApp] Número original: ${customer.phone}`);
-      console.log(`[WhatsApp] Número limpio: ${cleanPhone}`);
+      console.log(`[WhatsApp] Empresa: ${companySettings.name}`);
+      console.log(`[WhatsApp] Teléfono empresa: ${companySettings.contactPhone}`);
+      console.log(`[WhatsApp] Número cliente original: ${customer.phone}`);
+      console.log(`[WhatsApp] Número cliente limpio: ${cleanPhone}`);
       console.log(`[WhatsApp] URL generada: ${whatsappUrl}`);
 
       res.json({
