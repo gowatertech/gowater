@@ -224,10 +224,10 @@ export default function MobileMap() {
     enabled: routeIds.length > 0,
   });
   
-  // Consulta para obtener datos de conductores (desactivada)
+  // Consulta para obtener datos de conductores
   const { data: driversData } = useQuery<Driver[]>({
-    queryKey: ['/api/drivers/locations'],
-    enabled: false // Desactivada porque no usamos ubicaciones reales
+    queryKey: ['/api/users/drivers'],
+    enabled: !!user
   });
 
   // Efecto para manejar el modo oscuro
@@ -431,7 +431,10 @@ export default function MobileMap() {
                 const stopCount = routeOrders.filter(o => o.deliverySequence !== null).length;
                 
                 // Obtener información del conductor si está disponible
-                const driverName = route.driverId ? `Conductor #${route.driverId}` : 'Sin asignar';
+                const driver = driversData?.find(d => d.id === route.driverId);
+                const driverName = route.driverId 
+                  ? (driver ? `Conductor #${route.driverId} - ${driver.name}` : `Conductor #${route.driverId}`)
+                  : 'Sin asignar';
                 
                 // Determinar color del estado
                 const statusColors: Record<string, string> = {
