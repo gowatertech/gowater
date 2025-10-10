@@ -67,7 +67,7 @@ interface PaymentWithDetails {
   customerId: number;
   customerName: string;
   amount: string;
-  paymentMethod: "cash" | "credit" | "card" | "transfer";
+  method: "cash" | "credit" | "card" | "transfer";
   date: string;
   reference?: string;
   notes?: string;
@@ -405,10 +405,10 @@ export default function PaymentsHistory() {
                   <td style={{padding: "8px"}}>{payment.customerName}</td>
                   <td style={{padding: "8px"}}>{payment.invoiceNumber}</td>
                   <td style={{padding: "8px"}}>
-                    {payment.paymentMethod === 'cash' ? 'Efectivo' :
-                    payment.paymentMethod === 'card' ? 'Tarjeta' :
-                    payment.paymentMethod === 'credit' ? 'Crédito' :
-                    payment.paymentMethod === 'transfer' ? 'Transferencia' : 'Otro'}
+                    {payment.method === 'cash' ? 'Efectivo' :
+                    payment.method === 'card' ? 'Tarjeta' :
+                    payment.method === 'credit' ? 'Crédito' :
+                    payment.method === 'transfer' ? 'Transferencia' : 'Otro'}
                   </td>
                   <td style={{padding: "8px", textAlign: "right"}}>{formatCurrency(payment.amount)}</td>
                 </tr>
@@ -682,7 +682,7 @@ export default function PaymentsHistory() {
                         </TableCell>
                         <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                         <TableCell className="py-1.5">
-                          <PaymentMethodBadge method={payment.paymentMethod} />
+                          <PaymentMethodBadge method={payment.method} />
                         </TableCell>
                         <TableCell className="py-1.5 truncate max-w-[150px]">{payment.notes || "-"}</TableCell>
                         <TableCell className="py-1.5 text-right font-semibold">
@@ -734,7 +734,7 @@ export default function PaymentsHistory() {
                   <CardContent className="p-3">
                     <div className="flex flex-wrap justify-between items-center mb-2">
                       <div className="font-medium text-sm">{payment.customerName}</div>
-                      <PaymentMethodBadge method={payment.paymentMethod} />
+                      <PaymentMethodBadge method={payment.method} />
                     </div>
                     
                     <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
@@ -807,7 +807,7 @@ export default function PaymentsHistory() {
                 <div>
                   <p className="text-muted-foreground text-xs">Método de Pago:</p>
                   <p className="font-medium">
-                    <PaymentMethodBadge method={selectedPayment.paymentMethod} />
+                    <PaymentMethodBadge method={selectedPayment.method} />
                   </p>
                 </div>
                 <div>
