@@ -669,9 +669,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       });
       
       console.log("✅ Respuesta de optimización:", response);
+      console.log("✅ Tipo de respuesta:", typeof response);
+      console.log("✅ Propiedades de respuesta:", Object.keys(response || {}));
       
-      // El backend devuelve una secuencia optimizada de IDs
+      // El backend devuelve una secuencia optimizada de IDs y distancia total
       if (response && response.sequence) {
+        console.log("✅ Secuencia recibida:", response.sequence);
+        console.log("✅ Distancia recibida:", response.totalDistance);
+        
         // Reorganizar los pedidos según la secuencia optimizada
         const optimizedOrders = response.sequence.map((orderId: number) => 
           selectedOrders.find(order => order.id === orderId)
@@ -692,6 +697,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         // Actualizar la secuencia optimizada
         setOptimizedSequence([companyPoint, ...optimizedOrders]);
+        console.log("✅ Secuencia optimizada actualizada con empresa:", [companyPoint, ...optimizedOrders]);
         
         // Actualizar la distancia total desde la respuesta del backend
         if (response.totalDistance && !isNaN(Number(response.totalDistance))) {
@@ -699,12 +705,20 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           console.log(`✅ Distancia optimizada guardada: ${response.totalDistance} km`);
         }
         
-        // Marcar la ruta como optimizada
+        // CRITICAL: Marcar la ruta como optimizada para habilitar el botón Continuar
         setIsRouteOptimized(true);
+        console.log("✅ isRouteOptimized establecido a TRUE");
         
         toast({
           title: "Ruta optimizada",
           description: `La ruta ha sido optimizada. Distancia estimada: ${response.totalDistance} km`
+        });
+      } else {
+        console.error("❌ Respuesta de optimización inválida - no tiene sequence:", response);
+        toast({
+          title: "Error en optimización",
+          description: "La respuesta del servidor no tiene el formato esperado",
+          variant: "destructive"
         });
       }
     } catch (error) {
