@@ -57,6 +57,26 @@ Preferred communication style: Simple, everyday language.
 - **Database Context Fix**: Removed hardcoded companyId from db-connect.js to ensure proper multi-tenant context
 - **Test Accounts**: Created test users for e2e testing (alvinleandro for company 1, conductor_test_15 for company 15, aguamoya@gmail.com for company 15)
 - **Route Details Fix**: Fixed RouteMap component to properly fetch route orders using correct queryFn endpoint
+- **Customer Location Capture System** (October 10, 2025):
+  - **Two-Method Location Capture**: Implemented dual approach for capturing customer delivery locations
+    - **Admin Map Selection**: LocationCaptureDialog component allows administrators to select customer location directly on interactive map
+    - **WhatsApp Self-Service**: Token-based public link generation for customers to share their location via WhatsApp
+  - **Security Implementation**:
+    - location_capture_tokens table with UUID tokens and 24-hour expiration
+    - Public endpoint /api/public/location/:token for unauthenticated location updates
+    - Token validation ensures security without exposing customer data
+  - **User Experience**:
+    - Customer list includes dropdown menu (MoreVertical icon) with actions: "Ver Detalles", "Capturar en Mapa", "Enviar por WhatsApp"
+    - WhatsApp link includes customer name and company context
+    - Public page (/public/location/:token) provides clean interface for customers
+    - Success confirmations and error handling for both flows
+  - **Technical Implementation**:
+    - POST /api/customers/:id/request-location generates token and WhatsApp URL
+    - GET /api/public/location/:token validates token and returns customer info
+    - POST /api/public/location/:token updates customer coordinates publicly
+    - PATCH /api/customers/:id updates customer including coordinates (auth required)
+    - LocationSelector component reused across admin dialog and public page
+    - Coordinates stored in "lat,lng" string format in customers table
 
 ## System Architecture
 

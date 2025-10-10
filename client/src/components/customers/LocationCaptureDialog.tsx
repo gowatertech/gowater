@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import LocationSelector from "@/components/map/LocationSelector";
@@ -27,6 +27,12 @@ export default function LocationCaptureDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (open) {
+      setCoordinates(currentCoordinates || "");
+    }
+  }, [open, customerId, currentCoordinates]);
+
   const handleSave = async () => {
     if (!coordinates) {
       toast({
@@ -48,7 +54,7 @@ export default function LocationCaptureDialog({
         description: "Las coordenadas del cliente se han actualizado correctamente",
       });
 
-      onOpenChange(false);
+      handleClose();
       if (onSuccess) {
         onSuccess();
       }
@@ -62,6 +68,11 @@ export default function LocationCaptureDialog({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    setCoordinates("");
   };
 
   return (
@@ -96,7 +107,7 @@ export default function LocationCaptureDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
               disabled={isSubmitting}
             >
               Cancelar

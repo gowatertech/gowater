@@ -52,6 +52,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LocationSelector } from "@/components/map/LocationSelector";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import LocationCaptureDialog from "@/components/customers/LocationCaptureDialog";
 import { 
   PlusCircle, 
   Eye, 
@@ -71,7 +79,10 @@ import {
   Home,
   User,
   ClipboardCheck,
-  ImageIcon
+  ImageIcon,
+  MoreVertical,
+  MessageSquare,
+  Map
 } from "lucide-react";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
@@ -85,6 +96,8 @@ export default function Customers() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [locationCaptureCustomer, setLocationCaptureCustomer] = useState<CustomerWithDetails | null>(null);
   const queryClient = useQueryClient();
 
   // Obtener provincias
@@ -365,6 +378,40 @@ export default function Customers() {
     setIsEditing(true);
   };
 
+  const handleCaptureOnMap = (customer: CustomerWithDetails) => {
+    setLocationCaptureCustomer(customer);
+    setLocationDialogOpen(true);
+  };
+
+  const handleSendWhatsApp = async (customer: CustomerWithDetails) => {
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/request-location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (!res.ok) {
+        throw new Error("Error al generar enlace");
+      }
+      
+      const { token, whatsappUrl } = await res.json();
+      
+      window.open(whatsappUrl, '_blank');
+      
+      toast({
+        title: "Enlace generado",
+        description: "Se abrió WhatsApp con el mensaje. El enlace expira en 24 horas.",
+      });
+    } catch (error) {
+      console.error("Error al generar enlace:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar el enlace de WhatsApp",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8">Cargando...</div>;
   }
@@ -607,19 +654,49 @@ export default function Customers() {
                                 }
                               </Badge>
                               
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 px-2 py-0 text-[10px] bg-gray-50 text-gray-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewCustomer(customer);
-                                  setActiveTab("details");
-                                }}
-                              >
-                                <Eye className="h-2.5 w-2.5 mr-0.5" />
-                                Ver
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 px-2 py-0 text-[10px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreVertical className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewCustomer(customer);
+                                      setActiveTab("details");
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Ver Detalles
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCaptureOnMap(customer);
+                                    }}
+                                  >
+                                    <Map className="h-4 w-4 mr-2" />
+                                    Capturar en Mapa
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendWhatsApp(customer);
+                                    }}
+                                  >
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Enviar por WhatsApp
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                         ))}
@@ -767,19 +844,49 @@ export default function Customers() {
                               
                               {/* Columna de Acciones */}
                               <td className="py-2.5 px-4 align-middle text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-7 px-2 py-0 text-xs bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-800"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewCustomer(customer);
-                                    setActiveTab("details");
-                                  }}
-                                >
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  Detalles
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-7 px-2 py-0 text-xs"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewCustomer(customer);
+                                        setActiveTab("details");
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Ver Detalles
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCaptureOnMap(customer);
+                                      }}
+                                    >
+                                      <Map className="h-4 w-4 mr-2" />
+                                      Capturar en Mapa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSendWhatsApp(customer);
+                                      }}
+                                    >
+                                      <MessageSquare className="h-4 w-4 mr-2" />
+                                      Enviar por WhatsApp
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </td>
                             </tr>
                           ))}
@@ -1581,6 +1688,26 @@ export default function Customers() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <LocationCaptureDialog
+        open={locationDialogOpen}
+        onOpenChange={(open) => {
+          setLocationDialogOpen(open);
+          if (!open) {
+            setLocationCaptureCustomer(null);
+          }
+        }}
+        customerId={locationCaptureCustomer?.id || 0}
+        customerName={locationCaptureCustomer?.businessname || ""}
+        currentCoordinates={locationCaptureCustomer?.coordinates || undefined}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+          toast({
+            title: "Ubicación guardada",
+            description: "La ubicación del cliente se ha actualizado correctamente",
+          });
+        }}
+      />
     </div>
   );
 }
