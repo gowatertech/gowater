@@ -450,56 +450,90 @@ export default function MobileMap() {
                 return (
                   <div
                     key={route.id}
-                    className="bg-card rounded-lg border p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
+                    className="bg-card rounded-lg border overflow-hidden shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
                     onClick={() => handleRouteSelect(route.id)}
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg mb-1">{route.name}</h3>
-                        <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
-                          <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                          <div className="flex flex-col">
-                            <span className="leading-tight">
-                              {route.driverId ? `Conductor #${route.driverId}` : 'Sin asignar'}
-                            </span>
-                            {driver && (
-                              <span className="text-xs font-medium text-foreground mt-0.5">
-                                {driver.name}
-                              </span>
-                            )}
+                    <div className="flex">
+                      {/* Información principal */}
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-1">{route.name}</h3>
+                            <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                              <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="leading-tight">
+                                  {route.driverId ? `Conductor #${route.driverId}` : 'Sin asignar'}
+                                </span>
+                                {driver && (
+                                  <span className="text-xs font-medium text-foreground mt-0.5">
+                                    {driver.name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`${statusColors[route.status] || 'bg-gray-500'} text-white text-xs px-2 py-1 rounded-full shrink-0`}>
+                            {statusLabels[route.status] || route.status}
                           </div>
                         </div>
-                      </div>
-                      <div className={`${statusColors[route.status] || 'bg-gray-500'} text-white text-xs px-2 py-1 rounded-full`}>
-                        {statusLabels[route.status] || route.status}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{stopCount} paradas</span>
-                      </div>
-                      {route.totalDistance && (
-                        <div className="flex items-center gap-1">
-                          <Navigation className="h-4 w-4" />
-                          <span>{route.totalDistance} km</span>
+                        
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{stopCount} paradas</span>
+                          </div>
+                          {route.totalDistance && (
+                            <div className="flex items-center gap-1">
+                              <Navigation className="h-4 w-4" />
+                              <span>{route.totalDistance} km</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(route.date).toLocaleDateString()}
-                      </span>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        className="h-8"
-                      >
-                        Ver mapa
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(route.date).toLocaleDateString()}
+                          </span>
+                          <span className="text-xs text-primary font-medium flex items-center gap-1">
+                            Ver detalles <ChevronRight className="h-3 w-3" />
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Mini visualización de ruta */}
+                      <div className="w-24 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent relative flex items-center justify-center border-l">
+                        <div className="flex flex-col items-center gap-2 py-4">
+                          {/* Punto de inicio (almacén) */}
+                          <div className="w-3 h-3 rounded-full bg-green-500 ring-2 ring-green-200 shadow-sm" />
+                          
+                          {/* Línea de ruta */}
+                          <div className="w-0.5 h-8 bg-gradient-to-b from-green-500 via-primary to-red-500" />
+                          
+                          {/* Indicador de paradas intermedias */}
+                          {stopCount > 0 && (
+                            <div className="flex flex-col items-center gap-1">
+                              {[...Array(Math.min(stopCount, 3))].map((_, i) => (
+                                <div key={i} className="w-2 h-2 rounded-full bg-primary" />
+                              ))}
+                              {stopCount > 3 && (
+                                <span className="text-[10px] text-muted-foreground font-medium">
+                                  +{stopCount - 3}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Línea de ruta continuación */}
+                          <div className="w-0.5 h-8 bg-gradient-to-b from-primary to-red-500" />
+                          
+                          {/* Punto final */}
+                          <div className="w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-200 shadow-sm" />
+                        </div>
+                        
+                        {/* Ícono de mapa en el fondo */}
+                        <MapPin className="absolute bottom-2 right-2 h-8 w-8 text-primary/20" />
+                      </div>
                     </div>
                   </div>
                 );
