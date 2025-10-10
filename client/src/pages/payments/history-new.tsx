@@ -595,11 +595,11 @@ export default function PaymentsHistory() {
               <SelectTrigger className="w-full h-9 text-sm">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  <span>{filters.method ? `Método: ${filters.method}` : "Método de Pago"}</span>
+                  <span>{filters.method ? `Método: ${filters.method === 'cash' ? 'Efectivo' : filters.method === 'card' ? 'Tarjeta' : filters.method === 'credit' ? 'Crédito' : 'Transferencia'}` : "Método de Pago"}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="">Todos</SelectItem>
                 <SelectItem value="cash">Efectivo</SelectItem>
                 <SelectItem value="card">Tarjeta</SelectItem>
                 <SelectItem value="credit">Crédito</SelectItem>
