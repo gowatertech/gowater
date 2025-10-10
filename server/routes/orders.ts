@@ -616,7 +616,7 @@ ordersRouter.patch("/api/orders/:orderId/products", authMiddleware, async (req: 
         
         const insertQuery = `
           INSERT INTO order_items (
-            order_id, product_id, quantity, unit_price, total, company_id
+            order_id, product_id, quantity, price, total, company_id
           ) VALUES (
             $1, $2, $3, $4, $5, $6
           )
