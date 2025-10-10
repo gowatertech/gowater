@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, RotateCw, Target } from "lucide-react";
+import { AlertTriangle, RotateCw, Target, MapPin, User, Navigation, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline } from 'react-leaflet';
@@ -172,6 +172,10 @@ export default function MobileMap() {
   const { user } = useCurrentUser();
   const { companyName, settings } = useCompanySettings(); // Usamos el hook para obtener datos de la empresa
   
+  // Estado para controlar vista de lista vs mapa
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
+  
   // Obtener coordenadas del almacén desde settings (reactivo)
   const warehousePosition: [number, number] | null = 
     settings?.latitude && settings?.longitude
@@ -280,6 +284,15 @@ export default function MobileMap() {
     }
   };
 
+  // Filtrar rutas según selección
+  const displayedRoutes = useMemo(() => {
+    if (!activeRoutes) return [];
+    if (selectedRouteId) {
+      return activeRoutes.filter(r => r.id === selectedRouteId);
+    }
+    return activeRoutes;
+  }, [activeRoutes, selectedRouteId]);
+
   // Crear una colección de todos los puntos para el ajuste automático del zoom
   const allMapPoints = useMemo(() => {
     const points: [number, number][] = [
@@ -287,10 +300,10 @@ export default function MobileMap() {
       mapCenter
     ];
     
-    // Añadir todos los puntos de todas las rutas activas usando las coordenadas de las órdenes
-    if (activeRoutes && activeRoutes.length > 0) {
+    // Añadir todos los puntos de las rutas mostradas usando las coordenadas de las órdenes
+    if (displayedRoutes && displayedRoutes.length > 0) {
       let validStopsCount = 0;
-      activeRoutes.forEach(route => {
+      displayedRoutes.forEach(route => {
         const routeOrders = allRouteOrders[route.id] || [];
         routeOrders.forEach(order => {
           if (order.coordinates) {
@@ -302,11 +315,11 @@ export default function MobileMap() {
           }
         });
       });
-      console.log(`[Mapa] Rutas activas: ${activeRoutes.length}, Paradas válidas (desde órdenes): ${validStopsCount}`);
+      console.log(`[Mapa] Rutas mostradas: ${displayedRoutes.length}, Paradas válidas (desde órdenes): ${validStopsCount}`);
     }
     
     return points;
-  }, [activeRoutes, allRouteOrders, mapCenter]);
+  }, [displayedRoutes, allRouteOrders, mapCenter]);
 
   // Si está cargando
   if (loadingRoutes) {
@@ -362,23 +375,140 @@ export default function MobileMap() {
     );
   }
 
-  // Renderizar el mapa
+  // Función para seleccionar una ruta y abrir el mapa
+  const handleRouteSelect = (routeId: number) => {
+    setSelectedRouteId(routeId);
+    setViewMode('map');
+  };
+
+  // Función para volver a la lista
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedRouteId(null);
+  };
+
+  // Renderizar vista de lista de rutas
+  if (viewMode === 'list') {
+    return (
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
+        <MobileHeader 
+          title="Rutas Activas" 
+          showBackButton={true} 
+          onBackButtonClick={() => setLocation("/mobile-app")}
+          darkMode={darkMode}
+          companyName={companyName}
+        />
+        <main className="flex-1 p-4 pb-20">
+          {(!activeRoutes || activeRoutes.length === 0) ? (
+            <div className="text-center py-10">
+              <MapPin className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h2 className="text-xl font-semibold mb-2">No hay rutas activas</h2>
+              <p className="text-muted-foreground mb-6">
+                No hay rutas pendientes o en progreso en este momento.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setLocation("/mobile-app")}
+              >
+                Volver al inicio
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activeRoutes.map((route) => {
+                const routeOrders = allRouteOrders[route.id] || [];
+                const stopCount = routeOrders.filter(o => o.deliverySequence !== null).length;
+                
+                // Obtener información del conductor si está disponible
+                const driverName = route.driverId ? `Conductor #${route.driverId}` : 'Sin asignar';
+                
+                // Determinar color del estado
+                const statusColors: Record<string, string> = {
+                  pending: 'bg-yellow-500',
+                  in_progress: 'bg-blue-500',
+                  paused: 'bg-orange-500',
+                  completed: 'bg-green-500'
+                };
+                const statusLabels: Record<string, string> = {
+                  pending: 'Pendiente',
+                  in_progress: 'En Progreso',
+                  paused: 'Pausada',
+                  completed: 'Completada'
+                };
+                
+                return (
+                  <div
+                    key={route.id}
+                    className="bg-card rounded-lg border p-4 shadow-sm active:scale-[0.98] transition-transform cursor-pointer"
+                    onClick={() => handleRouteSelect(route.id)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-1">{route.name}</h3>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {driverName}
+                        </p>
+                      </div>
+                      <div className={`${statusColors[route.status] || 'bg-gray-500'} text-white text-xs px-2 py-1 rounded-full`}>
+                        {statusLabels[route.status] || route.status}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        <span>{stopCount} paradas</span>
+                      </div>
+                      {route.totalDistance && (
+                        <div className="flex items-center gap-1">
+                          <Navigation className="h-4 w-4" />
+                          <span>{route.totalDistance} km</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(route.date).toLocaleDateString()}
+                      </span>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="h-8"
+                      >
+                        Ver mapa
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+        <MobileFooter darkMode={darkMode} />
+      </div>
+    );
+  }
+
+  // Renderizar el mapa (viewMode === 'map')
   return (
     <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
       <MobileHeader 
-        title="Mapa en vivo" 
+        title={selectedRouteId ? displayedRoutes[0]?.name || "Mapa" : "Mapa en vivo"} 
         showBackButton={true} 
-        onBackButtonClick={() => setLocation("/mobile-app")}
+        onBackButtonClick={handleBackToList}
         darkMode={darkMode}
         companyName={companyName}
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
           {/* Mensaje informativo si no hay rutas activas */}
-          {(!activeRoutes || activeRoutes.length === 0) && (
+          {(!displayedRoutes || displayedRoutes.length === 0) && (
             <div className="absolute top-4 left-4 right-4 z-[999] bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded-lg p-3">
               <p className="text-sm text-blue-900 dark:text-blue-100">
-                📍 No hay rutas activas en este momento
+                📍 No hay información de ruta disponible
               </p>
             </div>
           )}
@@ -427,8 +557,8 @@ export default function MobileMap() {
                 </Marker>
               )}
               
-              {/* Renderizar rutas activas y sus paradas */}
-              {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {
+              {/* Renderizar rutas mostradas y sus paradas */}
+              {displayedRoutes && displayedRoutes.length > 0 && displayedRoutes.map((route, routeIndex) => {
                 // Obtener las órdenes de esta ruta
                 const routeOrders = allRouteOrders[route.id] || [];
                 
