@@ -4085,7 +4085,24 @@ export async function registerRoutes(router: express.Router) {
       
       console.log("🏢 Usando companyId:", companyId);
 
-      // Preparar datos del pedido
+      // Obtener el pool de conexiones antes de usarlo
+      const { pool } = await import('./db');
+
+      // Obtener coordenadas del cliente para copiarlas al pedido
+      const customerQuery = `
+        SELECT coordinates FROM customers 
+        WHERE id = $1 AND company_id = $2
+      `;
+      const customerResult = await pool.query(customerQuery, [parseInt(req.body.customerId), companyId]);
+      const customerCoordinates = customerResult.rows[0]?.coordinates || null;
+      
+      if (customerCoordinates) {
+        console.log(`📍 Coordenadas del cliente obtenidas: ${customerCoordinates}`);
+      } else {
+        console.warn(`⚠️ Cliente ${req.body.customerId} no tiene coordenadas registradas`);
+      }
+
+      // Preparar datos del pedido (incluyendo coordenadas)
       const orderData = {
         customerId: parseInt(req.body.customerId),
         total: req.body.total,
@@ -4094,6 +4111,7 @@ export async function registerRoutes(router: express.Router) {
         date: new Date(req.body.date || new Date()).toISOString(),
         routeId: req.body.routeId || null,
         notes: req.body.notes || "",
+        deliveryCoordinates: customerCoordinates,
         companyId: companyId
       };
 
@@ -4109,20 +4127,20 @@ export async function registerRoutes(router: express.Router) {
       console.log("📌 date:", orderData.date);
       console.log("📌 route_id:", orderData.routeId);
       console.log("📌 notes:", orderData.notes);
+      console.log("📌 delivery_coordinates:", orderData.deliveryCoordinates);
       
       // Iniciar transacción
-      const { pool } = await import('./db');
       const client = await pool.connect();
       await client.query('BEGIN');
       console.log("🔄 Transacción iniciada");
       
-      // 1. Crear la orden
+      // 1. Crear la orden (con coordenadas de entrega)
       const orderQuery = `
         INSERT INTO orders (
           company_id, customer_id, total, status, payment_method, date, 
-          route_id, notes, cash_collected, driver_commission, assistant_commission
+          route_id, notes, delivery_coordinates, cash_collected, driver_commission, assistant_commission
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         ) RETURNING *
       `;
       
@@ -4135,6 +4153,7 @@ export async function registerRoutes(router: express.Router) {
         orderData.date,
         orderData.routeId,
         orderData.notes,
+        orderData.deliveryCoordinates,  // Coordenadas copiadas del cliente
         '0.00',  // cash_collected
         '0.00',  // driver_commission
         '0.00'   // assistant_commission

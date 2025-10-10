@@ -289,6 +289,20 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       throw new Error("ID de cliente inválido");
     }
     
+    // Obtener coordenadas del cliente para copiarlas al pedido
+    const customerQuery = `
+      SELECT coordinates FROM customers 
+      WHERE id = $1 AND company_id = $2
+    `;
+    const customerResult = await client.query(customerQuery, [customerId, companyId]);
+    const customerCoordinates = customerResult.rows[0]?.coordinates || null;
+    
+    if (customerCoordinates) {
+      console.log(`📍 Coordenadas del cliente obtenidas: ${customerCoordinates}`);
+    } else {
+      console.warn(`⚠️ Cliente ${customerId} no tiene coordenadas registradas`);
+    }
+    
     const orderData = {
       customerId,
       total: req.body.total,
@@ -297,18 +311,19 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       date: new Date(req.body.date || new Date()).toISOString(),
       routeId: req.body.routeId || null,
       notes: req.body.notes || "",
+      deliveryCoordinates: customerCoordinates,
       companyId: companyId
     };
     
     console.log("🧾 Datos de orden a insertar:", orderData);
     
-    // 1. Crear la orden
+    // 1. Crear la orden (con coordenadas de entrega)
     const orderQuery = `
       INSERT INTO orders (
         company_id, customer_id, total, status, payment_method, date, 
-        route_id, notes, cash_collected, driver_commission, assistant_commission
+        route_id, notes, delivery_coordinates, cash_collected, driver_commission, assistant_commission
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
       ) RETURNING *
     `;
     
@@ -321,6 +336,7 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       orderData.date,
       orderData.routeId,
       orderData.notes,
+      orderData.deliveryCoordinates,  // Coordenadas copiadas del cliente
       '0.00',  // cash_collected
       '0.00',  // driver_commission
       '0.00'   // assistant_commission
