@@ -172,17 +172,14 @@ export default function MobileMap() {
   const { user } = useCurrentUser();
   const { companyName, settings } = useCompanySettings(); // Usamos el hook para obtener datos de la empresa
   
-  // Centro del mapa basado en los ajustes de la compañía o valores predeterminados
-  const [mapCenter] = useState<[number, number]>(() => {
-    if (settings?.latitude && settings?.longitude) {
-      const lat = parseFloat(settings.latitude);
-      const lng = parseFloat(settings.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return [lat, lng];
-      }
-    }
-    return [19.0, -70.0]; // Valor predeterminado (centro de Rep. Dominicana)
-  });
+  // Obtener coordenadas del almacén desde settings (reactivo)
+  const warehousePosition: [number, number] | null = 
+    settings?.latitude && settings?.longitude
+      ? [parseFloat(settings.latitude), parseFloat(settings.longitude)]
+      : null;
+  
+  // Centro del mapa basado en el almacén o valor predeterminado
+  const mapCenter: [number, number] = warehousePosition || [19.0, -70.0];
   
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
@@ -403,19 +400,31 @@ export default function MobileMap() {
               <LocationMarker />
               
               {/* Marcador permanente para el almacén principal */}
-              <Marker 
-                position={mapCenter}
-                icon={L.divIcon({
-                  className: 'custom-div-icon',
-                  html: `<div class="bg-purple-600 text-white w-10 h-10 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
-                          <div class="h-8 w-8 flex items-center justify-center font-bold">
-                            0
-                          </div>
-                        </div>`,
-                  iconSize: [40, 40],
-                  iconAnchor: [20, 20],
-                })}
-              />
+              {warehousePosition && (
+                <Marker 
+                  position={warehousePosition}
+                  icon={L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="bg-green-600 text-white w-10 h-10 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
+                            <div class="h-8 w-8 flex items-center justify-center font-bold">
+                              🏢
+                            </div>
+                          </div>`,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20],
+                  })}
+                >
+                  <Popup>
+                    <div className="min-w-[180px]">
+                      <h3 className="font-bold text-sm mb-1">Almacén</h3>
+                      <p className="text-xs">{settings?.name || companyName || 'Punto de partida'}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {warehousePosition[0].toFixed(6)}, {warehousePosition[1].toFixed(6)}
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
               
               {/* Renderizar rutas activas y sus paradas */}
               {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {

@@ -8,6 +8,24 @@ GoWater is a comprehensive multi-tenant water delivery management system designe
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### October 10, 2025 - Mobile Map Warehouse Position Fix
+- **Fixed warehouse marker inconsistency** between web and mobile maps
+  - **Root cause**: Mobile map used `useState` with initial value that locked coordinates before `settings` data loaded from API
+  - **Solution**: Changed to reactive calculation like web map: `warehousePosition = settings?.latitude && settings?.longitude ? [lat, lng] : null`
+  - Warehouse marker now displays at correct company settings coordinates (e.g., latitude: 19.075380, longitude: -70.128822 for AGUA HARRIS)
+  - Improved warehouse marker design: Changed from purple circle with "0" to green circle with 🏢 emoji to match web map aesthetic
+  - Added informative Popup to warehouse marker displaying:
+    - Title: "Almacén"
+    - Company name from settings
+    - Exact GPS coordinates with 6 decimal precision
+- **Customer Information Popups on Mobile Map**
+  - Added interactive Popups to delivery stop markers
+  - Each popup displays: route name, stop number, customer name, full address, and order total
+  - Shows count of additional orders when multiple deliveries exist at same stop
+  - Mobile map now has information parity with web timeline view
+
 ## System Architecture
 
 ### Multi-Tenancy Design
