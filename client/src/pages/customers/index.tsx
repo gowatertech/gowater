@@ -98,6 +98,7 @@ export default function Customers() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [locationCaptureCustomer, setLocationCaptureCustomer] = useState<CustomerWithDetails | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   // Obtener provincias
@@ -347,6 +348,7 @@ export default function Customers() {
   };
 
   const handleViewCustomer = (customer: CustomerWithDetails) => {
+    setOpenDropdownId(null);
     setSelectedCustomer(customer);
     setSelectedProvinceId(customer.provinceid);
     setIsEditing(false);
@@ -379,11 +381,13 @@ export default function Customers() {
   };
 
   const handleCaptureOnMap = (customer: CustomerWithDetails) => {
+    setOpenDropdownId(null);
     setLocationCaptureCustomer(customer);
     setLocationDialogOpen(true);
   };
 
   const handleSendWhatsApp = async (customer: CustomerWithDetails) => {
+    setOpenDropdownId(null);
     try {
       const res = await fetch(`/api/customers/${customer.id}/request-location`, {
         method: "POST",
@@ -654,7 +658,10 @@ export default function Customers() {
                                 }
                               </Badge>
                               
-                              <DropdownMenu>
+                              <DropdownMenu 
+                                open={openDropdownId === customer.id} 
+                                onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
+                              >
                                 <DropdownMenuTrigger asChild>
                                   <Button 
                                     variant="ghost" 
@@ -844,7 +851,10 @@ export default function Customers() {
                               
                               {/* Columna de Acciones */}
                               <td className="py-2.5 px-4 align-middle text-right">
-                                <DropdownMenu>
+                                <DropdownMenu 
+                                  open={openDropdownId === customer.id} 
+                                  onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
+                                >
                                   <DropdownMenuTrigger asChild>
                                     <Button 
                                       variant="ghost" 
