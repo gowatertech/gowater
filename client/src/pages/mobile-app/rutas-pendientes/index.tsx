@@ -271,10 +271,18 @@ export default function MobilePendingRoutes() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      credentials: 'include'
     })
-    .then(response => response.json())
+    .then(response => {
+      console.log("Respuesta del servidor:", response.status, response.statusText);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
     .then(data => {
+      console.log("Datos recibidos:", data);
       if (data.success) {
         console.log(`Ruta ${routeId} iniciada correctamente via API`);
         
