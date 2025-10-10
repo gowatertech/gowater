@@ -59,6 +59,7 @@ import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
 import RegisterInterestPage from "@/pages/landing/register-interest";
+import PublicLocationCapture from "@/pages/public/LocationCapture";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -223,7 +224,7 @@ function Router() {
   const CompanyLogin = lazy(() => import("@/pages/auth/login"));
 
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes") && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
@@ -232,6 +233,7 @@ function Router() {
         <Route path="/contact" component={ContactPage} />
         <Route path="/register-interest" component={RegisterInterestPage} />
         <Route path="/test-routes" component={TestRoutesPage} />
+        <Route path="/public/location/:token" component={PublicLocationCapture} />
         <Route path="/auth/login">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <CompanyLogin />
