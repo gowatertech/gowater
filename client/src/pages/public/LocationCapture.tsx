@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import LocationSelector from "@/components/map/LocationSelector";
+import { LocationSelector } from "@/components/map/LocationSelector";
 import { MapPin, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface TokenData {
