@@ -480,8 +480,8 @@ export default function DriverRoute() {
   
   // Editar pedido
   const handleEditOrder = (stop: RouteStop) => {
-    setCurrentStopForEdit(stop);
-    setShowEditOrderDialog(true);
+    const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}&edit=true` : '?edit=true';
+    setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
   };
   
   // Ver detalles del pedido

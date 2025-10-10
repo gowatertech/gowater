@@ -97,6 +97,7 @@ export default function DeliveryDetails() {
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [autoEnterEditMode, setAutoEnterEditMode] = useState(false);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -105,6 +106,7 @@ export default function DeliveryDetails() {
     // Primero intentamos obtener de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const routeIdFromUrl = urlParams.get('routeId');
+    const editMode = urlParams.get('edit');
     
     if (routeIdFromUrl) {
       setRouteId(parseInt(routeIdFromUrl));
@@ -115,7 +117,21 @@ export default function DeliveryDetails() {
         setRouteId(parseInt(savedRouteId));
       }
     }
+    
+    // Si el parámetro edit=true está presente, marcar para auto-entrar en modo edición
+    if (editMode === 'true') {
+      setAutoEnterEditMode(true);
+    }
   }, []);
+  
+  // Auto-activar modo edición cuando el delivery esté cargado
+  useEffect(() => {
+    if (autoEnterEditMode && delivery && !isLoading) {
+      setEditedProducts([...delivery.products]);
+      setIsEditing(true);
+      setAutoEnterEditMode(false); // Reset flag
+    }
+  }, [autoEnterEditMode, delivery, isLoading]);
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
