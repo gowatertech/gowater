@@ -129,3 +129,14 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
 - **Backend endpoints remain unchanged**: All bottle return logic already existed
 - **The fix was purely about data visibility**: Ensuring mobile API returns the necessary product properties
 - **Type safety**: Dialog properly handles missing/undefined properties with fallback values
+
+#### Duplicate Endpoint Fix (Critical Bug Fix) - October 11, 2025
+- **Fixed `isReturnable` still showing as undefined** despite mobile API fix
+  - **Root cause**: Duplicate `/api/orders/:id` endpoint in `server/routes.ts` was intercepting requests before the updated `ordersRouter`
+  - **Impact**: Mobile delivery details page received `bottleDeposit` but `isReturnable` was undefined, preventing bottle return button from showing
+  - **Solution**: Updated the products query in `server/routes.ts` (line 4220) to include `is_returnable as "isReturnable"`
+  - **Technical details**:
+    - `companyApiRouter` is mounted before `ordersRouter` in Express middleware chain
+    - Requests to `/api/orders/:id` were satisfied by legacy handler, not the new router
+    - Both handlers now consistently return `isReturnable` property
+  - **Verified**: E2E test confirmed `isReturnable:true` in frontend logs and bottle return dialog opens successfully

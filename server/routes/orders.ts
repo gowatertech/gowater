@@ -138,28 +138,30 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     `;
     
     const itemsResult = await pool.query(itemsQuery, [orderId, companyId]);
-    console.log(`GET /api/orders/${orderId} - Encontrados ${itemsResult.rows.length} items`);
+    console.log(`GET /api/orders/${orderId} - Encontrados ${itemsResult.rows.length} items para compañía ${companyId}`);
     
     // Formatear la respuesta
     const order = orderResult.rows[0];
     
     // Formatear los items para que incluyan información detallada del producto
-    const items = itemsResult.rows.map(item => ({
-      id: item.id,
-      orderId: item.order_id,
-      productId: item.product_id,
-      quantity: item.quantity,
-      unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
-      total: item.total,
-      product: {
-        id: item.product_id,
-        name: item.product_name,
-        price: item.product_price,
-        imageUrl: item.product_icon,
-        bottleDeposit: item.deposit_amount,
-        isReturnable: item.is_returnable
-      }
-    }));
+    const items = itemsResult.rows.map(item => {
+      return {
+        id: item.id,
+        orderId: item.order_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
+        total: item.total,
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          imageUrl: item.product_icon,
+          bottleDeposit: item.deposit_amount || '0.00',
+          isReturnable: item.is_returnable === true || item.is_returnable === 't' || item.is_returnable === 'true'
+        }
+      };
+    });
     
     const formattedOrder = {
       id: order.id,
@@ -232,22 +234,25 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
     console.log(`✅ Encontrados ${result.rows.length} items para la orden #${orderId}`);
     
     // Formatear respuesta para incluir información detallada del producto
-    const formattedItems = result.rows.map(item => ({
-      id: item.id,
-      orderId: item.order_id,
-      productId: item.product_id,
-      quantity: item.quantity,
-      unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
-      total: item.total,
-      product: {
-        id: item.product_id,
-        name: item.product_name,
-        price: item.product_price,
-        imageUrl: item.product_icon,
-        bottleDeposit: item.deposit_amount,
-        isReturnable: item.is_returnable
-      }
-    }));
+    const formattedItems = result.rows.map(item => {
+      console.log(`🔍 DEBUG /items - Item ${item.id}: is_returnable=${item.is_returnable}, deposit_amount=${item.deposit_amount}`);
+      return {
+        id: item.id,
+        orderId: item.order_id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
+        total: item.total,
+        product: {
+          id: item.product_id,
+          name: item.product_name,
+          price: item.product_price,
+          imageUrl: item.product_icon,
+          bottleDeposit: item.deposit_amount || '0.00',
+          isReturnable: item.is_returnable === true || item.is_returnable === 't' || item.is_returnable === 'true'
+        }
+      };
+    });
     
     res.json(formattedItems);
   } catch (error) {

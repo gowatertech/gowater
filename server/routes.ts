@@ -4213,7 +4213,8 @@ export async function registerRoutes(router: express.Router) {
               SELECT 
                 id, name, price,
                 icon as "imageUrl",
-                deposit_amount as "bottleDeposit"
+                deposit_amount as "bottleDeposit",
+                is_returnable as "isReturnable"
               FROM products
               WHERE id = ANY($1) AND company_id = $2
             `;
