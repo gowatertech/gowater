@@ -191,3 +191,26 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
       - Upgraded to v3 with `skipWaiting()` and `clients.claim()`
       - Forces immediate service worker activation
   - **Fix verification**: Guard prevents duplicate calls, sync completes without loops
+
+#### Mobile Session Authentication Fix (Critical Bug Fix) - October 11, 2025
+- **Fixed infinite loop verification and improved mobile API authentication**
+  - **Context**: While verifying the infinite loop fix, discovered mobile API wasn't reading `companyId` from session correctly
+  - **Type safety improvement**:
+    - **Location**: `client/src/pages/mobile-app/components/MobileHeader.tsx`
+    - Fixed user type mismatch: changed from local `User | undefined` to imported `User | null` from `@/hooks/use-current-user`
+    - Ensures type consistency across mobile components
+  - **Middleware enhancement**:
+    - **Location**: `server/middleware/mobile-tenant.middleware.ts`
+    - Enhanced `mobileApiTenantMiddleware` to read `companyId` from multiple sources:
+      1. `req.user.companyId` (Passport authentication)
+      2. `req.session.companyId` (direct session property)
+      3. **NEW:** `req.session.user.companyId` (mobile session-based auth)
+      4. Query params or body
+    - **Impact**: Mobile API now works correctly with session-based authentication
+    - Previously only checked `req.session.companyId`, missing mobile auth pattern
+  - **Infinite loop verification**: E2E test confirmed no loops exist
+    - Page loads successfully without stuck loading spinner
+    - Sync button works without triggering duplicate fetches
+    - Reentrancy guard (`isFetchingRef`) prevents concurrent loads
+    - Console logs show controlled, single execution pattern
+  - **Status**: Infinite loop issue RESOLVED and verified
