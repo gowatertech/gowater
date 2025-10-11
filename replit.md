@@ -46,6 +46,18 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
 - **Testing infrastructure**: E2E tests via Playwright, test session endpoint (`/api/test-session/login`) for development
 
 ### Recent Improvements
+#### Users Page - Mobile-First Redesign (October 2025)
+- **Modern StatCards**: Four statistics cards with colored icon backgrounds (Total Usuarios, Administradores, Conductores, Asistentes)
+- **Responsive Layout**: Card-based view for mobile (<768px), table view for desktop (≥768px)
+- **Enhanced Search**: Real-time search across name, username, email, phone, and role
+- **Mobile Cards**: Rich user cards with role icons, contact information, and action dropdowns
+- **Desktop Table**: Clean table with user data, role badges, and contact information
+- **Accessibility Compliance**:
+  - All icon-only buttons have aria-labels ("Limpiar búsqueda", "Más acciones")
+  - Data-testid attributes on all interactive elements
+  - Role-specific icons for visual identification (Shield for admin, Truck for driver, HeartPulse for assistant)
+- **Route**: `/users`
+
 #### Customers Page - Mobile-First Redesign (October 2025)
 - **Modern StatCards**: Four statistics cards with colored icon backgrounds (Total Clientes, Crédito Total, Crédito Promedio, Provincias)
 - **Responsive Layout**: Card-based view for mobile (<768px), table view for desktop (≥768px)
