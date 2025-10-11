@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import { 
@@ -64,6 +64,9 @@ export default function DriverDeliveries() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("pendientes");
   
+  // Guard para evitar llamadas concurrentes a loadDeliveries
+  const isFetchingRef = useRef(false);
+  
   // Alternar modo oscuro
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -72,25 +75,38 @@ export default function DriverDeliveries() {
   };
 
   // Sincronizar datos
-  const syncData = () => {
+  const syncData = async () => {
+    console.log('[Entregas] syncData llamado desde MobileHeader');
+    
     toast({
       title: "Sincronizando entregas",
       description: "Actualizando información..."
     });
     
-    // Aquí se haría la llamada a la API para sincronizar datos
-    setTimeout(() => {
-      loadDeliveries();
+    try {
+      // Llamar directamente a loadDeliveries (sin setTimeout para evitar bucles)
+      await loadDeliveries();
+      
       toast({
         title: "Entregas actualizadas",
         description: "Los datos han sido actualizados",
         variant: "default"
       });
-    }, 1000);
+    } catch (error) {
+      // El error ya se maneja en loadDeliveries, no mostrar toast de éxito
+      console.error('[Entregas] Error en syncData:', error);
+    }
   };
 
   // Cargar datos de entregas usando el endpoint optimizado
   const loadDeliveries = async () => {
+    // Guard: evitar llamadas concurrentes
+    if (isFetchingRef.current) {
+      console.log('[Entregas] Ya hay una carga en progreso, ignorando llamada duplicada');
+      return;
+    }
+    
+    isFetchingRef.current = true;
     console.log('[Entregas] Iniciando carga de entregas...');
     setIsLoading(true);
     
@@ -141,6 +157,7 @@ export default function DriverDeliveries() {
     } finally {
       console.log('[Entregas] Finalizando carga, setIsLoading(false)');
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   };
 

@@ -166,3 +166,28 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
     - After: 1 request regardless of order count
     - ~98% reduction in API calls
   - **Verified**: E2E test confirmed single API call, no refresh loop, deliveries display correctly
+
+#### Sync Loop Fix - Mobile Deliveries (Critical Bug Fix) - October 11, 2025
+- **Fixed persistent infinite refresh loop** caused by duplicate sync triggers
+  - **Root cause**: Nested sync callbacks creating infinite loop:
+    1. `MobileHeader.handleSync()` calls `forceSyncNow()` (IndexedDB sync)
+    2. Then calls `onSyncData()` which is `syncData` from deliveries page
+    3. `syncData` had `setTimeout(() => loadDeliveries())` causing duplicate fetch
+    4. `syncData` was NOT async, causing timing issues with MobileHeader's await
+  - **Impact**: 
+    - User reported "data loads and reloads in loop, can't do anything"
+    - Multiple concurrent `loadDeliveries()` calls creating race conditions
+    - Service Worker v1/v2 cache exacerbated the problem
+  - **Solution** (3-part fix):
+    1. **Made `syncData` async**: Properly returns Promise for MobileHeader
+    2. **Removed `setTimeout`**: Directly awaits `loadDeliveries()` to avoid duplication
+    3. **Added reentrancy guard**: `useRef(isFetching)` prevents concurrent `loadDeliveries()` calls
+  - **Technical changes**:
+    - `client/src/pages/mobile-app/entregas/index.tsx`:
+      - Added `isFetchingRef` to guard against concurrent loads
+      - Made `syncData` async and removed setTimeout
+      - Added detailed console logs for debugging: `[Entregas] ...`
+    - `client/public/sw.js`:
+      - Upgraded to v3 with `skipWaiting()` and `clients.claim()`
+      - Forces immediate service worker activation
+  - **Fix verification**: Guard prevents duplicate calls, sync completes without loops
