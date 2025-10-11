@@ -24,28 +24,38 @@ export function mobileAuthMiddleware(req: Request, res: Response, next: NextFunc
 export function mobileApiTenantMiddleware(req: Request, res: Response, next: NextFunction) {
   let companyId: number | undefined;
   
-  // Prioridad 1: Obtener companyId del usuario autenticado
+  // Prioridad 1: Obtener companyId del usuario autenticado (Passport)
   if (req.user) {
     if ('companyId' in req.user && req.user.companyId) {
       companyId = Number(req.user.companyId);
-      console.log("MobileAPI - Usando companyId del usuario:", companyId);
+      console.log("MobileAPI - Usando companyId del usuario (Passport):", companyId);
     } else if ('company_id' in req.user && (req.user as any).company_id) {
       // Soporte para company_id (DB) vs companyId (schema)
       companyId = Number((req.user as any).company_id);
-      console.log("MobileAPI - Usando company_id del usuario:", companyId);
+      console.log("MobileAPI - Usando company_id del usuario (Passport):", companyId);
     }
   } 
-  // Prioridad 2: Obtener companyId de la sesión
-  else if (req.session && req.session.companyId) {
-    companyId = req.session.companyId;
-    console.log("MobileAPI - Usando companyId de la sesión:", companyId);
-  } 
+  
+  // Prioridad 2: Obtener companyId de la sesión directamente
+  if (!companyId && req.session) {
+    if (req.session.companyId) {
+      companyId = req.session.companyId;
+      console.log("MobileAPI - Usando companyId de req.session.companyId:", companyId);
+    } 
+    // También verificar req.session.user.companyId para autenticación móvil
+    else if (req.session.user && req.session.user.companyId) {
+      companyId = Number(req.session.user.companyId);
+      console.log("MobileAPI - Usando companyId de req.session.user.companyId:", companyId);
+    }
+  }
+  
   // Prioridad 3: Obtener companyId de los parámetros de consulta o cuerpo
-  else if (req.query.companyId) {
+  if (!companyId && req.query.companyId) {
     companyId = Number(req.query.companyId);
     console.log("MobileAPI - Usando companyId de los parámetros de consulta:", companyId);
   } 
-  else if (req.body && req.body.companyId) {
+  
+  if (!companyId && req.body && req.body.companyId) {
     companyId = Number(req.body.companyId);
     console.log("MobileAPI - Usando companyId del cuerpo de la solicitud:", companyId);
   }

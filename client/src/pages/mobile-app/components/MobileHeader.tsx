@@ -3,15 +3,7 @@ import { ArrowLeft, Bell, Sun, Moon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SyncIndicator, SyncStatusModal } from "@/components/sync";
 import { forceSyncNow } from "@/lib/syncService";
-
-// Definimos el tipo User internamente para evitar problemas de importación
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'admin' | 'driver' | 'assistant' | 'user';
-  createdAt: string;
-}
+import { User } from "@/hooks/use-current-user";
 
 interface MobileHeaderProps {
   title?: string;
@@ -21,7 +13,7 @@ interface MobileHeaderProps {
   onToggleDarkMode?: () => void;
   companyName?: string;
   // Propiedades para la versión alternativa
-  user?: User;
+  user?: User | null;
   onSyncData?: () => Promise<void>;
 }
 
