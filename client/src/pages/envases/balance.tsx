@@ -241,6 +241,7 @@ export default function BalanceEnvases() {
               disabled={isLoading}
               size="sm"
               data-testid="button-refresh"
+              aria-label="Actualizar balance"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="hidden md:inline ml-2">{t("Actualizar")}</span>
@@ -261,6 +262,8 @@ export default function BalanceEnvases() {
                     variant="outline" 
                     size="sm"
                     className="flex-shrink-0"
+                    aria-label="Reintentar carga de datos"
+                    data-testid="button-retry-load"
                   >
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -323,6 +326,8 @@ export default function BalanceEnvases() {
                     <button
                       onClick={() => setSearchQuery("")}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      aria-label="Limpiar búsqueda"
+                      data-testid="button-clear-search"
                     >
                       <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                     </button>
@@ -377,6 +382,7 @@ export default function BalanceEnvases() {
                     size="sm"
                     onClick={() => setSearchQuery("")}
                     className="mt-4"
+                    data-testid="button-clear-search-empty"
                   >
                     Limpiar búsqueda
                   </Button>
