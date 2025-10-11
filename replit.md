@@ -140,3 +140,29 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
     - Requests to `/api/orders/:id` were satisfied by legacy handler, not the new router
     - Both handlers now consistently return `isReturnable` property
   - **Verified**: E2E test confirmed `isReturnable:true` in frontend logs and bottle return dialog opens successfully
+
+#### Infinite Loop Fix - Mobile Deliveries Page (Critical Bug Fix) - October 11, 2025
+- **Fixed infinite refresh loop** in mobile deliveries list page causing app to be unusable
+  - **Root cause**: N+1 query pattern where the page made 2 requests per order (details + bottle-returns)
+    - With 23 orders = 46 simultaneous requests
+    - This created massive network traffic and continuous refresh cycles
+  - **Impact**: 
+    - Mobile app continuously refreshed/updated
+    - Hundreds of repeated API calls
+    - App unusable in production - clicking any option returned to start and kept refreshing
+  - **Solution**: Created optimized endpoint `/api/mobile/deliveries` with single SQL query
+    - **Location**: `server/routes/mobile-api.ts` (lines 616-700)
+    - Uses PostgreSQL CTEs (Common Table Expressions) to pre-aggregate:
+      - CTE 1: `order_bottle_returns` - aggregates bottle returns by order_id
+      - CTE 2: `order_products` - aggregates products by order_id  
+      - Main query: Joins orders with both CTEs (no GROUP BY on JSON columns)
+    - Returns complete delivery data (orders + products + bottle-returns) in ONE request
+  - **Frontend changes**:
+    - Modified `client/src/pages/mobile-app/entregas/index.tsx`
+    - Replaced N+1 fetch pattern with single call to `/api/mobile/deliveries`
+    - Reduced from ~50 lines of complex fetching logic to ~40 lines of simple mapping
+  - **Performance improvement**: 
+    - Before: 46 requests for 23 orders (2N requests)
+    - After: 1 request regardless of order count
+    - ~98% reduction in API calls
+  - **Verified**: E2E test confirmed single API call, no refresh loop, deliveries display correctly

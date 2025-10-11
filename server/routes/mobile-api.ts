@@ -655,6 +655,24 @@ export function createMobileApiEndpoints(): Router {
           JOIN products p ON br.product_id = p.id
           WHERE br.company_id = $1
           GROUP BY br.order_id
+        ),
+        order_products AS (
+          SELECT 
+            oi.order_id,
+            json_agg(
+              json_build_object(
+                'id', oi.product_id,
+                'name', p.name,
+                'quantity', oi.quantity,
+                'price', p.price::text,
+                'isReturnable', p.is_returnable,
+                'bottleDeposit', COALESCE(p.deposit_amount, '0.00')::text
+              ) ORDER BY oi.id
+            ) as products
+          FROM order_items oi
+          LEFT JOIN products p ON oi.product_id = p.id
+          WHERE oi.company_id = $1
+          GROUP BY oi.order_id
         )
         SELECT 
           o.id,
@@ -665,24 +683,13 @@ export function createMobileApiEndpoints(): Router {
           o.date,
           o.total,
           o.payment_method as "paymentMethod",
-          json_agg(
-            json_build_object(
-              'id', oi.product_id,
-              'name', p.name,
-              'quantity', oi.quantity,
-              'price', p.price::text,
-              'isReturnable', p.is_returnable,
-              'bottleDeposit', COALESCE(p.deposit_amount, '0.00')::text
-            ) ORDER BY oi.id
-          ) as products,
+          COALESCE(op.products, '[]'::json) as products,
           COALESCE(obr.bottle_returns, '[]'::json) as "bottleReturns"
         FROM orders o
         JOIN customers c ON o.customer_id = c.id
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN products p ON oi.product_id = p.id
+        LEFT JOIN order_products op ON o.id = op.order_id
         LEFT JOIN order_bottle_returns obr ON o.id = obr.order_id
         WHERE o.company_id = $1
-        GROUP BY o.id, o.customer_id, c.businessname, c.street, o.status, o.date, o.total, o.payment_method, obr.bottle_returns
         ORDER BY o.date DESC
       `;
       
