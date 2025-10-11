@@ -2210,7 +2210,7 @@ export async function registerRoutes(router: express.Router) {
   router.post("/customers/:id/request-location", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      const companyId = req.session.companyId;
+      const companyId = getCurrentCompanyId();
 
       if (!companyId) {
         return res.status(403).json({ error: "No se encontró contexto de compañía" });
