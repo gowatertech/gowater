@@ -46,6 +46,18 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
 - **Testing infrastructure**: E2E tests via Playwright, test session endpoint (`/api/test-session/login`) for development
 
 ### Recent Improvements
+#### Customers Page - Mobile-First Redesign (October 2025)
+- **Modern StatCards**: Four statistics cards with colored icon backgrounds (Total Clientes, Crédito Total, Crédito Promedio, Provincias)
+- **Responsive Layout**: Card-based view for mobile (<768px), table view for desktop (≥768px)
+- **Enhanced Search**: Real-time search across business name, manager, RNC, and phone number
+- **Mobile Cards**: Rich customer cards displaying logo, zone badge, contact info, address, credit, and location status
+- **Desktop Table**: Clean table with customer data, zone badges, and action dropdowns
+- **Accessibility Compliance**:
+  - All icon-only buttons have aria-labels ("Limpiar búsqueda", "Más acciones")
+  - Data-testid attributes on all interactive elements
+  - Screen reader friendly with proper semantic markup
+- **Route**: `/customers`
+
 #### Balance de Envases (Bottle Returns) - Mobile-First Redesign (October 2025)
 - **Responsive Layout**: Card-based view for mobile (<768px), table view for desktop (≥768px)
 - **Search & Filter**: Real-time search by customer name, filter by status (All/Pending)
