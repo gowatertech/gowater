@@ -214,3 +214,16 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
     - Reentrancy guard (`isFetchingRef`) prevents concurrent loads
     - Console logs show controlled, single execution pattern
   - **Status**: Infinite loop issue RESOLVED and verified
+
+#### Mobile User Endpoint Fix (Critical Bug Fix) - October 11, 2025
+- **Fixed 404 error on mobile app startup**
+  - **Root cause**: App was calling non-existent `/api/mobile/user` endpoint
+  - **Error in logs**: `GET /api/mobile/user 404 in 76ms`
+  - **Impact**: Mobile app couldn't verify user authentication, causing failures on startup
+  - **Solution**: Changed endpoint call from `/api/mobile/user` to `/api/user`
+    - **Location**: `client/src/pages/mobile-app/index.tsx` line 93
+    - The correct endpoint `/api/user` already exists in `server/auth.ts`
+    - Changed `usePreventBackNavigation('/mobile-app/login', '/api/mobile/user')` 
+    - To: `usePreventBackNavigation('/mobile-app/login', '/api/user')`
+  - **Impact**: Mobile app now correctly verifies authentication on startup
+  - **Status**: FIXED - endpoint now returns 200 instead of 404
