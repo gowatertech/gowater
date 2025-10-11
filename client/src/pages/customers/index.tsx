@@ -348,6 +348,7 @@ export default function Customers() {
   };
 
   const handleViewCustomer = (customer: CustomerWithDetails) => {
+    console.log("[handleViewCustomer] Llamado con cliente:", customer.id, customer.businessname);
     setOpenDropdownId(null);
     setSelectedCustomer(customer);
     setSelectedProvinceId(customer.provinceid);
@@ -373,6 +374,7 @@ export default function Customers() {
     };
     
     form.reset(formData);
+    console.log("[handleViewCustomer] Cambiando tab a details");
     setActiveTab("details");
   };
 
@@ -381,15 +383,19 @@ export default function Customers() {
   };
 
   const handleCaptureOnMap = (customer: CustomerWithDetails) => {
+    console.log("[handleCaptureOnMap] Llamado con cliente:", customer.id, customer.businessname);
     setOpenDropdownId(null);
     setLocationCaptureCustomer(customer);
+    console.log("[handleCaptureOnMap] Abriendo dialog de captura de ubicación");
     setLocationDialogOpen(true);
   };
 
   const handleSendWhatsApp = async (customer: CustomerWithDetails) => {
+    console.log("[handleSendWhatsApp] Llamado con cliente:", customer.id, customer.businessname);
     setOpenDropdownId(null);
     
     if (!customer.phone) {
+      console.log("[handleSendWhatsApp] Cliente no tiene teléfono");
       toast({
         title: "Error",
         description: "El cliente no tiene un número de teléfono registrado",
@@ -398,21 +404,25 @@ export default function Customers() {
       return;
     }
     
+    console.log("[handleSendWhatsApp] Cliente tiene teléfono:", customer.phone);
     const popup = window.open('', '_blank');
     
     try {
+      console.log("[handleSendWhatsApp] Enviando solicitud a API para generar enlace de WhatsApp");
       const res = await fetch(`/api/customers/${customer.id}/request-location`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       
       if (!res.ok) {
+        console.log("[handleSendWhatsApp] Error en respuesta de API:", res.status);
         if (popup) popup.close();
         const errorData = await res.json().catch(() => ({ error: "Error al generar enlace" }));
         throw new Error(errorData.error || "Error al generar enlace");
       }
       
       const { token, whatsappUrl } = await res.json();
+      console.log("[handleSendWhatsApp] Enlace de WhatsApp generado exitosamente");
       
       if (popup) {
         popup.location.href = whatsappUrl;
@@ -430,7 +440,7 @@ export default function Customers() {
       }
     } catch (error) {
       if (popup) popup.close();
-      console.error("Error al generar enlace:", error);
+      console.error("[handleSendWhatsApp] Error al generar enlace:", error);
       toast({
         title: "Error",
         description: "No se pudo generar el enlace de WhatsApp",
