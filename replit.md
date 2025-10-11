@@ -1,44 +1,42 @@
 # GoWater - Water Delivery Management System
 
 ## Overview
-
-GoWater is a comprehensive multi-tenant water delivery management system designed to streamline water distribution operations. It supports multiple independent companies, offering features such as customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time location tracking, invoicing, and commission calculations. The system aims to enhance operational efficiency for businesses in the water distribution sector, built as a full-stack TypeScript application with a React frontend, Express backend, PostgreSQL, and Drizzle ORM.
+GoWater is a multi-tenant water delivery management system designed to optimize water distribution operations for various companies. It provides features for customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time tracking, invoicing, and commission calculations. The system aims to significantly enhance operational efficiency in the water distribution sector. It is built as a full-stack TypeScript application utilizing a React frontend, Express backend, PostgreSQL database, and Drizzle ORM.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Multi-Tenancy Design
-The system uses a **shared database, shared schema** multi-tenancy model, ensuring data isolation per company via a `company_id` column and `AsyncLocalStorage` in Express sessions.
+The system employs a **shared database, shared schema** multi-tenancy model, ensuring data isolation for each company through a `company_id` column and `AsyncLocalStorage` in Express sessions.
 
 ### Authentication & Authorization
-**Passport.js Local Strategy** handles authentication with bcrypt hashing. It supports dual user systems (Platform and Company users) and implements **Role-Based Access Control (RBAC)** at both route and component levels.
+**Passport.js Local Strategy** handles authentication with bcrypt hashing. It supports distinct user types (Platform and Company users) and implements **Role-Based Access Control (RBAC)** at both route and component levels.
 
 ### Database Architecture
-**Drizzle ORM** manages PostgreSQL, providing type-safe queries and migrations. Key features include soft deletes, audit fields, composite keys, and denormalization. PostgreSQL was chosen for ACID compliance, geospatial capabilities, and multi-tenancy support.
+**Drizzle ORM** is used with PostgreSQL for type-safe queries and migrations. The architecture incorporates soft deletes, audit fields, composite keys, and denormalization. PostgreSQL was selected for its ACID compliance, geospatial capabilities, and native multi-tenancy support.
 
 ### Frontend Architecture
-Built with **React 18** and TypeScript, using **Wouter** for routing, **TanStack Query** for server state, **React Hook Form + Zod** for validation, and **shadcn/ui + Tailwind CSS** for UI. It adopts a **mobile-first design** with responsive breakpoints and touch optimization.
+Developed with **React 18** and TypeScript, the frontend uses **Wouter** for routing, **TanStack Query** for server state management, and **React Hook Form + Zod** for form validation. The UI is built with **shadcn/ui + Tailwind CSS**, following a **mobile-first design** philosophy with responsive breakpoints.
 
 ### Backend Architecture
-Features **RESTful API endpoints** with modular routing. Key services include a **Route Optimization Service** (Turf.js for geospatial calculations), a **Recurring Orders Service**, and a **Storage Service** for company-scoped database queries.
+The backend provides **RESTful API endpoints** with a modular routing system. Key services include a **Route Optimization Service** (utilizing Turf.js for geospatial calculations), a **Recurring Orders Service**, and a **Storage Service** for company-scoped database operations.
 
 ### Real-Time Features
-**WebSockets** enable real-time driver location tracking and route status updates.
+**WebSockets** facilitate real-time driver location tracking and instantaneous route status updates.
 
 ### Geographic Data Management
-Utilizes a **hierarchical address system** and **Leaflet Maps Integration** for interactive route planning, visualization, and customer location capture.
+A **hierarchical address system** is integrated with **Leaflet Maps** for interactive route planning, visualization, and precise customer location capture.
 
 ### File Upload Handling
-Uses **Multer Middleware** for in-memory file uploads (company logos, product images, user avatars) with a 5MB limit.
+**Multer Middleware** manages in-memory file uploads (e.g., company logos, product images) with a 5MB limit.
 
 ### PDF Generation & Printing
-Employs **HTML-to-Canvas** (html2canvas + jsPDF) for complex layouts like invoices and **Direct jsPDF Generation** for simpler documents.
+The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for generating complex PDF layouts like invoices and **Direct jsPDF Generation** for simpler documents.
 
 ### Internationalization (i18n)
-Uses **react-i18next** for Spanish and English language support, with locale files and session persistence.
+**react-i18next** is implemented for multilingual support, specifically English and Spanish, with locale file management and session persistence for language preferences.
 
 ## External Dependencies
 
@@ -48,182 +46,14 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
 ### Third-Party Services
 
 #### Map & Geolocation
--   **Leaflet.js**: Map rendering.
--   **Turf.js**: Geospatial analysis.
--   **OpenStreetMap tiles**: Map data.
+-   **Leaflet.js**: For interactive map rendering.
+-   **Turf.js**: For advanced geospatial analysis.
+-   **OpenStreetMap tiles**: Provides underlying map data.
 
 #### Payment Processing
--   **Stripe Integration**: For membership billing.
+-   **Stripe Integration**: Used for managing membership billing.
 
 #### UI Component Libraries
--   **Radix UI**: Accessible component primitives.
--   **Lucide React**: Icon system.
--   **shadcn/ui**: Pre-composed component patterns.
-
-## Recent Changes
-
-### October 10, 2025 - Payment System Improvements
-
-#### Delivery Processing Fix (Critical Bug Fix)
-- **Fixed orders staying in "pending" status** when marked as delivered by drivers
-  - **Root cause**: Frontend called non-existent endpoint instead of invoice-creating endpoint
-  - **Solution**: Changed to use `/api/mobile/orders/:id/deliver-and-invoice` which:
-    - Updates order status to "delivered"
-    - Sets `actualDeliveryTime` timestamp
-    - Creates invoice and payment records automatically
-    - Tracks which user delivered the order (new `deliveredBy` field)
-  - **Database change**: Added `delivered_by` column to `orders` table
-
-#### Credit Payment Visibility Fix (Bug Fix)
-- **Fixed missing evidence of credit payments** in payments page
-  - **Root cause**: System only created payment records for cash, skipping credit transactions
-  - **Solution**: Modified delivery endpoint to create payment records for ALL payment methods:
-    - Cash/Card/Transfer: payment amount = actual amount received
-    - Credit: payment amount = full invoice total (enables accounts receivable tracking)
-    - Credit notes: "Crédito pendiente de pago - Entrega en ruta [X] - Total adeudado: [amount]"
-  - **Benefits**:
-    - Credit transactions now visible in payments list
-    - Financial reporting includes credit sales
-    - Can filter payments by "credit" method
-  - **Verified**: E2E test confirmed credit payments appear with correct amount and can be filtered
-
-### October 11, 2025 - Bottle Returns in Mobile App
-
-#### Mobile API Product Properties Fix (Critical Bug Fix)
-- **Fixed missing `isReturnable` property** in mobile orders endpoint
-  - **Root cause**: `/api/mobile/orders` endpoint was not returning `isReturnable` and `bottleDeposit` properties for products
-  - **Impact**: Mobile app couldn't detect returnable products, hiding the "Retornar Envases" button
-  - **Solution**: Updated mobile API to include product properties in response:
-    ```sql
-    SELECT name, is_returnable, deposit_amount FROM products
-    ```
-  - **Changes made** in `server/routes/mobile-api.ts`:
-    - Added `isReturnable` property to product objects (boolean)
-    - Added `bottleDeposit` property to product objects (string)
-    - Applied to both successful and error cases
-  - **Frontend integration**: Mobile app now correctly detects returnable products and displays return dialog
-
-#### BottleReturnDialog Component Enhancement
-- **Completely rewrote component** to handle multiple returnable products with proper validation
-  - **Location**: `client/src/components/bottleReturns/BottleReturnDialog.tsx`
-  - **Key features**:
-    - Product selector dropdown for multiple returnable items
-    - Cumulative validation: prevents returning more bottles than ordered minus previously returned
-    - Real-time calculation of available quantity
-    - Display of existing returns below the form
-    - Fixed apiRequest signature to use object parameter: `{ url, method, data }`
-  - **Validation logic**: `maxReturnQuantity = orderQuantity - sum(existingReturns)`
-  
-#### Mobile Delivery Details Integration
-- **Integrated BottleReturnDialog** into mobile delivery details page
-  - **Location**: `client/src/pages/mobile-app/entregas/[id].tsx`
-  - **Conditional rendering**: "Retornar Envases" button only appears when:
-    - Order has products with `isReturnable: true`
-    - Order status is not "delivered"
-  - **Data flow**:
-    - `getReturnableProducts()`: Filters products by `isReturnable` property
-    - `getExistingReturns()`: Maps bottle returns for validation
-    - `loadDeliveryDetails()`: Refreshes data after successful return registration
-
-#### Technical Notes
-- **Backend endpoints remain unchanged**: All bottle return logic already existed
-- **The fix was purely about data visibility**: Ensuring mobile API returns the necessary product properties
-- **Type safety**: Dialog properly handles missing/undefined properties with fallback values
-
-#### Duplicate Endpoint Fix (Critical Bug Fix) - October 11, 2025
-- **Fixed `isReturnable` still showing as undefined** despite mobile API fix
-  - **Root cause**: Duplicate `/api/orders/:id` endpoint in `server/routes.ts` was intercepting requests before the updated `ordersRouter`
-  - **Impact**: Mobile delivery details page received `bottleDeposit` but `isReturnable` was undefined, preventing bottle return button from showing
-  - **Solution**: Updated the products query in `server/routes.ts` (line 4220) to include `is_returnable as "isReturnable"`
-  - **Technical details**:
-    - `companyApiRouter` is mounted before `ordersRouter` in Express middleware chain
-    - Requests to `/api/orders/:id` were satisfied by legacy handler, not the new router
-    - Both handlers now consistently return `isReturnable` property
-  - **Verified**: E2E test confirmed `isReturnable:true` in frontend logs and bottle return dialog opens successfully
-
-#### Infinite Loop Fix - Mobile Deliveries Page (Critical Bug Fix) - October 11, 2025
-- **Fixed infinite refresh loop** in mobile deliveries list page causing app to be unusable
-  - **Root cause**: N+1 query pattern where the page made 2 requests per order (details + bottle-returns)
-    - With 23 orders = 46 simultaneous requests
-    - This created massive network traffic and continuous refresh cycles
-  - **Impact**: 
-    - Mobile app continuously refreshed/updated
-    - Hundreds of repeated API calls
-    - App unusable in production - clicking any option returned to start and kept refreshing
-  - **Solution**: Created optimized endpoint `/api/mobile/deliveries` with single SQL query
-    - **Location**: `server/routes/mobile-api.ts` (lines 616-700)
-    - Uses PostgreSQL CTEs (Common Table Expressions) to pre-aggregate:
-      - CTE 1: `order_bottle_returns` - aggregates bottle returns by order_id
-      - CTE 2: `order_products` - aggregates products by order_id  
-      - Main query: Joins orders with both CTEs (no GROUP BY on JSON columns)
-    - Returns complete delivery data (orders + products + bottle-returns) in ONE request
-  - **Frontend changes**:
-    - Modified `client/src/pages/mobile-app/entregas/index.tsx`
-    - Replaced N+1 fetch pattern with single call to `/api/mobile/deliveries`
-    - Reduced from ~50 lines of complex fetching logic to ~40 lines of simple mapping
-  - **Performance improvement**: 
-    - Before: 46 requests for 23 orders (2N requests)
-    - After: 1 request regardless of order count
-    - ~98% reduction in API calls
-  - **Verified**: E2E test confirmed single API call, no refresh loop, deliveries display correctly
-
-#### Sync Loop Fix - Mobile Deliveries (Critical Bug Fix) - October 11, 2025
-- **Fixed persistent infinite refresh loop** caused by duplicate sync triggers
-  - **Root cause**: Nested sync callbacks creating infinite loop:
-    1. `MobileHeader.handleSync()` calls `forceSyncNow()` (IndexedDB sync)
-    2. Then calls `onSyncData()` which is `syncData` from deliveries page
-    3. `syncData` had `setTimeout(() => loadDeliveries())` causing duplicate fetch
-    4. `syncData` was NOT async, causing timing issues with MobileHeader's await
-  - **Impact**: 
-    - User reported "data loads and reloads in loop, can't do anything"
-    - Multiple concurrent `loadDeliveries()` calls creating race conditions
-    - Service Worker v1/v2 cache exacerbated the problem
-  - **Solution** (3-part fix):
-    1. **Made `syncData` async**: Properly returns Promise for MobileHeader
-    2. **Removed `setTimeout`**: Directly awaits `loadDeliveries()` to avoid duplication
-    3. **Added reentrancy guard**: `useRef(isFetching)` prevents concurrent `loadDeliveries()` calls
-  - **Technical changes**:
-    - `client/src/pages/mobile-app/entregas/index.tsx`:
-      - Added `isFetchingRef` to guard against concurrent loads
-      - Made `syncData` async and removed setTimeout
-      - Added detailed console logs for debugging: `[Entregas] ...`
-    - `client/public/sw.js`:
-      - Upgraded to v3 with `skipWaiting()` and `clients.claim()`
-      - Forces immediate service worker activation
-  - **Fix verification**: Guard prevents duplicate calls, sync completes without loops
-
-#### Mobile Session Authentication Fix (Critical Bug Fix) - October 11, 2025
-- **Fixed infinite loop verification and improved mobile API authentication**
-  - **Context**: While verifying the infinite loop fix, discovered mobile API wasn't reading `companyId` from session correctly
-  - **Type safety improvement**:
-    - **Location**: `client/src/pages/mobile-app/components/MobileHeader.tsx`
-    - Fixed user type mismatch: changed from local `User | undefined` to imported `User | null` from `@/hooks/use-current-user`
-    - Ensures type consistency across mobile components
-  - **Middleware enhancement**:
-    - **Location**: `server/middleware/mobile-tenant.middleware.ts`
-    - Enhanced `mobileApiTenantMiddleware` to read `companyId` from multiple sources:
-      1. `req.user.companyId` (Passport authentication)
-      2. `req.session.companyId` (direct session property)
-      3. **NEW:** `req.session.user.companyId` (mobile session-based auth)
-      4. Query params or body
-    - **Impact**: Mobile API now works correctly with session-based authentication
-    - Previously only checked `req.session.companyId`, missing mobile auth pattern
-  - **Infinite loop verification**: E2E test confirmed no loops exist
-    - Page loads successfully without stuck loading spinner
-    - Sync button works without triggering duplicate fetches
-    - Reentrancy guard (`isFetchingRef`) prevents concurrent loads
-    - Console logs show controlled, single execution pattern
-  - **Status**: Infinite loop issue RESOLVED and verified
-
-#### Mobile User Endpoint Fix (Critical Bug Fix) - October 11, 2025
-- **Fixed 404 error on mobile app startup**
-  - **Root cause**: App was calling non-existent `/api/mobile/user` endpoint
-  - **Error in logs**: `GET /api/mobile/user 404 in 76ms`
-  - **Impact**: Mobile app couldn't verify user authentication, causing failures on startup
-  - **Solution**: Changed endpoint call from `/api/mobile/user` to `/api/user`
-    - **Location**: `client/src/pages/mobile-app/index.tsx` line 93
-    - The correct endpoint `/api/user` already exists in `server/auth.ts`
-    - Changed `usePreventBackNavigation('/mobile-app/login', '/api/mobile/user')` 
-    - To: `usePreventBackNavigation('/mobile-app/login', '/api/user')`
-  - **Impact**: Mobile app now correctly verifies authentication on startup
-  - **Status**: FIXED - endpoint now returns 200 instead of 404
+-   **Radix UI**: Provides accessible and unstyled component primitives.
+-   **Lucide React**: Offers a comprehensive icon system.
+-   **shadcn/ui**: Supplies pre-composed and customizable UI components.
