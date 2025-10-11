@@ -4909,7 +4909,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para obtener TODAS las devoluciones de envases
-  router.get("/api/bottle-returns", companyAuthMiddleware, async (req, res) => {
+  router.get("/bottle-returns", companyAuthMiddleware, async (req, res) => {
     try {
       const companyId = getCurrentCompanyId();
       
@@ -4934,7 +4934,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para obtener balance de envases por cliente
-  router.get("/api/bottle-balance", companyAuthMiddleware, async (req, res) => {
+  router.get("/bottle-balance", companyAuthMiddleware, async (req, res) => {
     try {
       const companyId = getCurrentCompanyId();
       
@@ -4945,25 +4945,37 @@ export async function registerRoutes(router: express.Router) {
       console.log(`📊 Obteniendo balance de envases por cliente para compañía ${companyId}`);
       
       // Consulta SQL para obtener el balance por cliente
+      // Nota: bottle_returns no tiene customer_id, debemos hacer JOIN con orders
       const balanceQuery = sql`
         SELECT 
-          br.customer_id,
+          o.customer_id,
           c.businessname as customer_name,
           SUM(COALESCE(br.expected_quantity, 0)) as total_expected,
           SUM(COALESCE(br.returned_quantity, 0)) as total_returned,
           SUM(COALESCE(br.pending_quantity, 0)) as total_pending
         FROM bottle_returns br
-        LEFT JOIN customers c ON br.customer_id = c.id
+        INNER JOIN orders o ON br.order_id = o.id
+        LEFT JOIN customers c ON o.customer_id = c.id
         WHERE br.company_id = ${companyId}
-        GROUP BY br.customer_id, c.businessname
+        GROUP BY o.customer_id, c.businessname
         HAVING SUM(COALESCE(br.pending_quantity, 0)) > 0
         ORDER BY total_pending DESC
       `;
       
       const balanceData = await db.execute(balanceQuery);
       
-      console.log(`✅ Calculado balance para ${balanceData.rows.length} clientes`);
-      res.json(balanceData.rows);
+      // Mapear los resultados al formato que el frontend espera
+      const formattedBalance = balanceData.rows.map((row: any) => ({
+        customerId: row.customer_id,
+        customerName: row.customer_name || 'Cliente sin nombre',
+        bottlesDelivered: Number(row.total_expected) || 0,
+        bottlesReturned: Number(row.total_returned) || 0,
+        bottlesPending: Number(row.total_pending) || 0,
+        depositAmount: "0.00" // Por ahora en 0, se puede calcular si es necesario
+      }));
+      
+      console.log(`✅ Calculado balance para ${formattedBalance.length} clientes`);
+      res.json(formattedBalance);
     } catch (error) {
       console.error("❌ Error al obtener balance de envases:", error);
       res.status(500).json({ error: String(error) });
