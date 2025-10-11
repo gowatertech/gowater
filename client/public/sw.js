@@ -1,5 +1,5 @@
 // Nombre de la caché
-const CACHE_NAME = 'gowater-driver-cache-v1';
+const CACHE_NAME = 'gowater-driver-cache-v2';
 
 // Recursos a cachear inicialmente
 const initialResources = [
