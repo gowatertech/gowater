@@ -156,7 +156,8 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
         name: item.product_name,
         price: item.product_price,
         imageUrl: item.product_icon,
-        bottleDeposit: item.deposit_amount
+        bottleDeposit: item.deposit_amount,
+        isReturnable: item.is_returnable
       }
     }));
     
@@ -243,7 +244,8 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
         name: item.product_name,
         price: item.product_price,
         imageUrl: item.product_icon,
-        bottleDeposit: item.deposit_amount
+        bottleDeposit: item.deposit_amount,
+        isReturnable: item.is_returnable
       }
     }));
     
