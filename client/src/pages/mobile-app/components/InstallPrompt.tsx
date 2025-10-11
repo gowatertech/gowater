@@ -26,22 +26,23 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
   }, []);
   
   const handleInstall = async () => {
-    // Acceder al evento guardado de beforeinstallprompt
-    // Esto es tipicamente hecho a través de una variable global o un estado
-    // Aquí sólo simulamos el proceso
-    
     try {
-      // @ts-ignore - simulación de instalación
+      // @ts-ignore - Acceder al evento guardado de beforeinstallprompt
       if (window.deferredPrompt) {
-        // @ts-ignore 
-        const promptResult = await window.deferredPrompt.prompt();
+        // @ts-ignore - Mostrar el prompt de instalación nativo
+        await window.deferredPrompt.prompt();
         
-        if (promptResult.outcome === 'accepted') {
+        // @ts-ignore - Esperar a que el usuario responda al prompt
+        const choiceResult = await window.deferredPrompt.userChoice;
+        
+        if (choiceResult.outcome === 'accepted') {
           toast({
             title: "Instalación iniciada",
-            description: "GoWater Driver se está instalando en tu dispositivo",
+            description: "GoWater se está instalando en tu dispositivo",
             variant: "default"
           });
+          // Guardar que ya se instaló para no mostrar de nuevo
+          localStorage.setItem('pwaPromptShown', 'true');
         } else {
           toast({
             title: "Instalación cancelada",
@@ -50,7 +51,7 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
           });
         }
         
-        // @ts-ignore
+        // @ts-ignore - Limpiar el evento
         window.deferredPrompt = null;
       }
     } catch (error) {

@@ -169,8 +169,10 @@ export default function GoWaterDriverApp() {
       deferredPrompt = e;
       // @ts-ignore - guardar en window para acceder desde InstallPrompt
       window.deferredPrompt = e;
-      // Mostrar nuestro propio prompt
-      setShowInstallPrompt(true);
+      // Solo mostrar si no se ha mostrado antes
+      if (!hasShownPrompt) {
+        setShowInstallPrompt(true);
+      }
     });
 
     window.addEventListener('appinstalled', () => {
