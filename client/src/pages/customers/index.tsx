@@ -507,126 +507,164 @@ export default function Customers() {
         </TabsList>
         
         {/* Contenido del Tab de Lista de Clientes */}
-        <TabsContent value="list" className="space-y-4">
-          {/* Estadísticas - versión compacta que coincide exactamente con la vista de rutas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-            <Card className="border-l-4 border-l-gray-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Clientes</p>
-                  <p className="text-base font-bold">{stats.totalCustomers}</p>
+        <TabsContent value="list" className="space-y-4 mt-0">
+          {/* Estadísticas modernas */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <Card className="overflow-hidden transition-all hover:shadow-md">
+              <CardContent className="p-0">
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center w-20 h-20 bg-blue-500">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="flex-1 p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Total Clientes</p>
+                    <p className="text-2xl font-bold">{stats.totalCustomers.toLocaleString()}</p>
+                  </div>
                 </div>
-                <Users className="h-5 w-5 text-gray-600" />
               </CardContent>
             </Card>
-            
-            <Card className="border-l-4 border-l-green-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Crédito Total</p>
-                  <p className="text-base font-bold">RD$ {stats.totalCredit.toFixed(2)}</p>
+
+            <Card className="overflow-hidden transition-all hover:shadow-md">
+              <CardContent className="p-0">
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center w-20 h-20 bg-green-500">
+                    <DollarSign className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="flex-1 p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Crédito Total</p>
+                    <p className="text-2xl font-bold">RD$ {stats.totalCredit.toFixed(0)}</p>
+                  </div>
                 </div>
-                <DollarSign className="h-5 w-5 text-green-500" />
               </CardContent>
             </Card>
-            
-            <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Crédito Promedio</p>
-                  <p className="text-base font-bold">RD$ {stats.avgCredit.toFixed(2)}</p>
+
+            <Card className="overflow-hidden transition-all hover:shadow-md">
+              <CardContent className="p-0">
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center w-20 h-20 bg-yellow-500">
+                    <CreditCard className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="flex-1 p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Crédito Promedio</p>
+                    <p className="text-2xl font-bold">RD$ {stats.avgCredit.toFixed(0)}</p>
+                  </div>
                 </div>
-                <CreditCard className="h-5 w-5 text-yellow-500" />
               </CardContent>
             </Card>
-            
-            <Card className="border-l-4 border-l-purple-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Provincias</p>
-                  <p className="text-base font-bold">{stats.provinces}</p>
+
+            <Card className="overflow-hidden transition-all hover:shadow-md">
+              <CardContent className="p-0">
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center w-20 h-20 bg-purple-500">
+                    <MapPin className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="flex-1 p-4">
+                    <p className="text-sm text-muted-foreground mb-1">Provincias</p>
+                    <p className="text-2xl font-bold">{stats.provinces}</p>
+                  </div>
                 </div>
-                <MapPin className="h-5 w-5 text-purple-500" />
               </CardContent>
             </Card>
           </div>
 
-          <Card className="p-2">
-            {/* Buscador */}
-            <div className="relative mb-2">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <Input 
-                placeholder="Buscar por nombre, encargado, RNC o teléfono..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 h-7 text-xs"
-              />
-              {searchTerm && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </Button>
-              )}
-            </div>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                  <CardTitle className="text-lg">Directorio de Clientes</CardTitle>
+                  {filteredCustomers.length > 0 && (
+                    <Badge variant="secondary" className="ml-2">
+                      {filteredCustomers.length} de {customers.length}
+                    </Badge>
+                  )}
+                </div>
 
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-gray-600" />
-                <h2 className="font-semibold text-sm">Directorio de Clientes</h2>
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                  <div className="relative flex-1 md:w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar clientes..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-9"
+                      data-testid="input-search-customer"
+                      aria-label="Buscar clientes"
+                    />
+                    {searchTerm && (
+                      <Button
+                        onClick={() => setSearchTerm("")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-auto p-0 hover:bg-transparent"
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Limpiar búsqueda"
+                        data-testid="button-clear-search"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <Badge className="px-2 py-0 h-5 text-[10px] bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500">{filteredCustomers.length} clientes</Badge>
-            </div>
+            </CardHeader>
 
-            <div className="overflow-hidden rounded-md border">
+            <CardContent className="p-4 pt-0">
               {filteredCustomers.length === 0 ? (
-                <div className="text-center py-8 bg-gradient-to-b from-gray-50 to-white text-gray-500 border border-dashed border-gray-200">
-                  <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p className="font-medium">No se encontraron clientes</p>
-                  <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
+                <div className="text-center py-12">
+                  <Building2 className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+                  <h3 className="font-medium text-lg mb-1">
+                    {searchTerm ? "No se encontraron clientes" : "No hay clientes"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchTerm 
+                      ? "Intenta con otro término de búsqueda" 
+                      : "Los clientes aparecerán aquí cuando se registren"}
+                  </p>
+                  {searchTerm && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSearchTerm("")}
+                      className="mt-4"
+                      data-testid="button-clear-search-empty"
+                    >
+                      Limpiar búsqueda
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <>
-                  {/* Vista móvil - Cards verticales */}
-                  {isMobile ? (
-                    <ScrollArea className="h-[400px]">
-                      <div className="p-2 space-y-2">
-                        {filteredCustomers.map((customer, index) => (
-                          <div 
-                            key={customer.id}
-                            className={`border rounded-md overflow-hidden cursor-pointer hover:shadow-md transition-all bg-white`}
-                            style={{ 
-                              borderLeftWidth: '4px',
-                              borderLeftColor: customer.zoneid === 1 ? '#9333ea' : 
-                                              customer.zoneid === 2 ? '#ef4444' : 
-                                              customer.zoneid === 3 ? '#22c55e' : 
-                                              '#6b7280' 
-                            }}
-                            onClick={() => {
-                              handleViewCustomer(customer);
-                              setActiveTab("details");
-                            }}
-                          >
-                            <div className="flex items-center p-2 border-b">
-                              <div className="relative mr-2 flex-shrink-0">
-                                {customer.logo ? (
-                                  <div className="w-8 h-8 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                    <img
-                                      src={`data:image/jpeg;base64,${customer.logo}`}
-                                      alt="Logo"
-                                      className="w-full h-full object-contain"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center border">
-                                    <Building2 className="h-4 w-4 text-gray-500" />
-                                  </div>
-                                )}
+                  {/* Vista móvil - Cards modernas */}
+                  <div className="md:hidden space-y-3">
+                    {filteredCustomers.map((customer) => (
+                      <Card 
+                        key={customer.id}
+                        className="overflow-hidden transition-all hover:shadow-md hover:border-primary/50 cursor-pointer"
+                        onClick={() => {
+                          handleViewCustomer(customer);
+                          setActiveTab("details");
+                        }}
+                        data-testid={`card-customer-${customer.id}`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="relative flex-shrink-0">
+                              {customer.logo ? (
+                                <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-background shadow-sm">
+                                  <img
+                                    src={`data:image/jpeg;base64,${customer.logo}`}
+                                    alt={customer.businessname}
+                                    className="w-full h-full object-contain bg-white"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border-2 border-background shadow-sm">
+                                  <Building2 className="h-6 w-6 text-blue-600" />
+                                </div>
+                              )}
+                              {customer.zoneid && (
                                 <div 
-                                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
+                                  className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-md ${
                                     customer.zoneid === 1 ? 'bg-purple-500' : 
                                     customer.zoneid === 2 ? 'bg-red-500' : 
                                     customer.zoneid === 3 ? 'bg-green-500' : 
@@ -634,209 +672,24 @@ export default function Customers() {
                                   }`}
                                   title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
                                 >
-                                  Z{customer.zoneid || "?"}
+                                  {customer.zoneid}
                                 </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center">
-                                  <p className="font-medium text-sm truncate">
-                                    {customer.businessname}
-                                  </p>
-                                  <span className="text-xs text-gray-400 ml-1">#{index + 1}</span>
-                                </div>
-                                {customer.rnc && (
-                                  <p className="text-xs text-gray-500 truncate">RNC: {customer.rnc}</p>
-                                )}
-                              </div>
+                              )}
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-1 p-2 text-xs">
-                              <div className="flex items-center text-gray-700">
-                                <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                <span className="truncate">{customer.managername}</span>
-                              </div>
-                              <div className="flex items-center text-gray-700">
-                                <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                <span className="truncate">{customer.phone}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-2 bg-gray-50 border-t">
-                              <Badge 
-                                variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                className="px-2 py-0.5 text-[10px]"
+
+                            <div className="flex-1 min-w-0">
+                              <h3 
+                                className="font-semibold text-base mb-1 line-clamp-1" 
+                                data-testid={`text-customer-name-${customer.id}`}
                               >
-                                <DollarSign className="h-2.5 w-2.5 mr-0.5 inline-block" />
-                                {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                              </Badge>
-                              
-                              <Badge variant="outline" className={`px-2 py-0.5 text-[10px] ${
-                                customer.coordinates 
-                                  ? 'bg-green-50 text-green-700 border-green-200' 
-                                  : 'bg-orange-50 text-orange-700 border-orange-200'
-                              }`}>
-                                {customer.coordinates 
-                                  ? <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> Sí</span> 
-                                  : <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> No</span>
-                                }
-                              </Badge>
-                              
-                              <DropdownMenu 
-                                open={openDropdownId === customer.id} 
-                                onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
-                              >
-                                <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-6 px-2 py-0 text-[10px]"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <MoreVertical className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewCustomer(customer);
-                                      setActiveTab("details");
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Ver Detalles
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCaptureOnMap(customer);
-                                    }}
-                                  >
-                                    <Map className="h-4 w-4 mr-2" />
-                                    Capturar en Mapa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSendWhatsApp(customer);
-                                    }}
-                                  >
-                                    <MessageSquare className="h-4 w-4 mr-2" />
-                                    Enviar por WhatsApp
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    /* Vista de escritorio - Tabla responsiva */
-                    <div className="overflow-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="py-2 px-4 text-left font-medium text-gray-500 w-8">#</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Negocio</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Contacto</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Ubicación</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Zona</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Crédito</th>
-                            <th className="py-2 px-4 text-center font-medium text-gray-500">Mapa</th>
-                            <th className="py-2 px-4 text-right font-medium text-gray-500">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {filteredCustomers.map((customer, index) => (
-                            <tr 
-                              key={customer.id} 
-                              className="hover:bg-gray-50/30 transition-colors cursor-pointer"
-                              onClick={() => {
-                                handleViewCustomer(customer);
-                                setActiveTab("details");
-                              }}
-                            >
-                              {/* Columna de índice */}
-                              <td className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</td>
-                              
-                              {/* Columna de Negocio */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative flex-shrink-0">
-                                    {customer.logo ? (
-                                      <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                        <img
-                                          src={`data:image/jpeg;base64,${customer.logo}`}
-                                          alt="Logo"
-                                          className="w-full h-full object-contain"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-white rounded-md flex items-center justify-center border shadow-sm">
-                                        <Building2 className="h-5 w-5 text-gray-600" />
-                                      </div>
-                                    )}
-                                    <div 
-                                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                        customer.zoneid === 1 ? 'bg-purple-500' : 
-                                        customer.zoneid === 2 ? 'bg-red-500' : 
-                                        customer.zoneid === 3 ? 'bg-green-500' : 
-                                        'bg-gray-500'
-                                      }`}
-                                      title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                    >
-                                      {customer.zoneid || "?"}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
-                                    {customer.rnc && (
-                                      <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Contacto */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="space-y-1">
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.managername}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.phone}</span>
-                                  </div>
-                                  {customer.email && (
-                                    <div className="flex items-center text-xs text-gray-700">
-                                      <Mail className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                      <span className="truncate max-w-[150px]">{customer.email}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Dirección */}
-                              <td className="py-2.5 px-4 align-middle max-w-[200px]">
-                                <div className="space-y-1">
-                                  <div className="flex items-start text-xs text-gray-700">
-                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <MapPin className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Zona */}
-                              <td className="py-2.5 px-4 align-middle">
+                                {customer.businessname}
+                              </h3>
+                              {customer.rnc && (
+                                <p className="text-xs text-muted-foreground">RNC: {customer.rnc}</p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1">
                                 <Badge 
-                                  className={`px-2 py-0.5 ${
+                                  className={`text-xs ${
                                     customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
                                     customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
                                     customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
@@ -845,45 +698,240 @@ export default function Customers() {
                                 >
                                   {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
                                 </Badge>
-                              </td>
-                              
-                              {/* Columna de Crédito */}
-                              <td className="py-2.5 px-4 align-middle">
+                              </div>
+                            </div>
+
+                            <DropdownMenu 
+                              open={openDropdownId === customer.id} 
+                              onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
+                            >
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Más acciones"
+                                  data-testid={`button-actions-${customer.id}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewCustomer(customer);
+                                    setActiveTab("details");
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Ver Detalles
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCaptureOnMap(customer);
+                                  }}
+                                >
+                                  <Map className="h-4 w-4 mr-2" />
+                                  Capturar en Mapa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSendWhatsApp(customer);
+                                  }}
+                                >
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Enviar por WhatsApp
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Encargado</p>
+                              <p className="text-sm font-medium flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                <span className="truncate">{customer.managername}</span>
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Teléfono</p>
+                              <p className="text-sm font-medium flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                <span className="truncate">{customer.phone}</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mb-3">
+                            <p className="text-xs text-muted-foreground mb-1">Dirección</p>
+                            <p className="text-sm flex items-start gap-1">
+                              <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                              <span className="line-clamp-2">{customer.street} #{customer.streetnumber}, {customer.municipalityName}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-3 border-t">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Crédito</p>
+                              <Badge 
+                                variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
+                                className="font-medium"
+                              >
+                                <DollarSign className="h-3 w-3 mr-1 inline-block" />
+                                RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5 text-right">Ubicación</p>
+                              <Badge variant="outline" className={`${
+                                customer.coordinates 
+                                  ? 'bg-green-50 text-green-700 border-green-200' 
+                                  : 'bg-orange-50 text-orange-700 border-orange-200'
+                              }`}>
+                                <MapPin className="h-3 w-3 mr-1 inline-block" />
+                                {customer.coordinates ? 'Capturada' : 'Pendiente'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Vista desktop - Tabla moderna */}
+                  <div className="hidden md:block">
+                    <ScrollArea className="h-[calc(100vh-500px)]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Negocio</TableHead>
+                            <TableHead>Contacto</TableHead>
+                            <TableHead>Ubicación</TableHead>
+                            <TableHead>Zona</TableHead>
+                            <TableHead className="text-right">Crédito</TableHead>
+                            <TableHead className="text-center">Mapa</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredCustomers.map((customer) => (
+                            <TableRow 
+                              key={customer.id}
+                              className="cursor-pointer"
+                              onClick={() => {
+                                handleViewCustomer(customer);
+                                setActiveTab("details");
+                              }}
+                              data-testid={`row-customer-${customer.id}`}
+                            >
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="relative flex-shrink-0">
+                                    {customer.logo ? (
+                                      <div className="w-10 h-10 rounded-md overflow-hidden border shadow-sm">
+                                        <img
+                                          src={`data:image/jpeg;base64,${customer.logo}`}
+                                          alt={customer.businessname}
+                                          className="w-full h-full object-contain bg-white"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border shadow-sm">
+                                        <Building2 className="h-5 w-5 text-blue-600" />
+                                      </div>
+                                    )}
+                                    {customer.zoneid && (
+                                      <div 
+                                        className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shadow-sm ${
+                                          customer.zoneid === 1 ? 'bg-purple-500' : 
+                                          customer.zoneid === 2 ? 'bg-red-500' : 
+                                          customer.zoneid === 3 ? 'bg-green-500' : 
+                                          'bg-gray-500'
+                                        }`}
+                                      >
+                                        {customer.zoneid}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-medium line-clamp-1">{customer.businessname}</p>
+                                    {customer.rnc && (
+                                      <p className="text-xs text-muted-foreground">RNC: {customer.rnc}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-sm">
+                                    <User className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                                    <span className="truncate">{customer.managername}</span>
+                                  </div>
+                                  <div className="flex items-center text-sm">
+                                    <Phone className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                                    <span className="truncate">{customer.phone}</span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1 max-w-[200px]">
+                                  <div className="flex items-start text-sm">
+                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="truncate">{customer.street} #{customer.streetnumber}</span>
+                                  </div>
+                                  <div className="flex items-center text-sm">
+                                    <MapPin className="h-3 w-3 mr-1.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="truncate text-xs text-muted-foreground">
+                                      {customer.municipalityName}
+                                    </span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  className={`${
+                                    customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
+                                    customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
+                                    customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
+                                    'bg-gray-50 text-gray-700 border-gray-200'
+                                  }`}
+                                >
+                                  {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
                                 <Badge 
                                   variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                  className="px-2 py-0.5 font-medium"
+                                  className="font-medium"
                                 >
-                                  <DollarSign className="h-3 w-3 mr-1 inline-block" />
-                                  {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                                  RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
                                 </Badge>
-                              </td>
-                              
-                              {/* Columna de Mapa */}
-                              <td className="py-2.5 px-4 align-middle text-center">
-                                <Badge variant="outline" className={`px-2 py-0.5 text-xs ${
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className={`${
                                   customer.coordinates 
                                     ? 'bg-green-50 text-green-700 border-green-200' 
                                     : 'bg-orange-50 text-orange-700 border-orange-200'
                                 }`}>
-                                  {customer.coordinates 
-                                    ? <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> Sí</span> 
-                                    : <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> No</span>
-                                  }
+                                  {customer.coordinates ? 'Sí' : 'No'}
                                 </Badge>
-                              </td>
-                              
-                              {/* Columna de Acciones */}
-                              <td className="py-2.5 px-4 align-middle text-right">
+                              </TableCell>
+                              <TableCell className="text-right">
                                 <DropdownMenu 
                                   open={openDropdownId === customer.id} 
                                   onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
                                 >
-                                  <DropdownMenuTrigger asChild>
+                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                                     <Button 
                                       variant="ghost" 
-                                      size="sm" 
-                                      className="h-7 px-2 py-0 text-xs"
-                                      onClick={(e) => e.stopPropagation()}
+                                      size="sm"
+                                      aria-label="Más acciones"
+                                      data-testid={`button-actions-table-${customer.id}`}
                                     >
                                       <MoreVertical className="h-4 w-4" />
                                     </Button>
@@ -920,16 +968,16 @@ export default function Customers() {
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
                                 </DropdownMenu>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  </div>
                 </>
               )}
-            </div>
+            </CardContent>
           </Card>
         </TabsContent>
         
