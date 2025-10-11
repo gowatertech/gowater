@@ -50,6 +50,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
+import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -77,7 +78,14 @@ interface Delivery {
   address: string;
   status: "pending" | "in_progress" | "delivered" | "cancelled";
   scheduledTime: string;
-  products: { id: number; name: string; quantity: number; price: number }[];
+  products: { 
+    id: number; 
+    name: string; 
+    quantity: number; 
+    price: number;
+    isReturnable?: boolean;
+    bottleDeposit?: string;
+  }[];
   total: number;
   bottleReturns: BottleReturn[];
 }
@@ -99,6 +107,7 @@ export default function DeliveryDetails() {
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [autoEnterEditMode, setAutoEnterEditMode] = useState(false);
+  const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -207,7 +216,9 @@ export default function DeliveryDetails() {
           id: item.productId,
           name: item.product?.name || 'Producto',
           quantity: item.quantity,
-          price: parseFloat(item.unitPrice || item.price || '0')
+          price: parseFloat(item.unitPrice || item.price || '0'),
+          isReturnable: item.product?.isReturnable || false,
+          bottleDeposit: item.product?.bottleDeposit || '0.00'
         })),
         total: parseFloat(orderData.total),
         bottleReturns: bottleReturnsData
@@ -324,6 +335,21 @@ export default function DeliveryDetails() {
   // Calcular el nuevo total después de la edición
   const calculateTotal = (products: {id: number; name: string; quantity: number; price: number}[]) => {
     return products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
+  };
+
+  // Obtener productos retornables
+  const getReturnableProducts = () => {
+    if (!delivery) return [];
+    return delivery.products.filter(p => p.isReturnable);
+  };
+
+  // Obtener retornos existentes en formato simple
+  const getExistingReturns = () => {
+    if (!delivery) return [];
+    return delivery.bottleReturns.map(br => ({
+      productId: br.productId,
+      returnedQuantity: br.returnedQuantity
+    }));
   };
 
   // Guardar cambios de productos
@@ -1042,9 +1068,22 @@ export default function DeliveryDetails() {
           </Card>
           
           {/* Sección de envases retornables */}
-          <h3 className="font-medium text-lg mb-2 flex items-center">
-            <Recycle className="h-5 w-5 mr-2" />
-            Envases Retornables
+          <h3 className="font-medium text-lg mb-2 flex items-center justify-between">
+            <span className="flex items-center">
+              <Recycle className="h-5 w-5 mr-2" />
+              Envases Retornables
+            </span>
+            {getReturnableProducts().length > 0 && delivery.status !== "delivered" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBottleReturnDialog(true)}
+                disabled={isEditing}
+              >
+                <Recycle className="h-4 w-4 mr-1" />
+                Retornar
+              </Button>
+            )}
           </h3>
           
           {delivery.bottleReturns && delivery.bottleReturns.length > 0 ? (
@@ -1082,21 +1121,26 @@ export default function DeliveryDetails() {
                           <div className="font-medium">{bottleReturn.pendingQuantity}</div>
                         </div>
                       </div>
-                      
-                      {bottleReturn.status !== "complete" && (
-                        <div className="mt-2">
-                          <Button 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => registerBottleReturn(bottleReturn.productId, bottleReturn.pendingQuantity)}
-                          >
-                            Registrar Retorno
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          ) : getReturnableProducts().length > 0 ? (
+            <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
+              <CardContent className="p-4 text-center">
+                <div className="text-muted-foreground mb-3">
+                  Esta entrega tiene {getReturnableProducts().length} producto(s) retornable(s)
+                </div>
+                {delivery.status !== "delivered" && (
+                  <Button
+                    onClick={() => setShowBottleReturnDialog(true)}
+                    disabled={isEditing}
+                  >
+                    <Recycle className="h-4 w-4 mr-2" />
+                    Registrar Retorno
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -1328,6 +1372,23 @@ export default function DeliveryDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de retorno de envases */}
+      <BottleReturnDialog
+        open={showBottleReturnDialog}
+        orderId={deliveryId}
+        returnableProducts={getReturnableProducts().map(p => ({
+          id: p.id,
+          name: p.name,
+          quantity: p.quantity,
+          bottleDeposit: p.bottleDeposit || '0.00',
+          isReturnable: p.isReturnable || false
+        }))}
+        existingReturns={getExistingReturns()}
+        onOpenChange={setShowBottleReturnDialog}
+        darkMode={darkMode}
+        onComplete={loadDeliveryDetails}
+      />
     </div>
   );
 }
