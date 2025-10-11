@@ -91,20 +91,24 @@ export default function DriverDeliveries() {
 
   // Cargar datos de entregas usando el endpoint optimizado
   const loadDeliveries = async () => {
+    console.log('[Entregas] Iniciando carga de entregas...');
     setIsLoading(true);
     
     try {
       // Usar el nuevo endpoint optimizado que trae todo en una sola llamada
+      console.log('[Entregas] Llamando a /api/mobile/deliveries');
       const response = await fetch('/api/mobile/deliveries', {
         credentials: 'include'
       });
       
+      console.log('[Entregas] Respuesta recibida:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Error al obtener entregas');
+        throw new Error(`Error HTTP: ${response.status}`);
       }
       
       const deliveriesData = await response.json();
-      console.log('Datos recibidos de /api/mobile/deliveries:', deliveriesData);
+      console.log('[Entregas] Datos recibidos:', deliveriesData.length, 'entregas');
       
       // Mapear los datos al formato esperado por la interfaz
       const mappedDeliveries = deliveriesData.map((delivery: any) => ({
@@ -124,14 +128,18 @@ export default function DriverDeliveries() {
       }));
       
       setDeliveries(mappedDeliveries);
+      console.log('[Entregas] Entregas cargadas exitosamente');
     } catch (error) {
-      console.error('Error al cargar entregas:', error);
+      console.error('[Entregas] ERROR al cargar entregas:', error);
       toast({
         title: "Error al cargar datos",
-        description: "No se pudieron obtener las entregas",
+        description: error instanceof Error ? error.message : "No se pudieron obtener las entregas",
         variant: "destructive"
       });
+      // Establecer array vacío para evitar errores en el render
+      setDeliveries([]);
     } finally {
+      console.log('[Entregas] Finalizando carga, setIsLoading(false)');
       setIsLoading(false);
     }
   };

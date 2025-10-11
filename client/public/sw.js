@@ -1,5 +1,5 @@
-// Nombre de la caché
-const CACHE_NAME = 'gowater-driver-cache-v2';
+// Nombre de la caché  
+const CACHE_NAME = 'gowater-driver-cache-v3';
 
 // Recursos a cachear inicialmente
 const initialResources = [
@@ -12,6 +12,10 @@ const initialResources = [
 
 // Al instalar el Service Worker
 self.addEventListener('install', (event) => {
+  console.log('Service Worker v3: Instalando...');
+  // Forzar activación inmediata
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -23,6 +27,8 @@ self.addEventListener('install', (event) => {
 
 // Al activar el Service Worker (después de la instalación)
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker v3: Activando...');
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -33,6 +39,9 @@ self.addEventListener('activate', (event) => {
             return caches.delete(name);
           })
       );
+    }).then(() => {
+      // Forzar a todos los clientes a usar el nuevo service worker
+      return self.clients.claim();
     })
   );
 });
