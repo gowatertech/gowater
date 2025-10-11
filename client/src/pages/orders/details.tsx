@@ -9,6 +9,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 // Importamos nuestro servicio de impresión
 import { printOrderTicket, generateOrderPdf } from "./PrinterService";
+import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 
 // Iconos
 import { 
@@ -19,7 +20,9 @@ import {
   CircleX, 
   AlertTriangle,
   Printer,
-  FileDown
+  FileDown,
+  Recycle,
+  PackagePlus
 } from "lucide-react";
 
 // Componentes UI
@@ -57,6 +60,7 @@ export default function OrderDetails() {
   const orderIdFromPath = pathname.split('/').pop();
   const orderId = params?.id ? parseInt(params.id) : orderIdFromPath ? parseInt(orderIdFromPath) : undefined;
   const [newStatus, setNewStatus] = useState<string>("");
+  const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
 
   // Obtener los detalles del pedido
   const { data: order, isLoading: isOrderLoading, refetch } = useQuery<any>({
@@ -162,6 +166,20 @@ export default function OrderDetails() {
         method: "GET"
       });
     },
+  });
+
+  // Obtener retornos de envases del pedido
+  const { data: bottleReturns = [], refetch: refetchBottleReturns } = useQuery<any[]>({
+    queryKey: ["/api/orders", orderId, "bottle-returns"],
+    queryFn: async () => {
+      if (!orderId) return [];
+      const response = await fetch(`/api/orders/${orderId}/bottle-returns`, {
+        credentials: "include"
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!orderId,
   });
 
   // Mutación para actualizar el estado del pedido (usando el nuevo endpoint)
@@ -406,6 +424,41 @@ export default function OrderDetails() {
   const customer = order && order.customerId ? 
     customers.find((c: any) => c && c.id === order.customerId) : null;
 
+  // Obtener productos retornables del pedido
+  const getReturnableProducts = () => {
+    if (!orderItems || !products) return [];
+    
+    return orderItems
+      .map((item: any) => {
+        const product = products.find((p: any) => p.id === item.productId);
+        if (!product || !product.isReturnable) return null;
+        
+        return {
+          id: product.id,
+          name: product.name,
+          quantity: item.quantity,
+          bottleDeposit: product.depositAmount || "0.00",
+          isReturnable: true
+        };
+      })
+      .filter((item: any) => item !== null);
+  };
+
+  // Obtener retornos existentes en formato simple
+  const getExistingReturns = () => {
+    if (!bottleReturns) return [];
+    return bottleReturns.map((br: any) => ({
+      productId: br.productId,
+      returnedQuantity: br.returnedQuantity
+    }));
+  };
+
+  // Manejar completar registro de retorno
+  const handleBottleReturnComplete = () => {
+    refetchBottleReturns();
+    refetch();
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
@@ -603,6 +656,71 @@ export default function OrderDetails() {
             </div>
           </div>
 
+          {/* Retornos de Envases */}
+          {getReturnableProducts().length > 0 && (
+            <div className="space-y-2 border rounded-lg p-3 sm:p-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium flex items-center gap-2">
+                  <Recycle className="h-5 w-5 text-green-600" />
+                  Retornos de Envases
+                </h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowBottleReturnDialog(true)}
+                  className="flex items-center gap-1"
+                >
+                  <PackagePlus className="h-4 w-4" />
+                  Registrar Retorno
+                </Button>
+              </div>
+
+              {bottleReturns && bottleReturns.length > 0 ? (
+                <div className="space-y-2 mt-3">
+                  {bottleReturns.map((bottleReturn: any) => (
+                    <div key={bottleReturn.id} className="border rounded-lg p-3 bg-muted/20">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-medium">{bottleReturn.productName}</div>
+                        <Badge 
+                          variant={
+                            bottleReturn.status === "complete" ? "secondary" : 
+                            bottleReturn.status === "incomplete" ? "outline" : 
+                            "default"
+                          }
+                        >
+                          {bottleReturn.status === "pending" && "Pendiente"}
+                          {bottleReturn.status === "complete" && "Completo"}
+                          {bottleReturn.status === "incomplete" && "Incompleto"}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Esperados</div>
+                          <div className="font-medium">{bottleReturn.expectedQuantity}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Retornados</div>
+                          <div className="font-medium text-green-600">{bottleReturn.returnedQuantity}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Pendientes</div>
+                          <div className="font-medium text-orange-600">{bottleReturn.pendingQuantity}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  Este pedido tiene {getReturnableProducts().length} producto(s) retornable(s).
+                  <br />
+                  Haz clic en "Registrar Retorno" para registrar envases devueltos.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Cambiar Estado */}
           <div className="space-y-2 border rounded-lg p-3 sm:p-4 mt-4">
             <h3 className="font-medium">Actualizar Estado</h3>
@@ -659,6 +777,16 @@ export default function OrderDetails() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo para registrar retornos de envases */}
+      <BottleReturnDialog
+        open={showBottleReturnDialog}
+        orderId={orderId || null}
+        returnableProducts={getReturnableProducts()}
+        existingReturns={getExistingReturns()}
+        onOpenChange={setShowBottleReturnDialog}
+        onComplete={handleBottleReturnComplete}
+      />
     </div>
   );
 }
