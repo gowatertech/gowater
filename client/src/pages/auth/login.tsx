@@ -39,12 +39,12 @@ export default function LoginPage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   
-  // Inicializar el formulario con react-hook-form y credenciales predefinidas
+  // Inicializar el formulario con react-hook-form
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "aguamoya@gmail.com",
-      password: "admin123"
+      email: "",
+      password: ""
     }
   });
 
