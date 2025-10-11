@@ -156,11 +156,19 @@ export default function GoWaterDriverApp() {
   useEffect(() => {
     let deferredPrompt: any;
     
+    // Detectar si es iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    const hasShownPrompt = localStorage.getItem('pwaPromptShown');
+    
+    // Para Android/Chrome - esperar el evento beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e) => {
       // Prevenir que Chrome muestre la instalación automáticamente
       e.preventDefault();
       // Guardar el evento para usarlo después
       deferredPrompt = e;
+      // @ts-ignore - guardar en window para acceder desde InstallPrompt
+      window.deferredPrompt = e;
       // Mostrar nuestro propio prompt
       setShowInstallPrompt(true);
     });
@@ -169,10 +177,20 @@ export default function GoWaterDriverApp() {
       // Cuando la PWA se haya instalado, ocultar el prompt
       setShowInstallPrompt(false);
       deferredPrompt = null;
+      // @ts-ignore
+      window.deferredPrompt = null;
     });
 
+    // Para iOS - mostrar instrucciones si no está instalada
+    if (isIOS && !isStandalone && !hasShownPrompt) {
+      // Mostrar después de 1 segundo para dar tiempo a que la página cargue
+      setTimeout(() => {
+        setShowInstallPrompt(true);
+      }, 1000);
+    }
+    
     // Comprobar si ya está en modo standalone (ya instalada)
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (isStandalone) {
       setShowInstallPrompt(false);
     }
     
