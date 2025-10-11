@@ -89,80 +89,41 @@ export default function DriverDeliveries() {
     }, 1000);
   };
 
-  // Cargar datos de entregas
+  // Cargar datos de entregas usando el endpoint optimizado
   const loadDeliveries = async () => {
     setIsLoading(true);
     
     try {
-      // Obtener órdenes
-      const ordersResponse = await fetch('/api/orders');
-      if (!ordersResponse.ok) {
-        throw new Error('Error al obtener órdenes');
+      // Usar el nuevo endpoint optimizado que trae todo en una sola llamada
+      const response = await fetch('/api/mobile/deliveries', {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener entregas');
       }
-      const ordersData = await ordersResponse.json();
       
-      console.log('Datos recibidos de /api/orders:', ordersData);
+      const deliveriesData = await response.json();
+      console.log('Datos recibidos de /api/mobile/deliveries:', deliveriesData);
       
-      // Para cada orden, obtener sus detalles completos y retornos de botellas
-      const deliveriesWithDetails = await Promise.all(
-        ordersData.map(async (order: any) => {
-          let orderDetails: any = {};
-          let bottleReturnsData: BottleReturn[] = [];
-          
-          // Obtener detalles completos de la orden (incluye productos)
-          try {
-            const orderDetailsResponse = await fetch(`/api/orders/${order.id}`, {
-              credentials: 'include'
-            });
-            if (orderDetailsResponse.ok) {
-              orderDetails = await orderDetailsResponse.json();
-            }
-          } catch (error) {
-            console.error(`Error al obtener detalles para orden ${order.id}:`, error);
-          }
-          
-          // Obtener retornos de botellas
-          try {
-            const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`, {
-              credentials: 'include'
-            });
-            if (bottleReturnsResponse.ok) {
-              bottleReturnsData = await bottleReturnsResponse.json();
-              console.log(`Retornos de botellas para orden ${order.id}:`, bottleReturnsData);
-            }
-          } catch (error) {
-            console.error(`Error al obtener retornos para orden ${order.id}:`, error);
-          }
-          
-          // Mapear los productos desde orderDetails
-          const products = (orderDetails.items || []).map((item: any) => ({
-            id: item.product?.id || item.productId,
-            name: item.product?.name || '',
-            quantity: item.quantity,
-            price: parseFloat(item.product?.price || item.unitPrice || '0'),
-            isReturnable: item.product?.isReturnable || false
-          }));
-          
-          // Convertir los datos de la API al formato requerido por nuestra interfaz
-          return {
-            id: order.id,
-            orderId: order.id,
-            customerId: order.customerId,
-            customerName: order.customerName,
-            address: order.address || '',
-            status: order.status as "pending" | "in_progress" | "delivered" | "cancelled",
-            scheduledTime: new Date(order.date).toLocaleTimeString('es-DO', {
-              hour: '2-digit',
-              minute: '2-digit'
-            }),
-            products: products,
-            total: parseFloat(order.total),
-            bottleReturns: bottleReturnsData
-          };
-        })
-      );
+      // Mapear los datos al formato esperado por la interfaz
+      const mappedDeliveries = deliveriesData.map((delivery: any) => ({
+        id: delivery.id,
+        orderId: delivery.id,
+        customerId: delivery.customerId,
+        customerName: delivery.customerName,
+        address: delivery.address || '',
+        status: delivery.status as "pending" | "in_progress" | "delivered" | "cancelled",
+        scheduledTime: new Date(delivery.date).toLocaleTimeString('es-DO', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        products: delivery.products || [],
+        total: parseFloat(delivery.total),
+        bottleReturns: delivery.bottleReturns || []
+      }));
       
-      setDeliveries(deliveriesWithDetails);
+      setDeliveries(mappedDeliveries);
     } catch (error) {
       console.error('Error al cargar entregas:', error);
       toast({

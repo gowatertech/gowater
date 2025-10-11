@@ -610,6 +610,92 @@ export function createMobileApiEndpoints(): Router {
     }
   });
 
+  /**
+   * GET /api/mobile/deliveries
+   * Endpoint optimizado que devuelve órdenes con bottle-returns incluidos
+   * Evita hacer múltiples peticiones para cada orden
+   */
+  router.get('/deliveries', async (req, res) => {
+    try {
+      let companyId = getCurrentCompanyId();
+      
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "No se pudo determinar la compañía" });
+      }
+      
+      // Usar raw query para obtener todas las órdenes con sus items, productos y bottle-returns
+      const { pool } = await import('../db');
+      
+      const deliveriesQuery = `
+        WITH order_bottle_returns AS (
+          SELECT 
+            br.order_id,
+            json_agg(
+              json_build_object(
+                'id', br.id,
+                'orderId', br.order_id,
+                'productId', br.product_id,
+                'productName', p.name,
+                'expectedQuantity', br.expected_quantity,
+                'returnedQuantity', br.returned_quantity,
+                'pendingQuantity', br.pending_quantity,
+                'returnDate', br.return_date,
+                'status', br.status,
+                'amountCharged', br.amount_charged,
+                'depositAmount', br.deposit_amount,
+                'responsibleType', br.responsible_type,
+                'chargeMethod', br.charge_method
+              )
+            ) as bottle_returns
+          FROM bottle_returns br
+          JOIN products p ON br.product_id = p.id
+          WHERE br.company_id = $1
+          GROUP BY br.order_id
+        )
+        SELECT 
+          o.id,
+          o.customer_id as "customerId",
+          c.businessname as "customerName",
+          c.street as address,
+          o.status,
+          o.date,
+          o.total,
+          o.payment_method as "paymentMethod",
+          json_agg(
+            json_build_object(
+              'id', oi.product_id,
+              'name', p.name,
+              'quantity', oi.quantity,
+              'price', p.price::text,
+              'isReturnable', p.is_returnable,
+              'bottleDeposit', COALESCE(p.deposit_amount, '0.00')::text
+            ) ORDER BY oi.id
+          ) as products,
+          COALESCE(obr.bottle_returns, '[]'::json) as "bottleReturns"
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.id
+        LEFT JOIN order_bottle_returns obr ON o.id = obr.order_id
+        WHERE o.company_id = $1
+        GROUP BY o.id, o.customer_id, c.businessname, c.street, o.status, o.date, o.total, o.payment_method, obr.bottle_returns
+        ORDER BY o.date DESC
+      `;
+      
+      const result = await pool.query(deliveriesQuery, [companyId]);
+      
+      console.log(`MobileAPI - Devolviendo ${result.rows.length} entregas con bottle-returns incluidos`);
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error al obtener deliveries:", error);
+      res.status(500).json({ error: "Error al obtener entregas", details: String(error) });
+    }
+  });
+
   return router;
 }
 
