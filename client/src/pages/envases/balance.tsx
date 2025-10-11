@@ -32,13 +32,6 @@ export default function BalanceEnvases() {
     refetch: refetchReturns 
   } = useQuery<BottleReturn[]>({
     queryKey: ["/api/bottle-returns"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/bottle-returns");
-      if (!response.ok) {
-        throw new Error("Error al obtener devoluciones de envases");
-      }
-      return response.json();
-    },
   });
 
   // Consulta para obtener el balance por cliente
@@ -50,13 +43,6 @@ export default function BalanceEnvases() {
     refetch: refetchBalance 
   } = useQuery<any[]>({
     queryKey: ["/api/bottle-balance"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/bottle-balance");
-      if (!response.ok) {
-        throw new Error("Error al obtener balance por cliente");
-      }
-      return response.json();
-    },
   });
 
   const isLoading = isLoadingReturns || isLoadingBalance;
