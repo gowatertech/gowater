@@ -38,6 +38,14 @@ The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for generating complex 
 ### Internationalization (i18n)
 **react-i18next** is implemented for multilingual support, specifically English and Spanish, with locale file management and session persistence for language preferences.
 
+### Progressive Web App (PWA)
+The application is fully configured as a **Progressive Web App** for mobile installation:
+- **Manifest.json**: Complete PWA manifest with app metadata, theme colors, and display configuration
+- **PNG Icons**: Nine icon sizes (72x72, 96x96, 128x128, 144x144, 152x152, 180x180, 192x192, 384x384, 512x512) for comprehensive device support
+- **iOS Support**: Apple touch icon (180x180) and mobile web app meta tags for iOS devices
+- **Installable**: Users can install the app on Android and iOS home screens with proper app icon display
+- **Standalone Mode**: App runs in standalone mode without browser UI when installed
+
 ### Accessibility & Testing Standards
 The application follows **WCAG 2.1** accessibility guidelines with comprehensive testing coverage:
 - **Icon-only buttons**: All require explicit `aria-label` attributes for screen reader accessibility
