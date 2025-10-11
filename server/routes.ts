@@ -4908,6 +4908,68 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para obtener TODAS las devoluciones de envases
+  router.get("/api/bottle-returns", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
+      
+      console.log(`📦 Obteniendo todas las devoluciones de envases para compañía ${companyId}`);
+      
+      const allBottleReturns = await db
+        .select()
+        .from(bottleReturns)
+        .where(eq(bottleReturns.companyId, companyId))
+        .orderBy(desc(bottleReturns.id));
+      
+      console.log(`✅ Encontradas ${allBottleReturns.length} devoluciones de envases`);
+      res.json(allBottleReturns);
+    } catch (error) {
+      console.error("❌ Error al obtener devoluciones de envases:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener balance de envases por cliente
+  router.get("/api/bottle-balance", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
+      
+      console.log(`📊 Obteniendo balance de envases por cliente para compañía ${companyId}`);
+      
+      // Consulta SQL para obtener el balance por cliente
+      const balanceQuery = sql`
+        SELECT 
+          br.customer_id,
+          c.businessname as customer_name,
+          SUM(COALESCE(br.expected_quantity, 0)) as total_expected,
+          SUM(COALESCE(br.returned_quantity, 0)) as total_returned,
+          SUM(COALESCE(br.pending_quantity, 0)) as total_pending
+        FROM bottle_returns br
+        LEFT JOIN customers c ON br.customer_id = c.id
+        WHERE br.company_id = ${companyId}
+        GROUP BY br.customer_id, c.businessname
+        HAVING SUM(COALESCE(br.pending_quantity, 0)) > 0
+        ORDER BY total_pending DESC
+      `;
+      
+      const balanceData = await db.execute(balanceQuery);
+      
+      console.log(`✅ Calculado balance para ${balanceData.rows.length} clientes`);
+      res.json(balanceData.rows);
+    } catch (error) {
+      console.error("❌ Error al obtener balance de envases:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Production batches endpoints
   router.get("/production-batches", async (req, res) => {
     try {
