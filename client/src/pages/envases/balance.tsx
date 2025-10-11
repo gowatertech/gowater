@@ -323,14 +323,19 @@ export default function BalanceEnvases() {
                     data-testid="input-search-customer"
                   />
                   {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                    <Button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setFilterActive("all");
+                      }}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-auto p-0 hover:bg-transparent"
+                      variant="ghost"
+                      size="sm"
                       aria-label="Limpiar búsqueda"
                       data-testid="button-clear-search"
                     >
                       <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                    </button>
+                    </Button>
                   )}
                 </div>
                 

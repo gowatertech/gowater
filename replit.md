@@ -38,6 +38,23 @@ The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for generating complex 
 ### Internationalization (i18n)
 **react-i18next** is implemented for multilingual support, specifically English and Spanish, with locale file management and session persistence for language preferences.
 
+### Accessibility & Testing Standards
+The application follows **WCAG 2.1** accessibility guidelines with comprehensive testing coverage:
+- **Icon-only buttons**: All require explicit `aria-label` attributes for screen reader accessibility
+- **Interactive elements**: All have unique `data-testid` attributes for automated testing
+- **Mobile-first design**: Responsive layouts optimized for touch devices (mobile cards, desktop tables)
+- **Testing infrastructure**: E2E tests via Playwright, test session endpoint (`/api/test-session/login`) for development
+
+### Recent Improvements
+#### Balance de Envases (Bottle Returns) - Mobile-First Redesign (October 2025)
+- **Responsive Layout**: Card-based view for mobile (<768px), table view for desktop (≥768px)
+- **Search & Filter**: Real-time search by customer name, filter by status (All/Pending)
+- **Accessibility Compliance**:
+  - All icon-only buttons use shadcn Button component with aria-labels
+  - Clear search button resets both search query and filter state
+  - Data-testid attributes on all interactive elements
+- **Route**: `/bottles/balance` (consolidated from previous `/envases/balance`)
+
 ## External Dependencies
 
 ### Core Infrastructure

@@ -296,7 +296,7 @@ export default function Dashboard() {
               icon={<Droplet className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
               trend={"+5"}
               trendUp={false}
-              onClick={() => navigateTo("/envases/balance")}
+              onClick={() => navigateTo("/bottles/balance")}
             />
           </div>
           
