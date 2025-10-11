@@ -163,19 +163,27 @@ export function createMobileApiEndpoints(): Router {
             try {
               // Buscar el producto por ID
               const productResult = await db.execute(`
-                SELECT name FROM products 
+                SELECT name, is_returnable, deposit_amount FROM products 
                 WHERE id = ${item.productId} AND company_id = ${companyId}
               `);
               
               const productName = productResult.rows && productResult.rows.length > 0 
                 ? productResult.rows[0].name 
                 : "Producto";
+              const isReturnable = productResult.rows && productResult.rows.length > 0 
+                ? productResult.rows[0].is_returnable 
+                : false;
+              const bottleDeposit = productResult.rows && productResult.rows.length > 0 
+                ? productResult.rows[0].deposit_amount 
+                : '0.00';
                 
               return {
                 productId: item.productId,
                 name: productName,
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                isReturnable: isReturnable,
+                bottleDeposit: bottleDeposit
               };
             } catch (err) {
               console.error(`Error al obtener producto #${item.productId}:`, err);
@@ -183,14 +191,16 @@ export function createMobileApiEndpoints(): Router {
                 productId: item.productId,
                 name: "Producto",
                 quantity: item.quantity,
-                price: item.price
+                price: item.price,
+                isReturnable: false,
+                bottleDeposit: '0.00'
               };
             }
           })
         );
           
         // Añadir productos a la orden
-        order.products = productsInfo;
+        (order as any).products = productsInfo;
       }
       
       console.log(`MobileAPI - Se encontraron ${result.length} órdenes`);

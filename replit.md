@@ -86,3 +86,46 @@ Uses **react-i18next** for Spanish and English language support, with locale fil
     - Financial reporting includes credit sales
     - Can filter payments by "credit" method
   - **Verified**: E2E test confirmed credit payments appear with correct amount and can be filtered
+
+### October 11, 2025 - Bottle Returns in Mobile App
+
+#### Mobile API Product Properties Fix (Critical Bug Fix)
+- **Fixed missing `isReturnable` property** in mobile orders endpoint
+  - **Root cause**: `/api/mobile/orders` endpoint was not returning `isReturnable` and `bottleDeposit` properties for products
+  - **Impact**: Mobile app couldn't detect returnable products, hiding the "Retornar Envases" button
+  - **Solution**: Updated mobile API to include product properties in response:
+    ```sql
+    SELECT name, is_returnable, deposit_amount FROM products
+    ```
+  - **Changes made** in `server/routes/mobile-api.ts`:
+    - Added `isReturnable` property to product objects (boolean)
+    - Added `bottleDeposit` property to product objects (string)
+    - Applied to both successful and error cases
+  - **Frontend integration**: Mobile app now correctly detects returnable products and displays return dialog
+
+#### BottleReturnDialog Component Enhancement
+- **Completely rewrote component** to handle multiple returnable products with proper validation
+  - **Location**: `client/src/components/bottleReturns/BottleReturnDialog.tsx`
+  - **Key features**:
+    - Product selector dropdown for multiple returnable items
+    - Cumulative validation: prevents returning more bottles than ordered minus previously returned
+    - Real-time calculation of available quantity
+    - Display of existing returns below the form
+    - Fixed apiRequest signature to use object parameter: `{ url, method, data }`
+  - **Validation logic**: `maxReturnQuantity = orderQuantity - sum(existingReturns)`
+  
+#### Mobile Delivery Details Integration
+- **Integrated BottleReturnDialog** into mobile delivery details page
+  - **Location**: `client/src/pages/mobile-app/entregas/[id].tsx`
+  - **Conditional rendering**: "Retornar Envases" button only appears when:
+    - Order has products with `isReturnable: true`
+    - Order status is not "delivered"
+  - **Data flow**:
+    - `getReturnableProducts()`: Filters products by `isReturnable` property
+    - `getExistingReturns()`: Maps bottle returns for validation
+    - `loadDeliveryDetails()`: Refreshes data after successful return registration
+
+#### Technical Notes
+- **Backend endpoints remain unchanged**: All bottle return logic already existed
+- **The fix was purely about data visibility**: Ensuring mobile API returns the necessary product properties
+- **Type safety**: Dialog properly handles missing/undefined properties with fallback values
