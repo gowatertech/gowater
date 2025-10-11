@@ -41,8 +41,6 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
             description: "GoWater se está instalando en tu dispositivo",
             variant: "default"
           });
-          // Guardar que ya se instaló para no mostrar de nuevo
-          localStorage.setItem('pwaPromptShown', 'true');
         } else {
           toast({
             title: "Instalación cancelada",
@@ -50,6 +48,9 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
             variant: "default"
           });
         }
+        
+        // Guardar que ya se mostró el prompt (aceptado o rechazado) para no molestar de nuevo
+        localStorage.setItem('pwaPromptShown', 'true');
         
         // @ts-ignore - Limpiar el evento
         window.deferredPrompt = null;
