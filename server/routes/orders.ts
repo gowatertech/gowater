@@ -849,4 +849,84 @@ ordersRouter.patch("/api/orders/:orderId/products", authMiddleware, async (req: 
   }
 });
 
+// Endpoint para actualizar el estado de una orden
+ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  const { status } = req.body;
+  
+  if (!status || !["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
+    return res.status(400).json({ error: "Estado inválido" });
+  }
+  
+  console.log(`PATCH /api/orders/${orderId}/status - Actualizando estado a "${status}"`);
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para actualizar el estado"
+      });
+    }
+    
+    // Verificar que la orden existe y pertenece a la compañía
+    const orderCheckQuery = `
+      SELECT id, status FROM orders 
+      WHERE id = $1 AND company_id = $2
+    `;
+    
+    const orderCheck = await pool.query(orderCheckQuery, [orderId, companyId]);
+    
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
+    }
+    
+    const currentStatus = orderCheck.rows[0].status;
+    console.log(`📝 Estado actual: ${currentStatus}, Nuevo estado: ${status}`);
+    
+    // Actualizar el estado
+    const updateQuery = `
+      UPDATE orders 
+      SET status = $1 
+      WHERE id = $2 AND company_id = $3
+      RETURNING *
+    `;
+    
+    const result = await pool.query(updateQuery, [status, orderId, companyId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(500).json({ error: "Error al actualizar el estado" });
+    }
+    
+    const updatedOrder = result.rows[0];
+    console.log(`✅ Estado actualizado exitosamente para orden ${orderId}`);
+    
+    // Convertir nombres de propiedades de snake_case a camelCase
+    const formattedOrder = {
+      id: updatedOrder.id,
+      customerId: updatedOrder.customer_id,
+      total: updatedOrder.total,
+      status: updatedOrder.status,
+      paymentMethod: updatedOrder.payment_method,
+      date: updatedOrder.date,
+      routeId: updatedOrder.route_id,
+      notes: updatedOrder.notes,
+      companyId: updatedOrder.company_id
+    };
+    
+    res.json(formattedOrder);
+    
+  } catch (error) {
+    console.error(`❌ Error al actualizar estado de orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 export default ordersRouter;
