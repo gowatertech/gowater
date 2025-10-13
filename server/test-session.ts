@@ -22,6 +22,10 @@ export function registerTestSessionRoutes(router: Router) {
           companyId: companyId,
         };
         
+        // IMPORTANTE: También establecer companyId directamente en la sesión
+        // para que los middlewares de autenticación lo encuentren
+        req.session.companyId = companyId;
+        
         // También configurar el companyId en el contexto
         setCurrentCompanyId(companyId);
         

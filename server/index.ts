@@ -20,7 +20,7 @@ import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate
 import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company.middleware";
 // Importamos el router de órdenes
 import ordersRouter from "./routes/orders";
-// Importamos las rutas para datos geográficos
+// Importamos las rutas para datos geográficos  
 import { registerGeoDataRoutes } from "./routes/geo-data";
 
 const app = express();

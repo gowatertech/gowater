@@ -9,7 +9,7 @@ import { getCurrentCompanyId } from '../company-db';
 export function createUpdateOrderStatusEndpoint(router: Router) {
   console.log("Registrando endpoint /api/update-order-status");
   
-  router.post("/api/update-order-status", async (req, res) => {
+  router.post("/update-order-status", async (req, res) => {
     try {
       // Log detallado de la solicitud
       console.log("------ SOLICITUD DE ACTUALIZACIÓN DE ESTADO ------");

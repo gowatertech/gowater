@@ -7,8 +7,11 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
  * y lo establece en el contexto para su uso en toda la aplicación.
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Para rutas de plataforma, no alteramos nada
-  if (req.path.startsWith('/api/platform') || req.path === '/api/login' || req.path === '/api/logout') {
+  // Para rutas de plataforma y test-session, no alteramos nada
+  if (req.path.startsWith('/api/platform') || 
+      req.path === '/api/login' || 
+      req.path === '/api/logout' ||
+      req.path.startsWith('/api/test-session')) {
     return next();
   }
 
