@@ -133,7 +133,7 @@ export default function OrdersPage() {
     queryFn: async () => {
       if (!selectedOrder?.id) return [];
       try {
-        const response = await apiRequest("GET", `/api/orders/${selectedOrder.id}/products`);
+        const response = await apiRequest(`/api/orders/${selectedOrder.id}/products`);
         if (!response.ok) {
           console.error("Error cargando detalles del pedido");
           return [];
@@ -208,7 +208,7 @@ export default function OrdersPage() {
       console.log("Datos del pedido a enviar:", orderData);
 
       // 4. Crear el pedido con los datos validados
-      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
+      const orderResponse = await apiRequest("/api/orders", { method: "POST", data: orderData });
       
       if (!orderResponse.ok) {
         console.error("Error en la respuesta:", await orderResponse.text());
@@ -228,7 +228,7 @@ export default function OrdersPage() {
         };
 
         console.log("Agregando item al pedido:", itemData);
-        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
+        const itemResponse = await apiRequest(`/api/orders/${order.id}/items`, { method: "POST", data: itemData });
         if (!itemResponse.ok) {
           console.error("Error al crear item:", await itemResponse.text());
           throw new Error('Error al crear items del pedido');
