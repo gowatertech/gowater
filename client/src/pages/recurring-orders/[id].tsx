@@ -271,7 +271,7 @@ export default function RecurringOrderForm() {
     // Ahora guardamos los nuevos items
     try {
       for (const item of watchedItems) {
-        await apiRequest(`/api/recurring-orders/${orderId}/items`, {
+        await apiRequest('/api/recurring-orders/items', {
           method: 'POST',
           data: {
             ...item,

@@ -965,21 +965,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       // Solo convertir assistantId y truckId si no son nulos
       assistantId: values.assistantId ? Number(values.assistantId) : null,
       truckId: values.truckId ? Number(values.truckId) : null,
-      stops: stops.map(stop => {
-        // Ensure coordinates are in string format "lat,lng"
-        if (typeof stop.coordinates === 'string') {
-          return stop.coordinates;
-        } else if (stop.coordinates && typeof stop.coordinates === 'object') {
-          // Handle coordinate objects
-          const coords = stop.coordinates as any;
-          if (coords.latitude !== undefined && coords.longitude !== undefined) {
-            return `${coords.latitude},${coords.longitude}`;
-          } else if (coords.lat !== undefined && coords.lng !== undefined) {
-            return `${coords.lat},${coords.lng}`;
-          }
-        }
-        return "";
-      }),
+      stops: stops.map(stop => stop.coordinates),
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
       // Incluir la distancia total calculada

@@ -4,38 +4,11 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "./company-db";
 export function registerTestSessionRoutes(router: Router) {
   // Solo habilitado en desarrollo
   if (process.env.NODE_ENV !== "production") {
-    router.post("/test-session/login", async (req: Request, res: Response) => {
+    router.post("/test-session/login", (req: Request, res: Response) => {
       try {
-        const { userId, companyId: providedCompanyId, username, role } = req.body;
+        const { userId, companyId, username, role } = req.body;
         
-        // Si no se proporciona companyId, buscar en la base de datos
-        let companyId = providedCompanyId;
-        let userRole = role;
-        let userName = username;
-        
-        if (!companyId && userId) {
-          try {
-            const { db } = await import('./db');
-            const { users } = await import('../shared/schema');
-            const { eq } = await import('drizzle-orm');
-            
-            const userRecord = await db.select()
-              .from(users)
-              .where(eq(users.id, userId))
-              .limit(1);
-            
-            if (userRecord && userRecord.length > 0) {
-              companyId = userRecord[0].companyId;
-              userRole = userRole || userRecord[0].role;
-              userName = userName || userRecord[0].username;
-              console.log(`[TEST] Usuario encontrado en DB: ${userName}, companyId=${companyId}, role=${userRole}`);
-            }
-          } catch (dbError) {
-            console.error("[TEST] Error al buscar usuario en DB:", dbError);
-          }
-        }
-        
-        console.log(`[TEST] Configurando sesión con userId=${userId}, companyId=${companyId}, role=${userRole}`);
+        console.log(`[TEST] Configurando sesión con userId=${userId}, companyId=${companyId}, role=${role}`);
         
         // Configurar la sesión
         if (!req.session) {
@@ -44,8 +17,8 @@ export function registerTestSessionRoutes(router: Router) {
         
         req.session.user = {
           id: userId,
-          name: userName || "Test User",
-          role: userRole || "admin",
+          name: username || "Test User",
+          role: role || "admin",
           companyId: companyId,
         };
         

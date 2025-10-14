@@ -1056,21 +1056,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       status: "pending",
       isCompleted: false,
       deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
-      stops: optimizedRoute.map(customer => {
-        // Ensure coordinates are in string format "lat,lng"
-        const coords = customer.coordinates;
-        if (typeof coords === 'string') {
-          return coords;
-        } else if (coords && typeof coords === 'object') {
-          const c = coords as any;
-          if (c.latitude !== undefined && c.longitude !== undefined) {
-            return `${c.latitude},${c.longitude}`;
-          } else if (c.lat !== undefined && c.lng !== undefined) {
-            return `${c.lat},${c.lng}`;
-          }
-        }
-        return "";
-      }),
+      stops: optimizedRoute.map(customer => customer.coordinates || ""),
       totalDistance: totalDistance.toFixed(2),
       estimatedDuration: estimatedDuration,
       orderIds: orderIds,
