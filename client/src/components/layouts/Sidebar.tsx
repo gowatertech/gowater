@@ -136,6 +136,13 @@ const sidebarItems = [
   },
 
   { 
+    icon: BookOpen, 
+    label: "Manual de Usuario", 
+    href: "/manual",
+    description: "Guía completa del sistema"
+  },
+
+  { 
     icon: Settings, 
     label: "Configuración", 
     href: "/settings",

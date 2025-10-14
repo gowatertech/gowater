@@ -54,6 +54,7 @@ import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
 import TestRoutesPage from "@/pages/test-routes";
+import ManualPage from "@/pages/ManualPage";
 import LandingPage from "@/pages/landing";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
@@ -402,6 +403,7 @@ function Router() {
         <Route path="/entregas" component={Entregas} />
         <Route path="/drivers" component={DriverView} />
         <Route path="/tutorial" component={TutorialPage} />
+        <Route path="/manual" component={ManualPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
         <Route path="/reports/:type" component={Reports} />
