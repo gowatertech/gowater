@@ -5376,6 +5376,9 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Driver endpoints
+  // DISABLED: This duplicate endpoint is now handled in server/routes/driver.ts
+  // which includes proper multi-tenant security filtering by companyId
+  /*
   router.get("/driver/deliveries/today", async (req, res) => {
     try {
       const today = new Date();
@@ -5404,6 +5407,7 @@ export async function registerRoutes(router: express.Router) {
       res.status(500).json({ error: String(error) });
     }
   });
+  */
 
   router.get("/driver/cash-balance", async (req, res) => {
     try {

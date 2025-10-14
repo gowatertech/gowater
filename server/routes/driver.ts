@@ -42,29 +42,27 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener las entregas del día para un conductor
   app.get("/api/driver/deliveries/today", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor y companyId
+      console.log(`[DELIVERIES] Endpoint called`);
       const driverId = req.user?.id || 2;
       const companyId = getCurrentCompanyId();
       
       if (!companyId) {
-        console.error("No se encontró companyId para obtener entregas del conductor");
+        console.error("[DELIVERIES] No companyId found");
         return res.json([]);
       }
       
-      // Buscar la ruta activa para el conductor
-      console.log(`[STEP 1] Buscando ruta activa para conductor ${driverId}, empresa ${companyId}`);
-      const allActiveRoutes = await db.query.routes.findMany({
-        where: (routes, { and, eq }) => and(
-          eq(routes.driverId, driverId),
-          eq(routes.status, 'pending'),
-          eq(routes.companyId, companyId)
-        )
-      });
-      console.log(`[STEP 1 OK] Encontradas ${allActiveRoutes.length} rutas activas`);
+      console.log(`[DELIVERIES] Got driverId=${driverId}, companyId=${companyId}`);
       
-      // Ordenar en JavaScript y tomar la más reciente
-      const activeRoute = allActiveRoutes.length > 0 
-        ? [allActiveRoutes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]]
+      const allRoutes = await db.query.routes.findMany({
+        where: (r, { eq }) => eq(r.companyId, companyId)
+      });
+      
+      const activeRoutes = allRoutes.filter(route => 
+        route.driverId === driverId && route.status === 'pending'
+      );
+      
+      const activeRoute = activeRoutes.length > 0 
+        ? [activeRoutes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]]
         : [];
       
       if (!activeRoute || activeRoute.length === 0) {
@@ -346,9 +344,10 @@ export async function registerDriverRoutes(app: Express) {
         deliveries.push(delivery);
       }
       
+      console.log(`[DELIVERIES] Returning ${deliveries.length} deliveries`);
       res.json(deliveries);
     } catch (error: any) {
-      console.error("Error al obtener entregas:", error);
+      console.error("[DELIVERIES] Error occurred:", error);
       res.status(500).json({ error: error?.message || "Error desconocido" });
     }
   });
