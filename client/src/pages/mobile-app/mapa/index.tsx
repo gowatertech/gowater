@@ -678,7 +678,7 @@ export default function MobileMap() {
                         '#0ea5e9': 'bg-sky-500',
                         '#059669': 'bg-emerald-600',
                         '#d97706': 'bg-amber-600',
-                        '#6366f1': 'bg-indigo-500',
+                        '#6366f1': 'bg-primary',
                         '#8b5cf6': 'bg-violet-500',
                         '#ec4899': 'bg-pink-500',
                         '#ef4444': 'bg-red-500',
