@@ -285,17 +285,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         </div>
       </UISidebarHeader>
 
-      {/* Botón de Tutorial */}
-      <div className="mx-5 my-4">
-        <Link href="/tutorial">
-          <Button variant="outline" className="w-full flex items-center justify-center gap-2.5 border-blue-200 bg-gradient-to-r from-primary/10 to-blue-500/10 hover:from-primary/15 hover:to-blue-500/15 text-primary hover:text-primary/90 transition-all">
-            <BookOpen className="h-4 w-4" />
-            <span className="font-medium">{t("Tutorial Interactivo")}</span>
-          </Button>
-        </Link>
-      </div>
-
-      <UISidebarMenu className="px-5 mt-2 flex-1 flex flex-col">
+      <UISidebarMenu className="px-5 mt-6 flex-1 flex flex-col">
         <div className="flex-1">
           {sidebarItems.map((item) => {
             const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));

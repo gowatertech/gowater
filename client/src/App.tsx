@@ -23,7 +23,6 @@ import RegisterPayment from "@/pages/payments/register";
 import PaymentsList from "@/pages/payments/list";
 import PaymentsHistory from "@/pages/payments/history";
 import Billing from "@/pages/billing";
-import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import Entregas from "@/pages/entregas";
@@ -402,7 +401,6 @@ function Router() {
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />
         <Route path="/drivers" component={DriverView} />
-        <Route path="/tutorial" component={TutorialPage} />
         <Route path="/manual" component={ManualPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
