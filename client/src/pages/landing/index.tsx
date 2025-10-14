@@ -41,9 +41,14 @@ export default function LandingPage() {
                     Registrar interés
                   </Button>
                 </Link>
+                <Link href="/demo">
+                  <Button size="lg" variant="secondary" className="w-full">
+                    Ver Demo
+                  </Button>
+                </Link>
                 <Link href="/contact">
                   <Button size="lg" variant="outline" className="w-full">
-                    Solicitar demo
+                    Contactar ventas
                   </Button>
                 </Link>
               </div>
