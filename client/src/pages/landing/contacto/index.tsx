@@ -1,20 +1,72 @@
-import React from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Droplet, 
   PhoneCall, 
   Mail,
   Clock,
   MapPin,
-  Menu
+  Menu,
+  Loader2
 } from "lucide-react";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 
+const contactFormSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  email: z.string().email("El email debe ser válido"),
+  subject: z.string().min(1, "El asunto es requerido"),
+  message: z.string().min(10, "El mensaje debe tener al menos 10 caracteres"),
+});
+
 // Componente de la página de contacto
 export default function ContactoPage() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
+  const form = useForm<z.infer<typeof contactFormSchema>>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    },
+  });
+
+  const onSubmit = async (data: z.infer<typeof contactFormSchema>) => {
+    setIsSubmitting(true);
+    try {
+      await apiRequest("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      toast({
+        title: "¡Mensaje enviado!",
+        description: "Te responderemos pronto a tu correo electrónico.",
+      });
+
+      form.reset();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error al enviar",
+        description: "No se pudo enviar el mensaje. Por favor intenta nuevamente.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header con menú de navegación */}
@@ -237,41 +289,75 @@ export default function ContactoPage() {
               </div>
               
               <div className="bg-white p-6 rounded-lg shadow-sm">
-                <form className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Nombre</label>
                       <input 
+                        {...form.register("name")}
                         type="text" 
                         className="w-full p-2 rounded-md border border-input bg-background"
                         placeholder="Tu nombre" 
+                        data-testid="input-contacto-name"
                       />
+                      {form.formState.errors.name && (
+                        <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email</label>
                       <input 
+                        {...form.register("email")}
                         type="email" 
                         className="w-full p-2 rounded-md border border-input bg-background"
                         placeholder="tu@email.com" 
+                        data-testid="input-contacto-email"
                       />
+                      {form.formState.errors.email && (
+                        <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Asunto</label>
                     <input 
+                      {...form.register("subject")}
                       type="text" 
                       className="w-full p-2 rounded-md border border-input bg-background"
                       placeholder="Asunto de tu mensaje" 
+                      data-testid="input-contacto-subject"
                     />
+                    {form.formState.errors.subject && (
+                      <p className="text-sm text-red-500">{form.formState.errors.subject.message}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Mensaje</label>
                     <textarea 
+                      {...form.register("message")}
                       className="w-full p-2 rounded-md border border-input bg-background min-h-[120px]"
                       placeholder="Escribe tu mensaje aquí" 
+                      data-testid="textarea-contacto-message"
                     />
+                    {form.formState.errors.message && (
+                      <p className="text-sm text-red-500">{form.formState.errors.message.message}</p>
+                    )}
                   </div>
-                  <Button className="w-full">Enviar mensaje</Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isSubmitting}
+                    data-testid="button-send-contacto"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      "Enviar mensaje"
+                    )}
+                  </Button>
                 </form>
               </div>
             </div>
