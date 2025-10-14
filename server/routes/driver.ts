@@ -3,19 +3,7 @@ import { eq, sql, and, desc, like } from "drizzle-orm";
 import { db } from "../db";
 import { orders, routes, customers, orderItems, products, users, bottleReturns, trucks } from "@shared/schema";
 import { storage } from "../storage";
-
-// Para añadir tipos de req.user (simulando autenticación)
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        role: string;
-        name: string;
-      };
-    }
-  }
-}
+import { getCurrentCompanyId } from "../company-db";
 
 // Tipos
 interface DriverDelivery {
@@ -54,15 +42,22 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener las entregas del día para un conductor
   app.get("/api/driver/deliveries/today", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
+      // Obtener el ID del conductor y companyId
       const driverId = req.user?.id || 2;
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.error("No se encontró companyId para obtener entregas del conductor");
+        return res.json([]);
+      }
       
       // Buscar la ruta activa para el conductor
       const activeRoute = await db.select()
         .from(routes)
         .where(and(
           eq(routes.driverId, driverId),
-          eq(routes.status, 'pending')
+          eq(routes.status, 'pending'),
+          eq(routes.companyId, companyId)
         ))
         .orderBy(desc(routes.date))
         .limit(1);
@@ -74,7 +69,10 @@ export async function registerDriverRoutes(app: Express) {
         // Buscar cualquier ruta para el conductor
         const anyRoute = await db.select()
           .from(routes)
-          .where(eq(routes.driverId, driverId))
+          .where(and(
+            eq(routes.driverId, driverId),
+            eq(routes.companyId, companyId)
+          ))
           .orderBy(desc(routes.date))
           .limit(1);
           
@@ -82,6 +80,7 @@ export async function registerDriverRoutes(app: Express) {
           // Obtener clientes
           const allCustomers = await db.select()
             .from(customers)
+            .where(eq(customers.companyId, companyId))
             .limit(5);
           
           // Crear entregas basadas en las paradas de la ruta
@@ -137,6 +136,7 @@ export async function registerDriverRoutes(app: Express) {
             // Buscar el cliente más cercano a estas coordenadas
             const allCustomers = await db.select()
               .from(customers)
+              .where(eq(customers.companyId, companyId))
               .limit(10);
             
             let closestCustomer = allCustomers[0];
@@ -203,7 +203,10 @@ export async function registerDriverRoutes(app: Express) {
         END`
       })
       .from(orders)
-      .where(eq(orders.routeId, routeId));
+      .where(and(
+        eq(orders.routeId, routeId),
+        eq(orders.companyId, companyId)
+      ));
       
       // Si no hay pedidos, retornar array vacío
       if (!routeOrders || routeOrders.length === 0) {
@@ -218,7 +221,10 @@ export async function registerDriverRoutes(app: Express) {
         // Obtener el cliente
         const customer = await db.select()
           .from(customers)
-          .where(eq(customers.id, order.customerId))
+          .where(and(
+            eq(customers.id, order.customerId),
+            eq(customers.companyId, companyId)
+          ))
           .limit(1);
         
         if (!customer || customer.length === 0) continue;
@@ -231,8 +237,14 @@ export async function registerDriverRoutes(app: Express) {
           productName: products.name
         })
         .from(orderItems)
-        .leftJoin(products, eq(orderItems.productId, products.id))
-        .where(eq(orderItems.orderId, order.orderId));
+        .leftJoin(products, and(
+          eq(orderItems.productId, products.id),
+          eq(products.companyId, companyId)
+        ))
+        .where(and(
+          eq(orderItems.orderId, order.orderId),
+          eq(orderItems.companyId, companyId)
+        ));
         
         // Calcular el valor total del pedido
         let totalValue = 0;
@@ -253,7 +265,10 @@ export async function registerDriverRoutes(app: Express) {
         // Obtener los datos de retorno de envases
         const bottleReturn = await db.select()
           .from(bottleReturns)
-          .where(eq(bottleReturns.orderId, order.orderId))
+          .where(and(
+            eq(bottleReturns.orderId, order.orderId),
+            eq(bottleReturns.companyId, companyId)
+          ))
           .limit(1);
         
         // Extraer coordenadas (si existen) o usar una ubicación por defecto
@@ -324,11 +339,22 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener el balance de efectivo del conductor
   app.get("/api/driver/cash-balance", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
+      // Obtener el ID del conductor y companyId
       const driverId = req.user?.id || 2;
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.json({
+          initialBalance: "0.00",
+          cashIn: "0.00",
+          cashOut: "0.00",
+          finalBalance: "0.00"
+        });
+      }
       
       // En una implementación real, estos datos vendrían de la base de datos
       // Por ahora, retornaremos datos de ejemplo
+      // TODO: Implementar consulta real a la base de datos con filtro por companyId
       const cashBalance: CashBalance = {
         initialBalance: "1000.00",
         cashIn: "2500.00",
@@ -346,15 +372,28 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener estadísticas de rendimiento del conductor
   app.get("/api/driver/performance", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
+      // Obtener el ID del conductor y companyId
       const driverId = req.user?.id || 2;
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.json({
+          deliveredOrders: 0,
+          totalOrders: 0,
+          onTimeDeliveries: 0,
+          averageDeliveryTime: 0
+        });
+      }
       
       // Obtener total de pedidos asignados al conductor
       const routesWithOrders = await db.select({
         routeId: routes.id
       })
       .from(routes)
-      .where(eq(routes.driverId, driverId));
+      .where(and(
+        eq(routes.driverId, driverId),
+        eq(routes.companyId, companyId)
+      ));
       
       const routeIds = routesWithOrders.map(r => r.routeId);
       
@@ -373,11 +412,12 @@ export async function registerDriverRoutes(app: Express) {
         count: sql<number>`count(*)`
       })
       .from(orders)
-      .where(
+      .where(and(
         routeIds.length === 1 
           ? eq(orders.routeId, routeIds[0]) 
-          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`
-      );
+          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`,
+        eq(orders.companyId, companyId)
+      ));
       
       const deliveredOrders = await db.select({
         count: sql<number>`count(*)`
@@ -387,7 +427,8 @@ export async function registerDriverRoutes(app: Express) {
         routeIds.length === 1 
           ? eq(orders.routeId, routeIds[0]) 
           : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`,
-        eq(orders.status, 'delivered')
+        eq(orders.status, 'delivered'),
+        eq(orders.companyId, companyId)
       ));
       
       // Por ahora, estos valores son estimados ya que no tenemos datos reales de tiempos
@@ -412,11 +453,19 @@ export async function registerDriverRoutes(app: Express) {
   app.post("/api/driver/deliveries/:id/complete", async (req: Request, res: Response) => {
     try {
       const orderId = parseInt(req.params.id);
+      const companyId = getCurrentCompanyId();
       
-      // Verificar que el pedido existe
+      if (!companyId) {
+        return res.status(403).json({ error: "No se pudo determinar el contexto de la empresa" });
+      }
+      
+      // Verificar que el pedido existe y pertenece a la empresa
       const existingOrder = await db.select()
         .from(orders)
-        .where(eq(orders.id, orderId))
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ))
         .limit(1);
       
       if (!existingOrder || existingOrder.length === 0) {
@@ -426,37 +475,45 @@ export async function registerDriverRoutes(app: Express) {
       // Actualizar el estado del pedido
       await db.update(orders)
         .set({ status: 'delivered' })
-        .where(eq(orders.id, orderId));
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ));
       
       // Opcional: actualizar la información de devolución de envases
       const returnedContainers = req.body.returnedContainers;
       if (returnedContainers !== undefined) {
         const bottleReturn = await db.select()
           .from(bottleReturns)
-          .where(eq(bottleReturns.orderId, orderId))
+          .where(and(
+            eq(bottleReturns.orderId, orderId),
+            eq(bottleReturns.companyId, companyId)
+          ))
           .limit(1);
         
         if (bottleReturn && bottleReturn.length > 0) {
           // Actualizar registro existente
           await db.update(bottleReturns)
             .set({ returnedQuantity: returnedContainers })
-            .where(eq(bottleReturns.id, bottleReturn[0].id));
+            .where(and(
+              eq(bottleReturns.id, bottleReturn[0].id),
+              eq(bottleReturns.companyId, companyId)
+            ));
         } else {
-          // Crear nuevo registro
           // Crear nuevo registro de devolución de botellas usando el schema
           await db.insert(bottleReturns).values({
+            companyId,
             orderId,
             productId: req.body.productId || 1,
             expectedQuantity: req.body.expectedQuantity || returnedContainers,
             returnedQuantity: returnedContainers,
             pendingQuantity: (req.body.expectedQuantity || returnedContainers) - returnedContainers,
-            returnDate: new Date().toISOString(),
+            returnDate: new Date(),
             status: "pending",
             amountCharged: "0.00",
             depositAmount: "0.00",
             automaticAlert: false,
             manuallyAssigned: false,
-            // Los campos opcionales no los incluimos
           });
         }
       }
