@@ -309,7 +309,7 @@ export default function ManualPage() {
       id: "reports",
       title: "Reportes",
       icon: BarChart3,
-      color: "bg-indigo-500",
+      color: "bg-primary",
       features: [
         {
           icon: Activity,
@@ -545,12 +545,12 @@ export default function ManualPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-primary/10 to-primary/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
       <div className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+            <div className="p-2 sm:p-3 bg-primary rounded-xl">
               <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             </div>
             <div>
