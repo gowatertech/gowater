@@ -1049,10 +1049,16 @@ export const insertRecurringOrderSchema = z.object({
   frequency: z.enum(["daily", "weekly", "biweekly", "monthly"], {
     required_error: "La frecuencia es requerida",
   }),
-  dayOfWeek: z.number().min(0).max(6).optional(),
-  dayOfMonth: z.number().min(1).max(31).optional(),
-  startDate: z.string().datetime("La fecha debe estar en formato ISO"),
-  endDate: z.string().datetime("La fecha debe estar en formato ISO").optional(),
+  dayOfWeek: z.number().min(0).max(6).nullable().optional(),
+  dayOfMonth: z.number().min(1).max(31).nullable().optional(),
+  startDate: z.string().refine(
+    (val) => /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/.test(val),
+    "La fecha debe estar en formato YYYY-MM-DD o ISO"
+  ),
+  endDate: z.string().refine(
+    (val) => /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/.test(val),
+    "La fecha debe estar en formato YYYY-MM-DD o ISO"
+  ).nullable().optional(),
   totalAmount: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   status: z.enum(["active", "paused", "completed", "cancelled"]).default("active"),

@@ -231,7 +231,7 @@ export default function RecurringOrderForm() {
         await saveItems(data.id);
         queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
         setTimeout(() => {
-          setLocation(`/recurring-orders/${data.id}`);
+          setLocation("/recurring-orders");
         }, 500);
       } else {
         // Si es actualización, también guardamos los items
