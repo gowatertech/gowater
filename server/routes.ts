@@ -1430,7 +1430,15 @@ export async function registerRoutes(router: express.Router) {
         })
       );
       
-      res.json(ordersWithDetails);
+      // IMPORTANTE: Ordenar explícitamente por deliverySequence después del mapeo
+      // para garantizar el orden cronológico correcto en el timeline
+      const sortedOrders = ordersWithDetails.sort((a, b) => {
+        const seqA = a.deliverySequence ?? Infinity;
+        const seqB = b.deliverySequence ?? Infinity;
+        return seqA - seqB;
+      });
+      
+      res.json(sortedOrders);
     } catch (error) {
       console.error(`Error al obtener órdenes de la ruta ${req.params.id}:`, error);
       res.status(500).json({ error: String(error) });
