@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
@@ -9,6 +9,7 @@ import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from './company-d
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import { Resend } from 'resend';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
@@ -24,6 +25,9 @@ import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, requireCompanyId } from './middleware/company-auth.middleware';
 import { safeParseInt, isPositiveInteger } from './utils/validation';
 
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,6 +37,64 @@ const upload = multer({
 });
 
 export async function registerRoutes(router: express.Router) {
+  // Contact Form Endpoint (public - no auth required)
+  router.post("/api/contact", async (req, res) => {
+    try {
+      // Validate request body
+      const validation = contactFormSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validation.error.errors 
+        });
+      }
+
+      const { name, email, subject, message } = validation.data;
+
+      // Send email using Resend
+      const { data, error } = await resend.emails.send({
+        from: 'GoWater Contact <onboarding@resend.dev>', // Resend's onboarding domain for testing
+        to: ['gowatertech@gmail.com'],
+        replyTo: email,
+        subject: `[Contacto Web] ${subject}`,
+        html: `
+          <h2>Nuevo mensaje desde el formulario de contacto</h2>
+          <p><strong>De:</strong> ${name} (${email})</p>
+          <p><strong>Asunto:</strong> ${subject}</p>
+          <hr />
+          <p><strong>Mensaje:</strong></p>
+          <p>${message.replace(/\n/g, '<br>')}</p>
+          <hr />
+          <p style="color: #666; font-size: 12px;">
+            Para responder a este mensaje, utiliza la dirección: ${email}
+          </p>
+        `,
+      });
+
+      if (error) {
+        console.error('❌ Error sending email:', error);
+        return res.status(500).json({ 
+          error: "Failed to send email", 
+          details: error 
+        });
+      }
+
+      console.log('✅ Email sent successfully:', data);
+      res.json({ 
+        success: true, 
+        message: "Mensaje enviado exitosamente" 
+      });
+
+    } catch (error) {
+      console.error('❌ Contact form error:', error);
+      res.status(500).json({ 
+        error: "Internal server error",
+        message: "No se pudo enviar el mensaje. Por favor intenta nuevamente." 
+      });
+    }
+  });
+
   // Endpoint de prueba de autenticación
   router.get("/api/authtest", (req, res) => {
     console.log("⚠️ Prueba de autenticación:");

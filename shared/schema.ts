@@ -2,6 +2,14 @@ import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "dri
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Contact Form Schema (no database table needed, just for validation)
+export const contactFormSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  email: z.string().email("El email debe ser válido"),
+  subject: z.string().min(1, "El asunto es requerido"),
+  message: z.string().min(10, "El mensaje debe tener al menos 10 caracteres"),
+});
+
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
