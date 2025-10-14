@@ -888,19 +888,19 @@ export const insertVehicleLoadingSchema = z.object({
   companyId: z.union([
     z.number().int().positive(),
     z.string().transform(val => parseInt(val))
-  ]),
+  ]).optional(),
   truckId: z.number(),
   driverId: z.number(),
-  assistantId: z.number().optional(),
-  routeId: z.number().optional(),
-  initialCash: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  notes: z.string().optional(),
+  assistantId: z.number().optional().nullable(),
+  routeId: z.number().optional().nullable(),
+  initialCash: z.string().regex(/^\d*\.?\d{0,2}$/).default("0.00"),
+  notes: z.string().optional().default(""),
   items: z.array(z.object({
     productId: z.number(),
     quantity: z.number().min(1),
-    notes: z.string().optional(),
-  })),
-}).strict();
+    notes: z.string().optional().default(""),
+  })).min(1, "Debe agregar al menos un producto"),
+});
 
 // Add to type exports
 export type VehicleLoading = typeof vehicleLoading.$inferSelect;

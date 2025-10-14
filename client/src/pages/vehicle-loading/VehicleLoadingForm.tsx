@@ -1,11 +1,22 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVehicleLoadingSchema } from "@shared/schema";
-import type { InsertVehicleLoading, Product, User, Truck, Route, Order, OrderItem } from "@shared/schema";
+import type { InsertVehicleLoading, Product, User, Truck, Route, Order } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Plus, X, Truck as TruckIcon, Route as RouteIcon, Info, RefreshCw } from "lucide-react";
+import { 
+  Plus, 
+  Minus, 
+  Truck as TruckIcon, 
+  MapPin, 
+  DollarSign, 
+  Package, 
+  Save, 
+  Loader2,
+  PackageCheck,
+  AlertCircle
+} from "lucide-react";
 
 import {
   Form,
@@ -27,35 +38,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "pending":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500";
-    case "in_progress":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500";
-    case "completed":
-      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500";
-    case "cancelled":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500";
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500";
-  }
-};
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface VehicleLoadingFormProps {
   onSuccess?: () => void;
 }
 
-// Tipo para los productos agrupados por ruta
 interface GroupedProduct {
   productId: number;
   productName: string;
@@ -68,13 +58,18 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRouteOrders, setIsLoadingRouteOrders] = useState(false);
   const [routeProducts, setRouteProducts] = useState<GroupedProduct[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
 
   const form = useForm<InsertVehicleLoading>({
     resolver: zodResolver(insertVehicleLoadingSchema),
     defaultValues: {
       initialCash: "0.00",
       items: [],
-      routeId: undefined
+      routeId: undefined,
+      truckId: undefined,
+      driverId: undefined,
+      assistantId: undefined,
+      notes: ""
     }
   });
 
@@ -88,31 +83,22 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   });
 
   const { data: drivers = [] } = useQuery<User[]>({
-    queryKey: ["/api/users/drivers", { role: "driver" }],
-  });
-
-  const { data: assistants = [] } = useQuery<User[]>({
-    queryKey: ["/api/users/drivers", { role: "assistant" }],
+    queryKey: ["/api/users/drivers"],
   });
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
-  
-  // Cargar todas las rutas y filtrar las activas en el cliente
+
   const { data: allRoutes = [] } = useQuery<Route[]>({
     queryKey: ["/api/routes"],
-    onSuccess: (data) => {
-      console.log("Rutas cargadas (todas):", data);
-    }
   });
 
-  // Filtrar solo las rutas activas (pending o in_progress)
+  // Filtrar solo rutas activas (pending o in_progress)
   const routes = allRoutes.filter(route => 
     route.status === "pending" || route.status === "in_progress"
   );
-  
-  // Función para obtener los pedidos de una ruta específica
+
   const getRouteOrders = async (routeId: number) => {
     try {
       setIsLoadingRouteOrders(true);
@@ -123,13 +109,10 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
       }
       
       const orders: Order[] = await response.json();
-      console.log("Pedidos de la ruta:", orders);
       
-      // Agrupar productos de todos los pedidos
       const productMap = new Map<number, GroupedProduct>();
       
       orders.forEach(order => {
-        // Verificar que la orden tenga productos y que sea un array
         const orderProducts = (order as any).products;
         if (orderProducts && Array.isArray(orderProducts)) {
           orderProducts.forEach((item: any) => {
@@ -138,12 +121,10 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             const productName = products.find(p => p.id === productId)?.name || item.name || `Producto #${productId}`;
             
             if (productMap.has(productId)) {
-              // Actualizar cantidad si el producto ya existe
               const existing = productMap.get(productId)!;
               existing.totalQuantity += quantity;
               productMap.set(productId, existing);
             } else {
-              // Añadir nuevo producto al mapa
               productMap.set(productId, {
                 productId,
                 productName,
@@ -154,25 +135,20 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
         }
       });
       
-      // Convertir el mapa a un array
       const groupedProducts = Array.from(productMap.values());
-      console.log("Productos agrupados por ruta:", groupedProducts);
-      
-      // Guardar los productos agrupados
       setRouteProducts(groupedProducts);
       
-      // Preparar los items para el formulario
       const formItems = groupedProducts.map(product => ({
         productId: product.productId,
-        quantity: product.totalQuantity
+        quantity: product.totalQuantity,
+        notes: ""
       }));
       
-      // Reemplazar los items actuales con los nuevos
       replace(formItems);
       
       toast({
-        title: "Productos cargados",
-        description: `Se han cargado ${groupedProducts.length} productos de la ruta seleccionada`,
+        title: "✓ Productos cargados",
+        description: `${groupedProducts.length} producto(s) agregado(s) desde la ruta`,
       });
     } catch (error) {
       console.error("Error al cargar órdenes de la ruta:", error);
@@ -185,21 +161,22 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
       setIsLoadingRouteOrders(false);
     }
   };
-  
-  // Precargar el conductor cuando se selecciona una ruta
+
   const handleRouteChange = async (routeId: number) => {
-    // Buscar la ruta seleccionada
-    const selectedRoute = routes.find(route => route.id === routeId);
-    if (selectedRoute && selectedRoute.driverId) {
-      // Actualizar el campo del conductor con el valor de la ruta
-      form.setValue("driverId", selectedRoute.driverId);
-      
-      // Actualizar el campo del ayudante si existe en la ruta
-      if (selectedRoute.assistantId) {
-        form.setValue("assistantId", selectedRoute.assistantId);
+    const route = routes.find(r => r.id === routeId);
+    setSelectedRoute(route || null);
+    
+    if (route) {
+      if (route.driverId) {
+        form.setValue("driverId", route.driverId);
+      }
+      if (route.assistantId) {
+        form.setValue("assistantId", route.assistantId);
+      }
+      if (route.truckId) {
+        form.setValue("truckId", route.truckId);
       }
       
-      // Cargar los productos de los pedidos de esta ruta
       await getRouteOrders(routeId);
     }
   };
@@ -208,28 +185,19 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     try {
       setIsSubmitting(true);
 
-      // Verificar si se ha seleccionado una ruta
-      const hasRouteId = values.routeId !== undefined && values.routeId !== null;
-      
-      console.log("Valores del formulario:", values);
-      console.log(`routeId seleccionado: ${values.routeId}, es definido: ${hasRouteId}`);
-
       const formattedData = {
         ...values,
         initialCash: values.initialCash.toString(),
         truckId: Number(values.truckId),
         driverId: Number(values.driverId),
-        // Asegurarse de que routeId sea un número o null (no undefined)
-        routeId: hasRouteId ? Number(values.routeId) : null,
+        routeId: values.routeId ? Number(values.routeId) : null,
         assistantId: values.assistantId ? Number(values.assistantId) : null,
         items: values.items.map(item => ({
           productId: Number(item.productId),
-          quantity: Number(item.quantity)
+          quantity: Number(item.quantity),
+          notes: item.notes || ""
         }))
       };
-
-      console.log("Datos formateados para enviar:", formattedData);
-      console.log(`routeId a enviar: ${formattedData.routeId}, tipo: ${typeof formattedData.routeId}`);
 
       const response = await fetch("/api/vehicle-loading", {
         method: "POST",
@@ -245,305 +213,413 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
       }
 
       toast({
-        description: "Carga de vehículo registrada exitosamente",
-        duration: 3000,
+        title: "✓ Carga registrada",
+        description: "La carga del vehículo ha sido registrada exitosamente",
       });
 
       onSuccess?.();
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-loading"] });
       form.reset();
+      setSelectedRoute(null);
+      setRouteProducts([]);
     } catch (error) {
       console.error("Error creating vehicle loading:", error);
       toast({
         variant: "destructive",
+        title: "Error",
         description: error instanceof Error ? error.message : "Error al crear la carga del vehículo",
-        duration: 5000,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const updateQuantity = (index: number, change: number) => {
+    const currentValue = form.getValues(`items.${index}.quantity`);
+    const newValue = Math.max(0, currentValue + change);
+    form.setValue(`items.${index}.quantity`, newValue);
+  };
+
+  const getTotalProducts = () => {
+    return fields.reduce((sum, _, index) => {
+      return sum + (form.watch(`items.${index}.quantity`) || 0);
+    }, 0);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <FormField
-            control={form.control}
-            name="routeId"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-xs">Ruta</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    const routeId = Number(value);
-                    field.onChange(routeId);
-                    handleRouteChange(routeId);
-                  }}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar ruta" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {routes.map((route) => (
-                      <SelectItem key={route.id} value={route.id.toString()} className="text-xs py-1">
-                        {route.name} ({new Date(route.date).toLocaleDateString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Header con Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Stat 1: Ruta */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Ruta Seleccionada</p>
+                  <p className="text-sm font-semibold">
+                    {selectedRoute ? selectedRoute.name : "Sin seleccionar"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <FormField
-            control={form.control}
-            name="truckId"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-xs">Vehículo</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar vehículo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {trucks.map((truck) => (
-                      <SelectItem key={truck.id} value={truck.id.toString()} className="text-xs py-1">
-                        {truck.plate} - {truck.brand} {truck.model}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
-            )}
-          />
+          {/* Stat 2: Productos */}
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Total Productos</p>
+                  <p className="text-sm font-semibold">{getTotalProducts()} unidades</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <FormField
-            control={form.control}
-            name="driverId"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-xs">Conductor</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar conductor" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {drivers.map((driver) => (
-                      <SelectItem key={driver.id} value={driver.id.toString()} className="text-xs py-1">
-                        {driver.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="assistantId"
-            render={({ field }) => (
-              <FormItem className="space-y-1">
-                <FormLabel className="text-xs">Ayudante</FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue placeholder="Seleccionar ayudante" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {assistants.map((assistant) => (
-                      <SelectItem key={assistant.id} value={assistant.id.toString()} className="text-xs py-1">
-                        {assistant.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="initialCash"
-            render={({ field }) => (
-              <FormItem className="space-y-1 col-span-1">
-                <FormLabel className="text-xs">Efectivo Inicial (RD$)</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="0.00"
-                    className="h-8 text-xs"
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value)) {
-                        field.onChange(value.toFixed(2));
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage className="text-[10px]" />
-              </FormItem>
-            )}
-          />
+          {/* Stat 3: Efectivo */}
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Efectivo Inicial</p>
+                  <p className="text-sm font-semibold">
+                    ${form.watch("initialCash") || "0.00"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-2 pt-1">
-          <div className="flex justify-between items-center py-1">
-            <div className="flex items-center">
-              <h3 className="text-sm font-semibold">Productos a Cargar</h3>
-              {isLoadingRouteOrders && (
-                <div className="flex items-center ml-2">
-                  <Loader2 className="h-3 w-3 animate-spin text-primary mr-1" />
-                  <span className="text-xs text-muted-foreground">Cargando productos de la ruta...</span>
-                </div>
-              )}
-              {routeProducts.length > 0 && !isLoadingRouteOrders && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  {routeProducts.length} productos de ruta
-                </Badge>
-              )}
+        {/* Sección: Datos de la Ruta */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <TruckIcon className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Datos del Vehículo y Ruta</h3>
             </div>
-            <Button
-              type="button"
-              onClick={() => append({ productId: 0, quantity: 1 })}
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2"
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Agregar Producto
-            </Button>
-          </div>
 
-          {/* Resumen de productos de ruta cuando se han cargado */}
-          {routeProducts.length > 0 && form.getValues().routeId && (
-            <div className="mb-2 p-2 bg-primary/5 border border-primary/10 rounded-md">
-              <div className="flex items-center mb-1">
-                <RouteIcon className="h-3.5 w-3.5 text-primary mr-1" />
-                <span className="text-xs font-medium">Productos de la ruta seleccionada</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Los siguientes productos se han cargado automáticamente según los pedidos de la ruta:
-              </p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {routeProducts.map(product => (
-                  <TooltipProvider key={product.productId}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge variant="secondary" className="text-[10px] py-0">
-                          {product.productName}: {product.totalQuantity}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        <p>ID: {product.productId}</p>
-                        <p>Cantidad total: {product.totalQuantity}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-2 items-end">
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.productId`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1 space-y-1">
-                      <FormLabel className="text-xs">Producto</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Seleccionar producto" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {products?.map((product) => (
-                            <SelectItem
-                              key={product.id}
-                              value={product.id.toString()}
-                              className="text-xs py-1"
-                            >
-                              {product.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={`items.${index}.quantity`}
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Cantidad</FormLabel>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Ruta */}
+              <FormField
+                control={form.control}
+                name="routeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ruta *</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        const routeId = Number(value);
+                        field.onChange(routeId);
+                        handleRouteChange(routeId);
+                      }}
+                      value={field.value?.toString()}
+                      disabled={isLoadingRouteOrders}
+                    >
                       <FormControl>
+                        <SelectTrigger data-testid="select-route">
+                          <SelectValue placeholder="Seleccionar ruta" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {routes.map((route) => (
+                          <SelectItem key={route.id} value={route.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <span>{route.name}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {new Date(route.date).toLocaleDateString()}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Vehículo */}
+              <FormField
+                control={form.control}
+                name="truckId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehículo *</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-truck">
+                          <SelectValue placeholder="Seleccionar vehículo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {trucks.filter(t => t.status === "disponible").map((truck) => (
+                          <SelectItem key={truck.id} value={truck.id.toString()}>
+                            {truck.brand} {truck.model} - {truck.plate}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Conductor */}
+              <FormField
+                control={form.control}
+                name="driverId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Conductor *</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-driver">
+                          <SelectValue placeholder="Seleccionar conductor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {drivers.filter(d => d.role === "driver").map((driver) => (
+                          <SelectItem key={driver.id} value={driver.id.toString()}>
+                            {driver.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Ayudante */}
+              <FormField
+                control={form.control}
+                name="assistantId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ayudante</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-assistant">
+                          <SelectValue placeholder="Seleccionar ayudante (opcional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {drivers.filter(d => d.role === "assistant").map((assistant) => (
+                          <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                            {assistant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Efectivo Inicial - Destacado */}
+            <div className="pt-4">
+              <FormField
+                control={form.control}
+                name="initialCash"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-yellow-600" />
+                      Efectivo Inicial *
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          $
+                        </span>
                         <Input
                           {...field}
-                          type="number"
-                          min="1"
-                          className="w-16 h-8 text-xs"
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          type="text"
+                          placeholder="0.00"
+                          className="pl-8 text-lg font-semibold h-12"
+                          data-testid="input-initial-cash"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Permitir solo números y punto decimal
+                            if (/^\d*\.?\d{0,2}$/.test(value) || value === "") {
+                              field.onChange(value);
+                            }
+                          }}
                         />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="h-8 w-8 mt-5"
-                  onClick={() => remove(index)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
+        {/* Sección: Productos a Cargar */}
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <PackageCheck className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Productos a Cargar</h3>
               </div>
-            ))}
-          </div>
-        </div>
+              {isLoadingRouteOrders && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando productos...
+                </div>
+              )}
+            </div>
 
-        <Button
-          type="submit"
-          className="w-full h-8 text-xs mt-2"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Guardando..." : "Registrar Carga"}
-        </Button>
+            {fields.length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                  Selecciona una ruta para cargar los productos automáticamente
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {fields.map((field, index) => {
+                  const product = products.find(p => p.id === form.watch(`items.${index}.productId`));
+                  const routeProduct = routeProducts.find(rp => rp.productId === form.watch(`items.${index}.productId`));
+                  
+                  return (
+                    <Card key={field.id} className="border-l-4 border-l-primary/30">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          {/* Nombre del Producto */}
+                          <div className="flex-1">
+                            <p className="font-medium">
+                              {product?.name || routeProduct?.productName || `Producto #${form.watch(`items.${index}.productId`)}`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Cantidad requerida: {routeProduct?.totalQuantity || 0} unidades
+                            </p>
+                          </div>
+
+                          {/* Controles de Cantidad */}
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => updateQuantity(index, -1)}
+                              data-testid={`button-decrease-${index}`}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.quantity`}
+                              render={({ field }) => (
+                                <FormItem className="w-20">
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="number"
+                                      min="0"
+                                      className="text-center font-semibold h-9"
+                                      data-testid={`input-quantity-${index}`}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => updateQuantity(index, 1)}
+                              data-testid={`button-increase-${index}`}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Badge de Estado */}
+                          {form.watch(`items.${index}.quantity`) !== routeProduct?.totalQuantity && (
+                            <Badge variant="secondary" className="text-xs">
+                              Modificado
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notas */}
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notas (opcional)</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder="Agregar notas sobre esta carga..."
+                  data-testid="input-notes"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Botón de Envío */}
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            className="flex-1 h-12 text-base font-semibold"
+            disabled={isSubmitting || fields.length === 0}
+            data-testid="button-submit"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-5 w-5" />
+                Registrar Carga
+              </>
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );
