@@ -67,7 +67,7 @@ export default function ManualPage() {
       id: "dashboard",
       title: "Panel Principal",
       icon: Home,
-      color: "bg-blue-500",
+      color: "bg-primary",
       features: [
         {
           icon: BarChart3,
