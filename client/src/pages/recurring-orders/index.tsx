@@ -183,7 +183,7 @@ const RecurringOrderCard = ({
     cancelled: "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
   };
 
-  const FrequencyIcon = frequencyIcons[order.frequency];
+  const FrequencyIcon = frequencyIcons[order.frequency] || Calendar; // Fallback a Calendar si no existe
 
   // Calcular días hasta la próxima generación
   const daysUntilNext = order.nextGenerationDate 
@@ -199,8 +199,8 @@ const RecurringOrderCard = ({
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-lg leading-tight">{order.name}</h3>
-                <Badge variant="outline" className={statusColors[order.status]}>
-                  {statusLabels[order.status]}
+                <Badge variant="outline" className={statusColors[order.status] || "bg-gray-500/10 text-gray-700"}>
+                  {statusLabels[order.status] || order.status}
                 </Badge>
               </div>
               {order.customer && (
@@ -295,7 +295,7 @@ const RecurringOrderCard = ({
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg">
               <FrequencyIcon className="h-4 w-4 text-primary" />
-              <span className="font-medium text-primary">{frequencyLabels[order.frequency]}</span>
+              <span className="font-medium text-primary">{frequencyLabels[order.frequency] || order.frequency}</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
