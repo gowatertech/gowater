@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import {
@@ -621,27 +622,43 @@ export default function ManualPage() {
           </div>
 
           {/* Mobile Section Selector */}
-          <div className="lg:hidden mb-4">
-            <ScrollArea className="w-full">
-              <Tabs value={activeSection} onValueChange={setActiveSection}>
-                <TabsList className="inline-flex h-auto p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                  {sections.map((section) => {
-                    const Icon = section.icon;
-                    return (
-                      <TabsTrigger 
-                        key={section.id} 
-                        value={section.id} 
-                        className="gap-1.5 px-2.5 py-2 text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700"
-                        data-testid={`tab-section-${section.id}`}
-                      >
-                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate max-w-[80px] sm:max-w-none">{section.title}</span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
-            </ScrollArea>
+          <div className="lg:hidden mb-6">
+            <Select value={activeSection} onValueChange={setActiveSection}>
+              <SelectTrigger className="w-full h-12" data-testid="select-section-mobile">
+                <SelectValue>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const section = sections.find(s => s.id === activeSection);
+                      if (!section) return null;
+                      const Icon = section.icon;
+                      return (
+                        <>
+                          <Icon className="h-5 w-5" />
+                          <span className="font-medium">{section.title}</span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {sections.map((section) => {
+                  const Icon = section.icon;
+                  return (
+                    <SelectItem 
+                      key={section.id} 
+                      value={section.id}
+                      data-testid={`option-section-${section.id}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{section.title}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Main Content */}
@@ -745,22 +762,22 @@ function FeatureCard({ feature, sectionColor }: { feature: Feature; sectionColor
 
   return (
     <Card className="border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all duration-200 overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4 flex-1">
-            <div className={`p-3 rounded-xl ${sectionColor} bg-opacity-10 shrink-0`}>
-              <Icon className={`h-6 w-6 ${sectionColor.replace('bg-', 'text-')}`} />
+      <CardHeader className="pb-3 p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2 sm:gap-4 flex-1 min-w-0">
+            <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${sectionColor} bg-opacity-10 shrink-0`}>
+              <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${sectionColor.replace('bg-', 'text-')}`} />
             </div>
-            <div className="flex-1">
-              <CardTitle className="text-xl mb-2 flex items-center gap-2">
-                {feature.title}
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base sm:text-lg lg:text-xl mb-1 sm:mb-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className="break-words">{feature.title}</span>
                 {feature.path && (
-                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded w-fit">
                     {feature.path}
                   </span>
                 )}
               </CardTitle>
-              <CardDescription className="text-base">
+              <CardDescription className="text-sm sm:text-base">
                 {feature.description}
               </CardDescription>
             </div>
@@ -770,29 +787,30 @@ function FeatureCard({ feature, sectionColor }: { feature: Feature; sectionColor
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="shrink-0"
+              className="shrink-0 h-8 w-8 p-0"
+              aria-label={isExpanded ? "Ocultar detalles" : "Ver detalles"}
               data-testid={`button-expand-${feature.title.toLowerCase().replace(/\s+/g, '-')}`}
             >
-              <ChevronRight className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              <ChevronRight className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
             </Button>
           )}
         </div>
       </CardHeader>
 
       {feature.subFeatures && isExpanded && (
-        <CardContent className="pt-0 border-t border-slate-100 dark:border-slate-800">
-          <div className="mt-4 space-y-3">
+        <CardContent className="pt-0 border-t border-slate-100 dark:border-slate-800 p-4 sm:p-6">
+          <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
             {feature.subFeatures.map((subFeature, idx) => (
               <div
                 key={idx}
-                className="flex gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="flex gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium text-slate-900 dark:text-white">
+                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm sm:text-base text-slate-900 dark:text-white break-words">
                     {subFeature.name}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 break-words">
                     {subFeature.description}
                   </div>
                 </div>
