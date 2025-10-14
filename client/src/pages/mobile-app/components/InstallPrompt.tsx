@@ -92,7 +92,7 @@ export function InstallPrompt({ onClose }: InstallPromptProps) {
         </SheetHeader>
         
         <div className="p-4 pt-0">
-          <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 mb-4">
+          <div className="bg-primary/10 dark:bg-primary/20 rounded-lg p-3 mb-4">
             <h3 className="font-medium text-sm mb-2">Beneficios de la instalación:</h3>
             <ul className="text-sm space-y-1 text-muted-foreground">
               <li>• Acceso rápido desde la pantalla de inicio</li>
