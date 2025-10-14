@@ -415,9 +415,9 @@ function Router() {
         <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
 
         {/* Rutas para pedidos recurrentes */}
-        <Route path="/recurring-orders/new" component={lazy(() => import('./pages/recurring-orders/[id]'))} />
-        <Route path="/recurring-orders/:id" component={lazy(() => import('./pages/recurring-orders/[id]'))} />
-        <Route path="/recurring-orders" component={lazy(() => import('./pages/recurring-orders'))} />
+        <Route path="/recurring-orders/new" component={RecurringOrderForm} />
+        <Route path="/recurring-orders/:id" component={RecurringOrderForm} />
+        <Route path="/recurring-orders" component={RecurringOrdersPage} />
         
         {/* Rutas para comisiones */}
         <Route path="/commissions/details/:id" component={ResponsiveCommissionDetailsPage} />
