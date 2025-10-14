@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import {
   BookOpen,
   Users,
@@ -459,20 +461,102 @@ export default function ManualPage() {
 
   const currentSection = sections.find(s => s.id === activeSection) || sections[0];
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let yPosition = 20;
+
+    // Header
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("Manual de Usuario - GoWater", margin, yPosition);
+    yPosition += 10;
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Guía completa del sistema de gestión de distribución de agua", margin, yPosition);
+    yPosition += 20;
+
+    // Iterate through all sections
+    sections.forEach((section, sectionIndex) => {
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      // Section title
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${sectionIndex + 1}. ${section.title}`, margin, yPosition);
+      yPosition += 10;
+
+      // Features
+      section.features.forEach((feature, featureIndex) => {
+        // Check if we need a new page
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+
+        // Feature title
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${sectionIndex + 1}.${featureIndex + 1} ${feature.title}`, margin + 5, yPosition);
+        yPosition += 7;
+
+        // Feature description
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        const descriptionLines = doc.splitTextToSize(feature.description, pageWidth - 2 * margin - 10);
+        doc.text(descriptionLines, margin + 5, yPosition);
+        yPosition += descriptionLines.length * 5 + 3;
+
+        // Sub-features
+        if (feature.subFeatures && feature.subFeatures.length > 0) {
+          feature.subFeatures.forEach((subFeature) => {
+            if (yPosition > 260) {
+              doc.addPage();
+              yPosition = 20;
+            }
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text(`• ${subFeature.name}:`, margin + 10, yPosition);
+            yPosition += 5;
+
+            doc.setFont("helvetica", "normal");
+            const subDescLines = doc.splitTextToSize(subFeature.description, pageWidth - 2 * margin - 15);
+            doc.text(subDescLines, margin + 12, yPosition);
+            yPosition += subDescLines.length * 4 + 2;
+          });
+        }
+
+        yPosition += 5;
+      });
+
+      yPosition += 5;
+    });
+
+    // Save the PDF
+    doc.save("Manual-GoWater.pdf");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Header */}
       <div className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-              <BookOpen className="h-8 w-8 text-white" />
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                Manual de Usuario - GoWater
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+                Manual de Usuario
               </h1>
-              <p className="text-slate-600 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 hidden sm:block">
                 Guía completa del sistema de gestión de distribución de agua
               </p>
             </div>
@@ -480,20 +564,20 @@ export default function ManualPage() {
 
           {/* Search */}
           <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
             <Input
               placeholder="Buscar funcionalidad..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white dark:bg-slate-800"
+              className="pl-9 sm:pl-10 bg-white dark:bg-slate-800 text-sm sm:text-base"
               data-testid="input-search-manual"
             />
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
           {/* Sidebar Navigation - Desktop */}
           <div className="hidden lg:block w-72 shrink-0">
             <div className="sticky top-32">
@@ -537,25 +621,27 @@ export default function ManualPage() {
           </div>
 
           {/* Mobile Section Selector */}
-          <div className="lg:hidden">
-            <Tabs value={activeSection} onValueChange={setActiveSection}>
-              <TabsList className="w-full overflow-x-auto flex justify-start">
-                {sections.map((section) => {
-                  const Icon = section.icon;
-                  return (
-                    <TabsTrigger 
-                      key={section.id} 
-                      value={section.id} 
-                      className="gap-2"
-                      data-testid={`tab-section-${section.id}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{section.title}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
+          <div className="lg:hidden mb-4">
+            <ScrollArea className="w-full">
+              <Tabs value={activeSection} onValueChange={setActiveSection}>
+                <TabsList className="inline-flex h-auto p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  {sections.map((section) => {
+                    const Icon = section.icon;
+                    return (
+                      <TabsTrigger 
+                        key={section.id} 
+                        value={section.id} 
+                        className="gap-1.5 px-2.5 py-2 text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700"
+                        data-testid={`tab-section-${section.id}`}
+                      >
+                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate max-w-[80px] sm:max-w-none">{section.title}</span>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
+            </ScrollArea>
           </div>
 
           {/* Main Content */}
@@ -607,22 +693,22 @@ export default function ManualPage() {
               </div>
             ) : (
               // Section Content
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className={`p-3 rounded-xl ${currentSection.color} bg-opacity-10`}>
-                    {<currentSection.icon className={`h-8 w-8 ${currentSection.color.replace('bg-', 'text-')}`} />}
+              <div className="space-y-4 sm:space-y-6">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <div className={`p-2 sm:p-3 rounded-xl ${currentSection.color} bg-opacity-10`}>
+                    {<currentSection.icon className={`h-6 w-6 sm:h-8 sm:w-8 ${currentSection.color.replace('bg-', 'text-')}`} />}
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
                       {currentSection.title}
                     </h2>
-                    <p className="text-slate-600 dark:text-slate-400">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                       {currentSection.features.length} funcionalidades disponibles
                     </p>
                   </div>
                 </div>
 
-                <div className="grid gap-6">
+                <div className="grid gap-4 sm:gap-6">
                   {currentSection.features.map((feature, idx) => (
                     <FeatureCard key={idx} feature={feature} sectionColor={currentSection.color} />
                   ))}
@@ -634,22 +720,18 @@ export default function ManualPage() {
       </div>
 
       {/* Quick Actions Footer */}
-      <div className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm mt-12">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <BookOpen className="h-4 w-4" />
+      <div className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm mt-8 sm:mt-12">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400 text-center sm:text-left">
+              <BookOpen className="h-4 w-4 hidden sm:block" />
               <span>¿Necesitas ayuda adicional? Contacta a soporte técnico</span>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" data-testid="button-download-manual">
-                <Download className="h-4 w-4 mr-2" />
-                Descargar PDF
-              </Button>
-              <Button size="sm" data-testid="button-tutorial">
-                Ver Tutorial
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" data-testid="button-download-manual" onClick={handleDownloadPDF}>
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Descargar PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
           </div>
         </div>
       </div>
