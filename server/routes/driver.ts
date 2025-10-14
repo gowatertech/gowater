@@ -1,5 +1,5 @@
 import { Express, Request, Response } from "express";
-import { eq, sql, and, desc, like } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import { db } from "../db";
 import { orders, routes, customers, orderItems, products, users, bottleReturns, trucks } from "@shared/schema";
 import { storage } from "../storage";
@@ -52,36 +52,48 @@ export async function registerDriverRoutes(app: Express) {
       }
       
       // Buscar la ruta activa para el conductor
-      const activeRoute = await db.select()
-        .from(routes)
-        .where(and(
+      console.log(`[STEP 1] Buscando ruta activa para conductor ${driverId}, empresa ${companyId}`);
+      const allActiveRoutes = await db.query.routes.findMany({
+        where: (routes, { and, eq }) => and(
           eq(routes.driverId, driverId),
           eq(routes.status, 'pending'),
           eq(routes.companyId, companyId)
-        ))
-        .orderBy(desc(routes.date))
-        .limit(1);
+        )
+      });
+      console.log(`[STEP 1 OK] Encontradas ${allActiveRoutes.length} rutas activas`);
+      
+      // Ordenar en JavaScript y tomar la más reciente
+      const activeRoute = allActiveRoutes.length > 0 
+        ? [allActiveRoutes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]]
+        : [];
       
       if (!activeRoute || activeRoute.length === 0) {
         // No hay rutas activas, pero en lugar de devolver un array vacío, vamos a usar los datos de las rutas
         // para crear entregas representativas
+        console.log('[STEP 2] No hay ruta activa, buscando cualquier ruta');
         
         // Buscar cualquier ruta para el conductor
-        const anyRoute = await db.select()
-          .from(routes)
-          .where(and(
+        const allRoutes = await db.query.routes.findMany({
+          where: (routes, { and, eq }) => and(
             eq(routes.driverId, driverId),
             eq(routes.companyId, companyId)
-          ))
-          .orderBy(desc(routes.date))
-          .limit(1);
+          )
+        });
+        console.log(`[STEP 2 OK] Encontradas ${allRoutes.length} rutas para el conductor`);
+        
+        // Ordenar en JavaScript y tomar la más reciente
+        const anyRoute = allRoutes.length > 0
+          ? [allRoutes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]]
+          : [];
           
         if (anyRoute && anyRoute.length > 0 && anyRoute[0].stops && anyRoute[0].stops.length > 0) {
+          console.log(`[STEP 3] Creando entregas desde paradas (${anyRoute[0].stops.length} paradas)`);
           // Obtener clientes
-          const allCustomers = await db.select()
-            .from(customers)
-            .where(eq(customers.companyId, companyId))
-            .limit(5);
+          const allCustomers = await db.query.customers.findMany({
+            where: (customers, { eq }) => eq(customers.companyId, companyId),
+            limit: 5
+          });
+          console.log(`[STEP 3 OK] Encontrados ${allCustomers.length} clientes`);
           
           // Crear entregas basadas en las paradas de la ruta
           const deliveries: DriverDelivery[] = [];
@@ -134,10 +146,12 @@ export async function registerDriverRoutes(app: Express) {
             const stopCoords = activeRoute[0].stops[i].split(',').map(Number) as [number, number];
             
             // Buscar el cliente más cercano a estas coordenadas
-            const allCustomers = await db.select()
-              .from(customers)
-              .where(eq(customers.companyId, companyId))
-              .limit(10);
+            console.log(`[STEP 4.${i}] Buscando cliente para parada ${i}`);
+            const allCustomers = await db.query.customers.findMany({
+              where: (customers, { eq }) => eq(customers.companyId, companyId),
+              limit: 10
+            });
+            console.log(`[STEP 4.${i} OK] Encontrados ${allCustomers.length} clientes`);
             
             let closestCustomer = allCustomers[0];
             let minDistance = Infinity;
@@ -191,22 +205,14 @@ export async function registerDriverRoutes(app: Express) {
       }
       
       // Obtener los pedidos asociados a esta ruta
-      const routeOrders = await db.select({
-        orderId: orders.id,
-        customerId: orders.customerId,
-        status: orders.status,
-        estimatedTime: orders.estimatedDeliveryTime,
-        priority: sql<string>`CASE 
-          WHEN orders.status = 'pending' THEN 'high' 
-          WHEN orders.status = 'in_transit' THEN 'normal'
-          ELSE 'low' 
-        END`
-      })
-      .from(orders)
-      .where(and(
-        eq(orders.routeId, routeId),
-        eq(orders.companyId, companyId)
-      ));
+      console.log(`[STEP 5] Obteniendo pedidos para ruta ${routeId}`);
+      const routeOrders = await db.query.orders.findMany({
+        where: (orders, { and, eq }) => and(
+          eq(orders.routeId, routeId),
+          eq(orders.companyId, companyId)
+        )
+      });
+      console.log(`[STEP 5 OK] Encontrados ${routeOrders.length} pedidos`);
       
       // Si no hay pedidos, retornar array vacío
       if (!routeOrders || routeOrders.length === 0) {
@@ -217,34 +223,30 @@ export async function registerDriverRoutes(app: Express) {
       const deliveries: DriverDelivery[] = [];
       
       // Obtener datos detallados para cada pedido
+      console.log(`[STEP 6] Procesando ${routeOrders.length} pedidos`);
       for (const order of routeOrders) {
+        console.log(`[STEP 6.${order.id}] Procesando pedido ${order.id}`);
         // Obtener el cliente
-        const customer = await db.select()
-          .from(customers)
-          .where(and(
+        const customer = await db.query.customers.findMany({
+          where: (customers, { and, eq }) => and(
             eq(customers.id, order.customerId),
             eq(customers.companyId, companyId)
-          ))
-          .limit(1);
+          ),
+          limit: 1
+        });
+        console.log(`[STEP 6.${order.id} CUSTOMER OK] Cliente encontrado: ${customer.length > 0}`);
         
         if (!customer || customer.length === 0) continue;
         
         // Obtener los items del pedido
-        const items = await db.select({
-          productId: orderItems.productId,
-          quantity: orderItems.quantity,
-          price: orderItems.price,
-          productName: products.name
-        })
-        .from(orderItems)
-        .leftJoin(products, and(
-          eq(orderItems.productId, products.id),
-          eq(products.companyId, companyId)
-        ))
-        .where(and(
-          eq(orderItems.orderId, order.orderId),
-          eq(orderItems.companyId, companyId)
-        ));
+        console.log(`[STEP 6.${order.id} ITEMS] Obteniendo items para pedido`);
+        const items = await db.query.orderItems.findMany({
+          where: (orderItems, { and, eq }) => and(
+            eq(orderItems.orderId, order.id),
+            eq(orderItems.companyId, companyId)
+          )
+        });
+        console.log(`[STEP 6.${order.id} ITEMS OK] Encontrados ${items.length} items`);
         
         // Calcular el valor total del pedido
         let totalValue = 0;
@@ -253,7 +255,18 @@ export async function registerDriverRoutes(app: Express) {
         for (const item of items) {
           const itemTotal = Number(item.price) * item.quantity;
           totalValue += itemTotal;
-          orderDescription += `${item.quantity} ${item.productName}, `;
+          
+          // Get product name
+          const product = await db.query.products.findMany({
+            where: (products, { and, eq }) => and(
+              eq(products.id, item.productId),
+              eq(products.companyId, companyId)
+            ),
+            limit: 1
+          });
+          
+          const productName = product && product.length > 0 ? product[0].name : "Producto";
+          orderDescription += `${item.quantity} ${productName}, `;
         }
         
         // Eliminar la última coma y espacio
@@ -263,13 +276,13 @@ export async function registerDriverRoutes(app: Express) {
         }
         
         // Obtener los datos de retorno de envases
-        const bottleReturn = await db.select()
-          .from(bottleReturns)
-          .where(and(
-            eq(bottleReturns.orderId, order.orderId),
+        const bottleReturn = await db.query.bottleReturns.findMany({
+          where: (bottleReturns, { and, eq }) => and(
+            eq(bottleReturns.orderId, order.id),
             eq(bottleReturns.companyId, companyId)
-          ))
-          .limit(1);
+          ),
+          limit: 1
+        });
         
         // Extraer coordenadas (si existen) o usar una ubicación por defecto
         let coordinates: [number, number] = [18.47, -69.95]; // Coordenadas por defecto (Santo Domingo)
@@ -305,17 +318,21 @@ export async function registerDriverRoutes(app: Express) {
             mappedStatus = 'pending';
         }
         
+        // Determinar prioridad basado en el estado
+        let priority: 'normal' | 'high' | 'low' = 'normal';
+        if (order.status === 'pending') priority = 'high';
+        else if (order.status === 'in_transit') priority = 'normal';
+        else priority = 'low';
+        
         // Crear objeto de entrega
         const delivery: DriverDelivery = {
-          id: order.orderId,
+          id: order.id,
           customerName: customer[0].businessname,
           customerAddress: `${customer[0].street} ${customer[0].streetnumber}`,
           coordinates,
-          estimatedTime: typeof order.estimatedTime === 'string' 
-                        ? order.estimatedTime 
-                        : new Date().toISOString(),
+          estimatedTime: order.estimatedDeliveryTime || new Date().toISOString(),
           status: mappedStatus,
-          priority: order.priority as 'normal' | 'high' | 'low',
+          priority,
           orderDetails: orderDescription,
           orderValue: totalValue.toFixed(2),
           containers: {
@@ -386,16 +403,15 @@ export async function registerDriverRoutes(app: Express) {
       }
       
       // Obtener total de pedidos asignados al conductor
-      const routesWithOrders = await db.select({
-        routeId: routes.id
-      })
-      .from(routes)
-      .where(and(
-        eq(routes.driverId, driverId),
-        eq(routes.companyId, companyId)
-      ));
+      const routesWithOrders = await db.query.routes.findMany({
+        where: (routes, { and, eq }) => and(
+          eq(routes.driverId, driverId),
+          eq(routes.companyId, companyId)
+        ),
+        columns: { id: true }
+      });
       
-      const routeIds = routesWithOrders.map(r => r.routeId);
+      const routeIds = routesWithOrders.map(r => r.id);
       
       // Si no hay rutas, retornar valores predeterminados
       if (routeIds.length === 0) {
@@ -407,37 +423,26 @@ export async function registerDriverRoutes(app: Express) {
         });
       }
       
-      // Obtener recuento de pedidos por estado
-      const totalOrders = await db.select({
-        count: sql<number>`count(*)`
-      })
-      .from(orders)
-      .where(and(
-        routeIds.length === 1 
-          ? eq(orders.routeId, routeIds[0]) 
-          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`,
-        eq(orders.companyId, companyId)
-      ));
+      // Obtener todos los pedidos y contar en JavaScript
+      const allOrdersForDriver = await db.query.orders.findMany({
+        where: (orders, { eq }) => eq(orders.companyId, companyId)
+      });
       
-      const deliveredOrders = await db.select({
-        count: sql<number>`count(*)`
-      })
-      .from(orders)
-      .where(and(
-        routeIds.length === 1 
-          ? eq(orders.routeId, routeIds[0]) 
-          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`,
-        eq(orders.status, 'delivered'),
-        eq(orders.companyId, companyId)
-      ));
+      // Filtrar por routeIds
+      const ordersInRoutes = allOrdersForDriver.filter(order => 
+        order.routeId && routeIds.includes(order.routeId)
+      );
+      
+      const totalOrdersCount = ordersInRoutes.length;
+      const deliveredOrdersCount = ordersInRoutes.filter(order => order.status === 'delivered').length;
       
       // Por ahora, estos valores son estimados ya que no tenemos datos reales de tiempos
-      const onTimeDeliveries = Math.floor(deliveredOrders[0].count * 0.8); // Asumimos que el 80% fue a tiempo
+      const onTimeDeliveries = Math.floor(deliveredOrdersCount * 0.8); // Asumimos que el 80% fue a tiempo
       const averageDeliveryTime = 35; // 35 minutos en promedio por entrega
       
       const performance: Performance = {
-        deliveredOrders: deliveredOrders[0].count || 0,
-        totalOrders: totalOrders[0].count || 0,
+        deliveredOrders: deliveredOrdersCount,
+        totalOrders: totalOrdersCount,
         onTimeDeliveries,
         averageDeliveryTime
       };
@@ -460,13 +465,13 @@ export async function registerDriverRoutes(app: Express) {
       }
       
       // Verificar que el pedido existe y pertenece a la empresa
-      const existingOrder = await db.select()
-        .from(orders)
-        .where(and(
+      const existingOrder = await db.query.orders.findMany({
+        where: (orders, { and, eq }) => and(
           eq(orders.id, orderId),
           eq(orders.companyId, companyId)
-        ))
-        .limit(1);
+        ),
+        limit: 1
+      });
       
       if (!existingOrder || existingOrder.length === 0) {
         return res.status(404).json({ error: "Pedido no encontrado" });
@@ -483,13 +488,13 @@ export async function registerDriverRoutes(app: Express) {
       // Opcional: actualizar la información de devolución de envases
       const returnedContainers = req.body.returnedContainers;
       if (returnedContainers !== undefined) {
-        const bottleReturn = await db.select()
-          .from(bottleReturns)
-          .where(and(
+        const bottleReturn = await db.query.bottleReturns.findMany({
+          where: (bottleReturns, { and, eq }) => and(
             eq(bottleReturns.orderId, orderId),
             eq(bottleReturns.companyId, companyId)
-          ))
-          .limit(1);
+          ),
+          limit: 1
+        });
         
         if (bottleReturn && bottleReturn.length > 0) {
           // Actualizar registro existente
