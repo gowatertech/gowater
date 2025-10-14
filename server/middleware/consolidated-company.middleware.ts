@@ -58,7 +58,8 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
     // Si no hay companyId y no es una ruta pública
     if (req.path.startsWith('/api/') && 
         !req.path.startsWith('/api/public/') && 
-        !req.path.startsWith('/api/leads/')) {
+        !req.path.startsWith('/api/leads/') &&
+        req.path !== '/api/contact') {
       
       // Verificar si la ruta es para pedidos pendientes y tiene el parámetro debug=true
       const isDebugMode = req.path.includes('/zones/') && 

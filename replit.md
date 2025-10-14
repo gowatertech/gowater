@@ -32,6 +32,15 @@ A **hierarchical address system** is integrated with **Leaflet Maps** for intera
 ### File Upload Handling
 **Multer Middleware** manages in-memory file uploads (e.g., company logos, product images) with a 5MB limit.
 
+### Email Service (Contact Forms)
+**Resend API** powers the contact form email system:
+- **Service**: Resend (free tier: 100 emails/day, 3,000/month)
+- **Endpoint**: `POST /api/contact` (public, no auth required)
+- **Recipient**: gowatertech@gmail.com
+- **Validation**: Zod schema (name, email, subject, message min 10 chars)
+- **Frontend**: React Hook Form with toast notifications
+- **Features**: Email validation, loading states, success/error handling, form reset
+
 ### PDF Generation & Printing
 The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for generating complex PDF layouts like invoices and **Direct jsPDF Generation** for simpler documents.
 
