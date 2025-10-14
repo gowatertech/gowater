@@ -199,6 +199,146 @@ app.get("/api/authtest", (req, res) => {
   });
 });
 
+// PUBLIC ENDPOINTS - Registered directly on app before Vite to avoid interception
+// Contact Form Endpoint
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { Resend } = await import('resend');
+    const { contactFormSchema } = await import('../shared/schema');
+    
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    // Validate request body
+    const validation = contactFormSchema.safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: "Validation failed", 
+        details: validation.error.errors 
+      });
+    }
+
+    const { name, email, subject, message } = validation.data;
+
+    // Send email using Resend
+    const { data, error } = await resend.emails.send({
+      from: 'GoWater Contact <onboarding@resend.dev>',
+      to: ['gowatertech@gmail.com'],
+      replyTo: email,
+      subject: `[Contacto Web] ${subject}`,
+      html: `
+        <h2>Nuevo mensaje desde el formulario de contacto</h2>
+        <p><strong>De:</strong> ${name} (${email})</p>
+        <p><strong>Asunto:</strong> ${subject}</p>
+        <hr />
+        <p><strong>Mensaje:</strong></p>
+        <p>${message.replace(/\n/g, '<br>')}</p>
+        <hr />
+        <p style="color: #666; font-size: 12px;">
+          Para responder a este mensaje, utiliza la dirección: ${email}
+        </p>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Error sending email:', error);
+      return res.status(500).json({ 
+        error: "Failed to send email", 
+        details: error 
+      });
+    }
+
+    console.log('✅ Email sent successfully:', data);
+    res.json({ 
+      success: true, 
+      message: "Mensaje enviado exitosamente" 
+    });
+
+  } catch (error) {
+    console.error('❌ Contact form error:', error);
+    res.status(500).json({ 
+      error: "Internal server error",
+      message: "No se pudo enviar el mensaje. Por favor intenta nuevamente." 
+    });
+  }
+});
+
+// Lead Registration Endpoint
+app.post("/api/leads/register-interest", async (req, res) => {
+  try {
+    const { Resend } = await import('resend');
+    const { db } = await import('./db');
+    const { companyLeads, insertCompanyLeadSchema } = await import('../shared/schema');
+    const { ZodError } = await import('zod');
+    
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    // Validar los datos de entrada
+    const validatedData = insertCompanyLeadSchema.parse(req.body);
+    
+    // Insertar en base de datos
+    const [newLead] = await db
+      .insert(companyLeads)
+      .values(validatedData)
+      .returning();
+    
+    // Enviar email de notificación
+    try {
+      await resend.emails.send({
+        from: 'GoWater Registro <onboarding@resend.dev>',
+        to: 'gowatertech@gmail.com',
+        subject: `Nuevo Registro de Interés: ${validatedData.companyName}`,
+        html: `
+          <h2>Nuevo Registro de Interés</h2>
+          <h3>Información de la Empresa</h3>
+          <ul>
+            <li><strong>Nombre de la empresa:</strong> ${validatedData.companyName}</li>
+            <li><strong>Dirección:</strong> ${validatedData.address}</li>
+            <li><strong>País:</strong> ${validatedData.country || 'República Dominicana'}</li>
+          </ul>
+          <h3>Información de Contacto</h3>
+          <ul>
+            <li><strong>Nombre del encargado:</strong> ${validatedData.managerName}</li>
+            <li><strong>Teléfono:</strong> ${validatedData.phone}</li>
+            <li><strong>Email:</strong> ${validatedData.email || 'No proporcionado'}</li>
+          </ul>
+          <h3>Detalles de Operación</h3>
+          <ul>
+            <li><strong>Clientes aproximados:</strong> ${validatedData.approximateClients || 0}</li>
+            <li><strong>Cantidad de vehículos:</strong> ${validatedData.vehicleCount || 0}</li>
+            <li><strong>Plan de interés:</strong> ${validatedData.interestedInPlan || 'No especificado'}</li>
+          </ul>
+          ${validatedData.comments ? `<h3>Comentarios</h3><p>${validatedData.comments}</p>` : ''}
+        `,
+      });
+    } catch (emailError) {
+      console.error("Error al enviar email de notificación:", emailError);
+      // No fallar el registro si el email falla
+    }
+    
+    return res.status(201).json({
+      success: true,
+      data: newLead,
+      message: "Registro exitoso. Nos pondremos en contacto pronto."
+    });
+  } catch (error) {
+    console.error("Error al registrar interés:", error);
+    
+    if (error instanceof Error && error.name === 'ZodError') {
+      return res.status(400).json({
+        success: false,
+        errors: (error as any).errors,
+        message: "Por favor, verifica los datos ingresados."
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: "Ocurrió un error al procesar tu solicitud. Por favor, intenta nuevamente."
+    });
+  }
+});
+
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
