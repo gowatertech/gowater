@@ -224,11 +224,17 @@ const RecurringOrderCard = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>{t("Acciones")}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setLocation(`/recurring-orders/${order.id}`)}>
+                <DropdownMenuItem 
+                  onClick={() => setLocation(`/recurring-orders/${order.id}`)}
+                  data-testid={`menu-edit-${order.id}`}
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   {t("Editar")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onGenerateOrder(order.id)}>
+                <DropdownMenuItem 
+                  onClick={() => onGenerateOrder(order.id)}
+                  data-testid={`menu-generate-${order.id}`}
+                >
                   <ExternalLink className="mr-2 h-4 w-4" />
                   {t("Generar Pedido")}
                 </DropdownMenuItem>
@@ -236,24 +242,36 @@ const RecurringOrderCard = ({
                 
                 {/* Cambio de estado */}
                 {order.status === "active" && (
-                  <DropdownMenuItem onClick={() => onStatusChange(order.id, "paused")}>
+                  <DropdownMenuItem 
+                    onClick={() => onStatusChange(order.id, "paused")}
+                    data-testid={`menu-pause-${order.id}`}
+                  >
                     <Pause className="mr-2 h-4 w-4" />
                     {t("Pausar")}
                   </DropdownMenuItem>
                 )}
                 {order.status === "paused" && (
-                  <DropdownMenuItem onClick={() => onStatusChange(order.id, "active")}>
+                  <DropdownMenuItem 
+                    onClick={() => onStatusChange(order.id, "active")}
+                    data-testid={`menu-activate-${order.id}`}
+                  >
                     <Play className="mr-2 h-4 w-4" />
                     {t("Activar")}
                   </DropdownMenuItem>
                 )}
                 {(order.status === "active" || order.status === "paused") && (
                   <>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, "completed")}>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(order.id, "completed")}
+                      data-testid={`menu-complete-${order.id}`}
+                    >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
                       {t("Marcar completado")}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onStatusChange(order.id, "cancelled")}>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(order.id, "cancelled")}
+                      data-testid={`menu-cancel-${order.id}`}
+                    >
                       <XCircle className="mr-2 h-4 w-4" />
                       {t("Cancelar")}
                     </DropdownMenuItem>
@@ -264,6 +282,7 @@ const RecurringOrderCard = ({
                 <DropdownMenuItem 
                   className="text-red-600 focus:text-red-600"
                   onClick={() => onDeleteClick(order.id)}
+                  data-testid={`menu-delete-${order.id}`}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   {t("Eliminar")}
@@ -548,19 +567,19 @@ export default function RecurringOrdersPage() {
         onValueChange={setActiveTab}
       >
         <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
-          <TabsTrigger value="all" className="gap-2">
+          <TabsTrigger value="all" className="gap-2" data-testid="tab-all">
             <Sparkles className="h-4 w-4" />
             {t("Todos")}
           </TabsTrigger>
-          <TabsTrigger value="active" className="gap-2">
+          <TabsTrigger value="active" className="gap-2" data-testid="tab-active">
             <Zap className="h-4 w-4" />
             {t("Activos")}
           </TabsTrigger>
-          <TabsTrigger value="paused" className="gap-2">
+          <TabsTrigger value="paused" className="gap-2" data-testid="tab-paused">
             <Pause className="h-4 w-4" />
             {t("Pausados")}
           </TabsTrigger>
-          <TabsTrigger value="completed" className="gap-2">
+          <TabsTrigger value="completed" className="gap-2" data-testid="tab-completed">
             <CheckCircle2 className="h-4 w-4" />
             {t("Finalizados")}
           </TabsTrigger>
@@ -600,7 +619,11 @@ export default function RecurringOrdersPage() {
                 <p className="text-muted-foreground text-center mb-6 max-w-sm">
                   {t("No se encontraron pedidos recurrentes. Crea uno nuevo para automatizar tus ventas.")}
                 </p>
-                <Button onClick={() => setLocation("/recurring-orders/new")} className="gap-2">
+                <Button 
+                  onClick={() => setLocation("/recurring-orders/new")} 
+                  className="gap-2"
+                  data-testid="button-create-recurring-order-empty"
+                >
                   <Plus className="h-4 w-4" />
                   {t("Crear Pedido Recurrente")}
                 </Button>
@@ -632,10 +655,11 @@ export default function RecurringOrdersPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">{t("Cancelar")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
             >
               {t("Eliminar")}
             </AlertDialogAction>
