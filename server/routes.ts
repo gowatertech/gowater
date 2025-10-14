@@ -1345,6 +1345,7 @@ export async function registerRoutes(router: express.Router) {
       }
       
       // Ahora sí obtenemos las órdenes de la ruta, asegurándonos de filtrar también por companyId
+      // IMPORTANTE: Ordenar por deliverySequence para mantener el orden cronológico de entregas
       const routeOrders = await db
         .select()
         .from(orders)
@@ -1353,7 +1354,8 @@ export async function registerRoutes(router: express.Router) {
             eq(orders.routeId, routeId),
             eq(orders.companyId, companyId)
           )
-        );
+        )
+        .orderBy(orders.deliverySequence);
         
       console.log(`GET /api/routes/${routeId}/orders - Se encontraron ${routeOrders.length} órdenes`);
       
