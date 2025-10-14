@@ -2,12 +2,14 @@ import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
   Droplet, 
   PhoneCall, 
   Mail,
   Clock,
-  MapPin
+  MapPin,
+  Menu
 } from "lucide-react";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 
@@ -187,7 +189,7 @@ export default function ContactoPage() {
                     </div>
                     <div className="text-center">
                       <h3 className="font-medium mb-2">Correo Electrónico</h3>
-                      <p className="text-xl font-medium text-primary">soportegowater@gmail.com</p>
+                      <p className="text-xl font-medium text-primary">gowatertech@gmail.com</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         Respondemos en un plazo de 24 horas.
                       </p>

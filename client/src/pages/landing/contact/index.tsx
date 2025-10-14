@@ -98,7 +98,7 @@ export default function ContactPage() {
                     </div>
                     <div className="text-center">
                       <h3 className="font-medium mb-2">Correo Electrónico</h3>
-                      <p className="text-xl font-medium text-primary">soportegowater@gmail.com</p>
+                      <p className="text-xl font-medium text-primary">gowatertech@gmail.com</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         Respondemos dentro de 24 horas.
                       </p>
