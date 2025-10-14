@@ -55,6 +55,7 @@ import TestPrintPayment from "@/pages/test-print-payment";
 import TestRoutesPage from "@/pages/test-routes";
 import ManualPage from "@/pages/ManualPage";
 import LandingPage from "@/pages/landing";
+import DemoPage from "@/pages/demo";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
@@ -228,10 +229,11 @@ function Router() {
   const CompanyLogin = lazy(() => import("@/pages/auth/login"));
 
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/demo" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
+        <Route path="/demo" component={DemoPage} />
         <Route path="/planes" component={PlanesPage} />
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
