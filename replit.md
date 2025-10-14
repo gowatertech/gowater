@@ -90,12 +90,22 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
 #### Manual de Usuario - Comprehensive User Guide (October 2025)
 - **Complete Documentation**: Comprehensive manual covering all system functionalities organized into 12 major sections
 - **Intelligent Search**: Real-time search filtering across feature titles, descriptions, and sub-features with "no results" handling
-- **Responsive Design**: Desktop sidebar navigation with mobile tab selector for seamless cross-device experience
+- **Fully Responsive Design**: 
+  - Desktop: Sidebar navigation with all sections visible
+  - Mobile: Select dropdown for easy section navigation (optimized for touch)
+  - Responsive typography, spacing, and layouts across all breakpoints
 - **Interactive Features**: Expandable feature cards showing detailed sub-functionalities and use cases
 - **Modern UI**: Gradient backgrounds, color-coded sections, and intuitive icons for visual clarity
+- **Mobile Optimizations**:
+  - Select dropdown instead of cramped horizontal tabs
+  - Compact card padding (p-4 on mobile, p-6 on desktop)
+  - Responsive text sizes (text-base to text-xl)
+  - Reduced gaps and proper overflow handling with break-words
+  - Touch-friendly buttons and controls
+- **PDF Export**: Download complete manual as PDF with all sections, features, and sub-features
 - **Accessibility**:
   - Full data-testid coverage on all interactive elements
-  - Screen reader friendly with proper semantic markup
+  - Screen reader friendly with proper semantic markup and aria-labels
   - Keyboard navigation support
 - **Sections Covered**:
   - Panel Principal (Dashboard)
@@ -112,6 +122,7 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
   - Administración de Plataforma (Multi-tenant Management)
 - **Route**: `/manual`
 - **Menu Location**: Accessible from main sidebar navigation menu
+- **Removed**: Old tutorial interactivo (/tutorial) has been completely removed and replaced with this comprehensive manual
 
 ## External Dependencies
 
