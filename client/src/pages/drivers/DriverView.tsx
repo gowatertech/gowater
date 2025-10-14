@@ -792,7 +792,7 @@ export default function DriverView() {
             
             <Card className="p-3 mt-2">
               <div className="flex items-center gap-1.5 mb-2">
-                <Calendar className="h-4 w-4 text-indigo-600" />
+                <Calendar className="h-4 w-4 text-primary" />
                 <h2 className="font-semibold text-sm">Programación de Hoy</h2>
               </div>
               
