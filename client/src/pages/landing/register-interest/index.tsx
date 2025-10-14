@@ -24,6 +24,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // Definir el esquema de validación basado en el esquema del servidor
 const formSchema = z.object({
@@ -57,42 +58,33 @@ export default function RegisterInterestPage() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('[RegisterInterest] onSubmit called with data:', data);
     setSubmitting(true);
     try {
-      const response = await fetch('/api/leads/register-interest', {
+      const response = await apiRequest('/api/leads/register-interest', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        data: data,
       });
+      console.log('[RegisterInterest] Response received:', response);
 
-      const result = await response.json();
-
-      if (response.ok) {
-        setSubmissionSuccess(true);
-        reset();
-        toast({
-          title: "¡Registro exitoso!",
-          description: "Nos pondremos en contacto contigo pronto.",
-        });
-      } else {
-        toast({
-          title: "Error al enviar el formulario",
-          description: result.message || "Por favor, verifica tus datos e intenta nuevamente.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
+      setSubmissionSuccess(true);
+      reset();
       toast({
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor. Inténtalo de nuevo más tarde.",
+        title: "¡Registro exitoso!",
+        description: "Nos pondremos en contacto contigo pronto.",
+      });
+    } catch (error) {
+      console.error('[RegisterInterest] Error:', error);
+      toast({
+        title: "Error al enviar el formulario",
+        description: "Por favor, verifica tus datos e intenta nuevamente.",
         variant: "destructive",
       });
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -312,7 +304,13 @@ export default function RegisterInterestPage() {
                     </div>
 
                     <div className="flex justify-end">
-                      <Button type="submit" size="lg" disabled={submitting} className="gap-2">
+                      <Button 
+                        type="submit" 
+                        size="lg" 
+                        disabled={submitting} 
+                        className="gap-2"
+                        data-testid="button-submit-lead"
+                      >
                         {submitting ? 'Enviando...' : 'Enviar registro'}
                         {!submitting && <ArrowRight className="h-4 w-4" />}
                       </Button>
