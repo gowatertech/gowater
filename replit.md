@@ -87,6 +87,32 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
   - Data-testid attributes on all interactive elements
 - **Route**: `/bottles/balance` (consolidated from previous `/envases/balance`)
 
+#### Manual de Usuario - Comprehensive User Guide (October 2025)
+- **Complete Documentation**: Comprehensive manual covering all system functionalities organized into 12 major sections
+- **Intelligent Search**: Real-time search filtering across feature titles, descriptions, and sub-features with "no results" handling
+- **Responsive Design**: Desktop sidebar navigation with mobile tab selector for seamless cross-device experience
+- **Interactive Features**: Expandable feature cards showing detailed sub-functionalities and use cases
+- **Modern UI**: Gradient backgrounds, color-coded sections, and intuitive icons for visual clarity
+- **Accessibility**:
+  - Full data-testid coverage on all interactive elements
+  - Screen reader friendly with proper semantic markup
+  - Keyboard navigation support
+- **Sections Covered**:
+  - Panel Principal (Dashboard)
+  - Clientes (Customers)
+  - Pedidos (Orders & Recurring Orders)
+  - Rutas y Entregas (Routes & Deliveries)
+  - Inventario (Inventory, Warehouses, Production)
+  - Envases (Bottle Management)
+  - Finanzas (Billing & Commissions)
+  - Reportes (Reports & Analytics)
+  - Flota (Fleet & Drivers)
+  - App Móvil (Mobile PWA for Drivers)
+  - Usuarios y Configuración (Users & Settings)
+  - Administración de Plataforma (Multi-tenant Management)
+- **Route**: `/manual`
+- **Menu Location**: Accessible from main sidebar navigation menu
+
 ## External Dependencies
 
 ### Core Infrastructure
