@@ -61,7 +61,10 @@ export async function registerRouteSettlements(app: Express) {
             total: sql`sum(${orders.total})`
           })
           .from(orders)
-          .where(inArray(orders.routeId, loadingIdsWithCompletedOrders as number[]))
+          .where(and(
+            inArray(orders.routeId, loadingIdsWithCompletedOrders as number[]),
+            eq(orders.companyId, companyId)
+          ))
           .groupBy(orders.routeId);
         
         // Almacenar las estadísticas por ruta
@@ -168,6 +171,7 @@ export async function registerRouteSettlements(app: Express) {
         .insert(routeSettlements)
         .values({
           vehicleLoadingId,
+          companyId,
           settlementDate: currentDate,
           totalCashReceived,
           totalCreditReceived,
@@ -202,7 +206,10 @@ export async function registerRouteSettlements(app: Express) {
 
       // 6. Obtener la carga actualizada con todos sus items
       const updatedLoading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, vehicleLoadingId),
+        where: and(
+          eq(vehicleLoading.id, vehicleLoadingId),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -216,7 +223,10 @@ export async function registerRouteSettlements(app: Express) {
 
       // 7. Obtener el registro del cuadre creado con sus items
       const createdSettlement = await db.query.routeSettlements.findFirst({
-        where: eq(routeSettlements.id, newSettlement.id),
+        where: and(
+          eq(routeSettlements.id, newSettlement.id),
+          eq(routeSettlements.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -280,7 +290,10 @@ export async function registerRouteSettlements(app: Express) {
       
       // Buscar si existe un registro de cuadre en la nueva tabla
       const settlementData = await db.query.routeSettlements.findFirst({
-        where: eq(routeSettlements.vehicleLoadingId, loadingId),
+        where: and(
+          eq(routeSettlements.vehicleLoadingId, loadingId),
+          eq(routeSettlements.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -311,7 +324,10 @@ export async function registerRouteSettlements(app: Express) {
         const allRouteOrders = await db
           .select()
           .from(orders)
-          .where(eq(orders.routeId, loading.routeId));
+          .where(and(
+            eq(orders.routeId, loading.routeId),
+            eq(orders.companyId, companyId)
+          ));
         
         console.log(`La ruta ${loading.routeId} tiene ${allRouteOrders.length} órdenes en total (todos los estados):`);
         allRouteOrders.forEach(order => {
@@ -327,7 +343,10 @@ export async function registerRouteSettlements(app: Express) {
         const routeData = await db
           .select()
           .from(routes)
-          .where(eq(routes.id, loading.routeId))
+          .where(and(
+            eq(routes.id, loading.routeId),
+            eq(routes.companyId, companyId)
+          ))
           .limit(1);
         
         console.log(`Verificación de ruta: ${routeData.length > 0 ? `Encontrada ruta #${routeData[0].id}` : 'Ruta no encontrada'}`);
