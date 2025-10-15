@@ -244,11 +244,21 @@ export async function registerRouteSettlements(app: Express) {
   // Obtener cuadre de vehículo por ID de carga
   app.get("/api/route-settlements/:loadingId", async (req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       const loadingId = parseInt(req.params.loadingId);
       
-      // Obtener la carga con sus items y la ruta asociada
+      // Obtener la carga con sus items y la ruta asociada (filtrando por empresa)
       const loading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, loadingId),
+        where: and(
+          eq(vehicleLoading.id, loadingId),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -264,7 +274,7 @@ export async function registerRouteSettlements(app: Express) {
       if (!loading) {
         return res.status(404).json({
           error: "Carga no encontrada",
-          message: "La carga especificada no existe"
+          message: "La carga especificada no existe o no pertenece a su empresa"
         });
       }
       
