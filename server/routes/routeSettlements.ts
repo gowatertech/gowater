@@ -7,15 +7,26 @@ import {
   bottleReturns, products, orderItems, 
   routeSettlements, routeSettlementItems 
 } from "@shared/schema";
+import { getCurrentCompanyId } from "../company-db";
 
 export async function registerRouteSettlements(app: Express) {
   
   // Obtener lista de cuadres de vehículos completados
   app.get("/api/route-settlements", async (req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       // Obtener todas las cargas que tienen estado "completed"
       const completedLoads = await db.query.vehicleLoading.findMany({
-        where: eq(vehicleLoading.status, "completed"),
+        where: and(
+          eq(vehicleLoading.status, "completed"),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           driver: true,
           truck: true,
@@ -93,6 +104,13 @@ export async function registerRouteSettlements(app: Express) {
   // Crear nuevo cuadre de vehículo
   app.post("/api/route-settlements", async (req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       const { vehicleLoadingId, totalCashReceived, totalCreditReceived, totalInvoiced, notes, items, cashDifference } = req.body;
 
       // Validar datos básicos
@@ -103,18 +121,19 @@ export async function registerRouteSettlements(app: Express) {
         });
       }
 
-      // 1. Verificar que la carga exista y esté pendiente
+      // 1. Verificar que la carga exista, esté pendiente y pertenezca a la empresa
       const loading = await db.query.vehicleLoading.findFirst({
         where: and(
           eq(vehicleLoading.id, vehicleLoadingId),
-          eq(vehicleLoading.status, "pending")
+          eq(vehicleLoading.status, "pending"),
+          eq(vehicleLoading.companyId, companyId)
         )
       });
 
       if (!loading) {
         return res.status(404).json({
           error: "Carga no encontrada",
-          message: "La carga especificada no existe o ya ha sido completada"
+          message: "La carga especificada no existe, ya ha sido completada o no pertenece a su empresa"
         });
       }
 
@@ -125,7 +144,10 @@ export async function registerRouteSettlements(app: Express) {
           status: "completed",
           completedAt: new Date().toISOString()
         })
-        .where(eq(vehicleLoading.id, vehicleLoadingId));
+        .where(and(
+          eq(vehicleLoading.id, vehicleLoadingId),
+          eq(vehicleLoading.companyId, companyId)
+        ));
 
       // 3. Actualizar las cantidades devueltas de cada item
       for (const item of items) {
