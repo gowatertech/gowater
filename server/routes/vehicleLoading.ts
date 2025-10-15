@@ -6,7 +6,7 @@ import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
   // Endpoint para completar una carga (marcarla como completada)
-  app.post("/api/vehicle-loading/:id/complete", async (req: Request, res: Response) => {
+  app.post("/vehicle-loading/:id/complete", async (req: Request, res: Response) => {
     try {
       const loadingId = parseInt(req.params.id);
       
@@ -62,7 +62,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
     }
   });
   // Asignar ruta a una carga
-  app.patch("/api/vehicle-loading/:id/assign-route", async (req: Request, res: Response) => {
+  app.patch("/vehicle-loading/:id/assign-route", async (req: Request, res: Response) => {
     try {
       const loadingId = parseInt(req.params.id);
       const { routeId } = req.body;
@@ -116,7 +116,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
     }
   });
   // Delete vehicle loading and its items
-  app.delete("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
+  app.delete("/vehicle-loading/:id", async (req: Request, res: Response) => {
     try {
       const loadingId = parseInt(req.params.id);
       
@@ -173,7 +173,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
     }
   });
   // Get all vehicle loadings
-  app.get("/api/vehicle-loading", async (_req: Request, res: Response) => {
+  app.get("/vehicle-loading", async (_req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
@@ -205,7 +205,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   });
 
   // Get pending vehicle loadings
-  app.get("/api/vehicle-loading/pending", async (_req: Request, res: Response) => {
+  app.get("/vehicle-loading/pending", async (_req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
@@ -240,7 +240,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   });
 
   // Get specific vehicle loading with items
-  app.get("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
+  app.get("/vehicle-loading/:id", async (req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
@@ -278,7 +278,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   });
 
   // Create new vehicle loading with items
-  app.post("/api/vehicle-loading", async (req: Request, res: Response) => {
+  app.post("/vehicle-loading", async (req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();

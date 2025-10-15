@@ -12,7 +12,7 @@ import { getCurrentCompanyId } from "../company-db";
 export async function registerRouteSettlements(app: Express) {
   
   // Obtener lista de cuadres de vehículos completados
-  app.get("/api/route-settlements", async (req: Request, res: Response) => {
+  app.get("/route-settlements", async (req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
@@ -105,7 +105,7 @@ export async function registerRouteSettlements(app: Express) {
     }
   });
   // Crear nuevo cuadre de vehículo
-  app.post("/api/route-settlements", async (req: Request, res: Response) => {
+  app.post("/route-settlements", async (req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
@@ -252,7 +252,7 @@ export async function registerRouteSettlements(app: Express) {
   });
 
   // Obtener cuadre de vehículo por ID de carga
-  app.get("/api/route-settlements/:loadingId", async (req: Request, res: Response) => {
+  app.get("/route-settlements/:loadingId", async (req: Request, res: Response) => {
     try {
       // Get company ID from context for multi-tenant security
       const companyId = getCurrentCompanyId();
