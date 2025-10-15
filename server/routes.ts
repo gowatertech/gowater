@@ -5319,11 +5319,20 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere una sesión con companyId" });
       }
       
-      const allLoadings = await db
-        .select()
-        .from(vehicleLoading)
-        .where(eq(vehicleLoading.companyId, companyId))
-        .orderBy(vehicleLoading.date);
+      const allLoadings = await db.query.vehicleLoading.findMany({
+        where: eq(vehicleLoading.companyId, companyId),
+        with: {
+          truck: true,
+          driver: true,
+          route: true,
+          items: {
+            with: {
+              product: true
+            }
+          }
+        },
+        orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
+      });
 
       console.log(`GET /api/vehicle-loading - Retornando: ${allLoadings.length} cargas para empresa ${companyId}`);
       res.json(allLoadings);

@@ -24,13 +24,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface LoadingWithRelations extends VehicleLoading {
-  truck: TruckType;
-  driver: User;
+  truck: TruckType | null;
+  driver: User | null;
   route?: {
     id: number;
     name: string;
     [key: string]: any;
-  };
+  } | null;
   items: Array<{
     id: number;
     productId: number;
@@ -78,7 +78,7 @@ export default function VehicleLoadingPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header con Gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-950 rounded-xl p-6 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-950 rounded-xl p-6 text-white shadow-lg" data-testid="header-gradient">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -223,7 +223,7 @@ export default function VehicleLoadingPage() {
             const value = calculateTotalValue(loading.items);
             
             return (
-              <Card key={loading.id} className="hover:shadow-lg transition-all border-l-4 border-l-blue-500">
+              <Card key={loading.id} className="hover:shadow-lg transition-all border-l-4 border-l-blue-500" data-testid="loading-card">
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     {/* Header */}
@@ -256,7 +256,9 @@ export default function VehicleLoadingPage() {
                         <UserIcon className="h-4 w-4 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-muted-foreground">Conductor</p>
-                          <p className="text-sm font-medium truncate">{loading.driver?.name}</p>
+                          <p className="text-sm font-medium truncate">
+                            {loading.driver?.name || "No asignado"}
+                          </p>
                         </div>
                       </div>
                       
@@ -264,7 +266,9 @@ export default function VehicleLoadingPage() {
                         <Truck className="h-4 w-4 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-muted-foreground">Vehículo</p>
-                          <p className="text-sm font-medium truncate">{loading.truck?.plate}</p>
+                          <p className="text-sm font-medium truncate">
+                            {loading.truck?.plate || "No asignado"}
+                          </p>
                         </div>
                       </div>
 

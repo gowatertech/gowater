@@ -123,6 +123,23 @@ The application follows **WCAG 2.1** accessibility guidelines with comprehensive
 - **Accessibility**:
   - Full data-testid coverage on all interactive elements
   - Screen reader friendly with proper semantic markup and aria-labels
+
+#### Carga de Vehículos (Vehicle Loading) - Complete Redesign (October 2025)
+- **Modern UI Design**: Blue gradient header (#2563eb), stat cards with colored left borders
+- **Smart Product Loading**: Auto-loads products from selected route, pre-fills conductor/vehicle/assistant
+- **Stat Cards in Form**: Shows selected route, total products, and initial cash in real-time
+- **Interactive Controls**: +/- buttons for quantity adjustment with "Modificado" badge when changed
+- **Responsive Layout**: Grid layout adapts to screen size, cards for mobile/desktop
+- **Backend Improvements**:
+  - GET `/api/vehicle-loading` returns complete relations (truck, driver, route, items with products)
+  - Uses `db.query.vehicleLoading.findMany()` with `.with()` for eager loading
+  - Automatic companyId injection from session
+- **Frontend Robustness**:
+  - Nullable type handling for truck/driver/route (shows "No asignado" if null)
+  - Optional chaining prevents crashes from missing relations
+  - Full data-testid coverage for automated testing
+- **Testing Endpoint**: `/api/test-session/login-with-email` for simplified auth in tests
+- **Route**: `/vehicle-loading`
   - Keyboard navigation support
 - **Sections Covered**:
   - Panel Principal (Dashboard)
