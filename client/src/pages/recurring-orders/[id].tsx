@@ -399,16 +399,16 @@ export default function RecurringOrderForm() {
   }));
   
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center mb-6">
-        <Button variant="outline" size="icon" onClick={() => setLocation("/recurring-orders")} className="mr-4">
+    <div className="container mx-auto py-4 sm:py-6 px-3 sm:px-4">
+      <div className="flex items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <Button variant="outline" size="icon" onClick={() => setLocation("/recurring-orders")} className="flex-shrink-0 mr-2 sm:mr-4">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+        <div className="flex-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
             {isNew ? t("Nuevo Pedido Recurrente") : t("Editar Pedido Recurrente")}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1">
             {isNew 
               ? t("Crea un nuevo pedido que se generará automáticamente según la frecuencia seleccionada.")
               : t("Modifica los detalles del pedido recurrente.")}
@@ -431,16 +431,16 @@ export default function RecurringOrderForm() {
       ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>{t("Información Principal")}</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-base sm:text-lg">{t("Información Principal")}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                       {t("Configura los detalles básicos del pedido recurrente.")}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                     <FormField
                       control={form.control}
                       name="customerId"
@@ -733,32 +733,35 @@ export default function RecurringOrderForm() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>{t("Productos")}</CardTitle>
-                      <CardDescription>
-                        {t("Añade los productos que formarán parte del pedido recurrente.")}
-                      </CardDescription>
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+                      <div className="flex-1">
+                        <CardTitle className="text-base sm:text-lg">{t("Productos")}</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">
+                          {t("Añade los productos que formarán parte del pedido recurrente.")}
+                        </CardDescription>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={handleAddProduct} className="w-full sm:w-auto text-xs sm:text-sm">
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                        {t("Añadir Producto")}
+                      </Button>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddProduct}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t("Añadir Producto")}
-                    </Button>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 sm:p-6">
                     {fields.length === 0 ? (
-                      <div className="text-center py-4 text-muted-foreground">
-                        {t("No hay productos añadidos al pedido.")}
-                        <div className="mt-2">
-                          <Button type="button" variant="outline" size="sm" onClick={handleAddProduct}>
-                            <Plus className="h-4 w-4 mr-2" />
+                      <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                        <p className="text-sm sm:text-base">{t("No hay productos añadidos al pedido.")}</p>
+                        <div className="mt-3 sm:mt-4">
+                          <Button type="button" variant="outline" size="sm" onClick={handleAddProduct} className="text-xs sm:text-sm">
+                            <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                             {t("Añadir Producto")}
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
+                      <div className="overflow-x-auto -mx-4 sm:mx-0">
+                        <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                          <Table className="text-xs sm:text-sm">
                           <TableHeader>
                             <TableRow>
                               <TableHead>{t("Producto")}</TableHead>
@@ -879,6 +882,7 @@ export default function RecurringOrderForm() {
                             })}
                           </TableBody>
                         </Table>
+                        </div>
                       </div>
                     )}
                   </CardContent>
@@ -886,30 +890,30 @@ export default function RecurringOrderForm() {
               </div>
 
               {/* Panel lateral */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle>{t("Resumen")}</CardTitle>
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-base sm:text-lg">{t("Resumen")}</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                     {selectedCustomer && (
                       <div>
-                        <h3 className="font-medium mb-2">{t("Cliente Seleccionado")}</h3>
-                        <div className="bg-muted p-3 rounded-md">
-                          <div className="font-semibold">{selectedCustomer.businessname}</div>
+                        <h3 className="text-sm sm:text-base font-medium mb-2">{t("Cliente Seleccionado")}</h3>
+                        <div className="bg-muted p-2 sm:p-3 rounded-md">
+                          <div className="text-sm sm:text-base font-semibold">{selectedCustomer.businessname}</div>
                           {selectedCustomer.phone && (
-                            <div className="text-sm text-muted-foreground">{selectedCustomer.phone}</div>
+                            <div className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.phone}</div>
                           )}
                           {selectedCustomer.street && (
-                            <div className="text-sm text-muted-foreground">{selectedCustomer.street}</div>
+                            <div className="text-xs sm:text-sm text-muted-foreground">{selectedCustomer.street}</div>
                           )}
                         </div>
                       </div>
                     )}
 
                     <div>
-                      <h3 className="font-medium mb-2">{t("Total del Pedido")}</h3>
-                      <div className="text-2xl font-bold">
+                      <h3 className="text-sm sm:text-base font-medium mb-2">{t("Total del Pedido")}</h3>
+                      <div className="text-xl sm:text-2xl font-bold">
                         {new Intl.NumberFormat('es', {
                           style: 'currency',
                           currency: 'DOP'
@@ -954,14 +958,14 @@ export default function RecurringOrderForm() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="p-4 sm:p-6">
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full text-sm sm:text-base"
                       disabled={saveMutation.isPending}
                     >
-                      {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Save className="mr-2 h-4 w-4" />
+                      {saveMutation.isPending && <Loader2 className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
+                      <Save className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       {isNew ? t("Crear Pedido Recurrente") : t("Guardar Cambios")}
                     </Button>
                   </CardFooter>
@@ -969,23 +973,23 @@ export default function RecurringOrderForm() {
 
                 {!isNew && (
                   <Card className="bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-900">
-                    <CardHeader>
-                      <CardTitle className="text-red-600 dark:text-red-400">{t("Zona de Peligro")}</CardTitle>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg text-red-600 dark:text-red-400">{t("Zona de Peligro")}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">
+                    <CardContent className="p-4 sm:p-6">
+                      <p className="text-xs sm:text-sm text-red-600/80 dark:text-red-400/80 mb-3 sm:mb-4">
                         {t("Esta acción eliminará permanentemente este pedido recurrente y no podrá recuperarse.")}
                       </p>
                       <Button
                         type="button"
                         variant="destructive"
-                        className="w-full"
+                        className="w-full text-sm sm:text-base"
                         onClick={() => {
                           // Esta acción la manejaremos desde el componente principal
                           setLocation("/recurring-orders");
                         }}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         {t("Eliminar Pedido Recurrente")}
                       </Button>
                     </CardContent>

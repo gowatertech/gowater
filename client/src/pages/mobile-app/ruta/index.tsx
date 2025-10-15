@@ -788,15 +788,15 @@ export default function DriverRoute() {
         darkMode={darkMode}
       />
       
-      <main className="flex-1 p-4">
-        <div className="space-y-4">
+      <main className="flex-1 p-3 sm:p-4 md:p-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Tarjeta de estado actual */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center mb-3">
-                <div>
-                  <h2 className="text-lg font-bold">{routeDetails.name}</h2>
-                  <p className="text-sm text-muted-foreground">
+          <Card className={`mb-3 sm:mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-3">
+                <div className="flex-1">
+                  <h2 className="text-base sm:text-lg font-bold">{routeDetails.name}</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     {new Date(routeDetails.date).toLocaleDateString('es-DO', {
                       weekday: 'long',
                       day: 'numeric',
@@ -806,7 +806,7 @@ export default function DriverRoute() {
                 </div>
                 <Badge 
                   variant="outline" 
-                  className={`px-3 py-1 ${
+                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm ${
                     routeDetails.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
                     routeDetails.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 
                     'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
@@ -818,28 +818,28 @@ export default function DriverRoute() {
                 </Badge>
               </div>
               
-              <div className="grid grid-cols-3 gap-2 text-center border-t border-border pt-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center border-t border-border pt-3">
                 <div>
-                  <p className="text-xs text-muted-foreground">Paradas</p>
-                  <p className="text-lg font-bold">{routeStops.length - 1}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Paradas</p>
+                  <p className="text-base sm:text-lg font-bold">{routeStops.length - 1}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Distancia</p>
-                  <p className="text-lg font-bold">{routeDetails.totalDistance} km</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Distancia</p>
+                  <p className="text-base sm:text-lg font-bold">{routeDetails.totalDistance} km</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Duración est.</p>
-                  <p className="text-lg font-bold">{routeDetails.estimatedDuration} min</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Duración est.</p>
+                  <p className="text-base sm:text-lg font-bold">{routeDetails.estimatedDuration} min</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         
           {/* Lista de paradas */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
-              <p className="text-sm text-muted-foreground mb-4">
+          <Card className={`mb-3 sm:mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
+            <CardContent className="p-3 sm:p-4">
+              <h2 className="text-base sm:text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                 {new Date().toLocaleDateString('es-DO', {
                   weekday: 'long',
                   year: 'numeric',
@@ -865,20 +865,20 @@ export default function DriverRoute() {
               
               {/* Botón para completar la ruta - se muestra solo si la ruta no está completada */}
               {routeDetails && routeDetails.status !== 'completed' && !routeDetails.isCompleted && (
-                <div className="mt-6 pt-4 border-t border-border">
+                <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-border">
                   <Button 
                     onClick={handleCompleteRoute}
                     disabled={isCompletingRoute}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 flex items-center justify-center gap-2"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 sm:py-3 text-sm sm:text-base flex items-center justify-center gap-2"
                   >
                     {isCompletingRoute ? (
                       <RotateCw className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle className="h-5 w-5" />
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                     )}
                     {isCompletingRoute ? "Completando ruta..." : "Completar Ruta"}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center mt-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground text-center mt-2">
                     Al completar la ruta, confirma que todas las paradas están entregadas
                     y se generará el cuadre de vehículo.
                   </p>
@@ -895,49 +895,49 @@ export default function DriverRoute() {
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Procesar Pago
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
               Complete los datos para procesar el pago y registrar la entrega
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-1">
+          <div className="py-1 space-y-3 sm:space-y-4">
             {currentStopForPayment && (
               <>
                 {/* Información del cliente */}
-                <div className="bg-primary/10 rounded-lg p-3 mb-3">
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="font-bold">{currentStopForPayment.customerName}</h3>
-                    <Badge variant="outline" className="ml-2">
+                <div className="bg-primary/10 rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-1">
+                    <h3 className="font-bold text-sm sm:text-base">{currentStopForPayment.customerName}</h3>
+                    <Badge variant="outline" className="ml-0 sm:ml-2 text-xs">
                       {currentStopForPayment.products.reduce((acc, item) => acc + item.quantity, 0)} productos
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{currentStopForPayment.address}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{currentStopForPayment.address}</p>
                 </div>
                 
                 {/* Opciones de método de pago */}
-                <div className="mb-3">
-                  <Label className="text-sm font-medium mb-2 block">Método de pago</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className="mb-2 sm:mb-3">
+                  <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <Button 
                       type="button" 
                       variant={paymentMethod === "cash" ? "default" : "outline"} 
-                      className="justify-start py-1 h-9"
+                      className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
                       onClick={() => setPaymentMethod("cash")}
                     >
-                      <DollarSign className="mr-2 h-4 w-4" />
+                      <DollarSign className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Efectivo
                     </Button>
                     <Button 
                       type="button" 
                       variant={paymentMethod === "credit" ? "default" : "outline"} 
-                      className="justify-start py-1 h-9"
+                      className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
                       onClick={() => setPaymentMethod("credit")}
                     >
-                      <CreditCard className="mr-2 h-4 w-4" />
+                      <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Crédito
                     </Button>
                   </div>
@@ -945,17 +945,17 @@ export default function DriverRoute() {
                 
                 {/* Calculadora de pago en efectivo */}
                 {paymentMethod === "cash" && (
-                  <div className="space-y-3 mb-3">
+                  <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
                     <div>
-                      <Label htmlFor="amount" className="text-sm font-medium mb-1 block">
+                      <Label htmlFor="amount" className="text-xs sm:text-sm font-medium mb-1 block">
                         Monto recibido
                       </Label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <DollarSign className="absolute left-2 sm:left-3 top-2 sm:top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         <Input 
                           id="amount"
                           type="text"
-                          className="pl-9"
+                          className="pl-7 sm:pl-9 h-8 sm:h-10 text-sm"
                           value={amountPaid}
                           onChange={(e) => setAmountPaid(e.target.value)}
                         />
@@ -963,13 +963,13 @@ export default function DriverRoute() {
                     </div>
                     
                     {/* Opciones rápidas */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                       {[50, 100, 200, 500, 1000, 2000].map((amount) => (
                         <Button 
                           key={amount}
                           variant="outline"
                           size="sm"
-                          className="text-xs h-7"
+                          className="text-xs h-6 sm:h-7 px-2"
                           onClick={() => setAmountPaid(amount.toString())}
                         >
                           ${amount}
@@ -978,14 +978,14 @@ export default function DriverRoute() {
                     </div>
                     
                     {/* Cambio a devolver */}
-                    <div className="bg-muted p-3 rounded-md">
+                    <div className="bg-muted p-2 sm:p-3 rounded-md">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Total a cobrar:</span>
-                        <span className="font-bold">${toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
+                        <span className="text-xs sm:text-sm font-medium">Total a cobrar:</span>
+                        <span className="font-bold text-sm sm:text-base">${toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
-                        <span className="text-sm font-medium">Cambio a devolver:</span>
-                        <span className="font-bold text-primary">
+                      <div className="flex justify-between items-center mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-border">
+                        <span className="text-xs sm:text-sm font-medium">Cambio a devolver:</span>
+                        <span className="font-bold text-sm sm:text-base text-primary">
                           ${Math.max(0, parseFloat(amountPaid) - toNumber(currentStopForPayment.totalValue)).toFixed(2)}
                         </span>
                       </div>
@@ -994,12 +994,12 @@ export default function DriverRoute() {
                 )}
                 
                 {/* Resumen de productos - Versión compacta */}
-                <div className="mt-3 border-t border-border pt-3">
-                  <h4 className="text-sm font-medium mb-2">Detalle de productos</h4>
-                  <div className="max-h-[25vh] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-xs text-muted-foreground sticky top-0 bg-background">
-                        <tr>
+                <div className="mt-2 sm:mt-3 border-t border-border pt-2 sm:pt-3">
+                  <h4 className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">Detalle de productos</h4>
+                  <div className="max-h-[20vh] sm:max-h-[25vh] overflow-y-auto">
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead className="text-xs sticky top-0 bg-background">
+                        <tr className="text-muted-foreground">
                           <th className="text-left font-medium py-1">Producto</th>
                           <th className="text-center font-medium py-1">Cant.</th>
                           <th className="text-right font-medium py-1">Precio</th>
@@ -1008,16 +1008,16 @@ export default function DriverRoute() {
                       <tbody>
                         {currentStopForPayment.products.map((product, index) => (
                           <tr key={index} className="border-b border-border last:border-0">
-                            <td className="py-1">
+                            <td className="py-1 pr-1">
                               <div className="flex items-center">
                                 {product.isReturnable && (
-                                  <Recycle className="h-3 w-3 text-green-500 mr-1" />
+                                  <Recycle className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-green-500 mr-1 flex-shrink-0" />
                                 )}
-                                <span>{product.name}</span>
+                                <span className="truncate">{product.name}</span>
                               </div>
                             </td>
                             <td className="py-1 text-center">{product.quantity}</td>
-                            <td className="py-1 text-right">${(product.price * product.quantity).toFixed(2)}</td>
+                            <td className="py-1 text-right whitespace-nowrap">${(product.price * product.quantity).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1028,19 +1028,19 @@ export default function DriverRoute() {
             )}
           </div>
           
-          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               onClick={() => setShowPaymentDialog(false)}
-              className="flex-1 py-1 h-10"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
             >
               Cancelar
             </Button>
             <Button
               onClick={completePaymentAndDelivery}
-              className="flex-1 py-1 h-10"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
             >
-              Confirmar pago y entrega
+              Confirmar pago
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1050,27 +1050,27 @@ export default function DriverRoute() {
       <Dialog open={showCompleteRouteDialog} onOpenChange={setShowCompleteRouteDialog}>
         <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
               Completar Ruta
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
               Confirme que desea marcar esta ruta como completada
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-1 space-y-4">
-            <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
-              <p className="text-sm text-yellow-600 dark:text-yellow-400">
+          <div className="py-1 space-y-3 sm:space-y-4">
+            <div className="bg-yellow-500/10 rounded-lg p-2 sm:p-3 border border-yellow-500/20">
+              <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400">
                 Una vez completada la ruta, no podrá realizar más entregas en ella.
                 El sistema generará el cuadre de vehículo correspondiente.
               </p>
             </div>
             
-            <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20 flex items-start gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+            <div className="bg-green-500/10 rounded-lg p-2 sm:p-3 border border-green-500/20 flex items-start gap-2">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400">
                   Esta acción confirmará que:
                 </p>
                 <ul className="text-xs text-green-600 dark:text-green-400 mt-1 list-disc pl-4 space-y-1">
@@ -1082,28 +1082,28 @@ export default function DriverRoute() {
             </div>
           </div>
           
-          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               onClick={() => setShowCompleteRouteDialog(false)}
-              className="flex-1 py-1 h-10"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmCompleteRoute}
-              className="flex-1 py-1 h-10 bg-green-600 hover:bg-green-700"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm bg-green-600 hover:bg-green-700"
               disabled={isCompletingRoute}
             >
               {isCompletingRoute ? (
                 <>
-                  <RotateCw className="h-4 w-4 animate-spin mr-2" />
+                  <RotateCw className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-1.5 sm:mr-2" />
                   Procesando...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Confirmar y completar
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                  Confirmar
                 </>
               )}
             </Button>
@@ -1115,25 +1115,25 @@ export default function DriverRoute() {
       <Dialog open={showBottleReturnDialog} onOpenChange={setShowBottleReturnDialog}>
         <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Recycle className="h-5 w-5 text-green-500" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Recycle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
               Registrar devolución de envases
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
               Ingrese la cantidad de envases retornados por el cliente
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-1">
-            <div className="space-y-3">
-              <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
-                <p className="text-sm text-green-600 dark:text-green-400">
+            <div className="space-y-2 sm:space-y-3">
+              <div className="bg-green-500/10 rounded-lg p-2 sm:p-3 border border-green-500/20">
+                <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
                   Registra la cantidad de envases que el cliente está devolviendo en este momento.
                 </p>
               </div>
               
               <div>
-                <Label htmlFor="returnedBottles" className="text-sm font-medium mb-2 block">
+                <Label htmlFor="returnedBottles" className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
                   Cantidad de envases devueltos
                 </Label>
                 <div className="flex items-center space-x-2">
@@ -1142,15 +1142,15 @@ export default function DriverRoute() {
                     size="sm"
                     onClick={() => setReturnedBottlesCount(Math.max(0, returnedBottlesCount - 1))}
                     disabled={returnedBottlesCount <= 0}
-                    className="h-10 w-10"
+                    className="h-8 w-8 sm:h-10 sm:w-10 p-0"
                   >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                   
                   <Input
                     id="returnedBottles"
                     type="number"
-                    className="text-center h-10"
+                    className="text-center h-8 sm:h-10 text-sm"
                     value={returnedBottlesCount}
                     min="0"
                     onChange={(e) => setReturnedBottlesCount(parseInt(e.target.value) || 0)}
@@ -1160,20 +1160,20 @@ export default function DriverRoute() {
                     variant="outline"
                     size="sm"
                     onClick={() => setReturnedBottlesCount(returnedBottlesCount + 1)}
-                    className="h-10 w-10"
+                    className="h-8 w-8 sm:h-10 sm:w-10 p-0"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </div>
             </div>
           </div>
           
-          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">
             <Button
               variant="outline"
               onClick={() => setShowBottleReturnDialog(false)}
-              className="flex-1 py-1 h-10"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
             >
               Cancelar
             </Button>
@@ -1185,10 +1185,10 @@ export default function DriverRoute() {
                   description: `Se han registrado ${returnedBottlesCount} envases devueltos.`,
                 });
               }}
-              className="flex-1 py-1 h-10"
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
               disabled={returnedBottlesCount <= 0}
             >
-              Confirmar devolución
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>

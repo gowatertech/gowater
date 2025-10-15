@@ -76,18 +76,18 @@ export default function VehicleLoadingPage() {
   }, 0);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
       {/* Header con Gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-950 rounded-xl p-6 text-white shadow-lg" data-testid="header-gradient">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg">
-                <Truck className="h-6 w-6" />
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-950 rounded-lg sm:rounded-xl p-4 sm:p-6 text-white shadow-lg" data-testid="header-gradient">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-lg">
+                <Truck className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold">Carga de Vehículos</h1>
-                <p className="text-blue-100 text-sm md:text-base">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Carga de Vehículos</h1>
+                <p className="text-blue-100 text-xs sm:text-sm md:text-base">
                   Gestión de cargas y asignación de productos
                 </p>
               </div>
@@ -95,11 +95,11 @@ export default function VehicleLoadingPage() {
           </div>
           <Button 
             onClick={() => setShowForm(true)} 
-            size="lg"
-            className="bg-white text-blue-600 hover:bg-blue-50 shadow-md"
+            size="default"
+            className="bg-white text-blue-600 hover:bg-blue-50 shadow-md text-sm sm:text-base w-full sm:w-auto"
             data-testid="button-new-loading"
           >
-            <Plus className="h-5 w-5 mr-2" />
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
             Nueva Carga
           </Button>
         </div>
@@ -108,10 +108,10 @@ export default function VehicleLoadingPage() {
       {/* Dialog para Nueva Carga */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b pb-4">
-              <Truck className="h-6 w-6 text-primary" />
-              <h2 className="text-xl font-bold">Nueva Carga de Vehículo</h2>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3 sm:pb-4">
+              <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <h2 className="text-lg sm:text-xl font-bold">Nueva Carga de Vehículo</h2>
             </div>
             <VehicleLoadingForm 
               onSuccess={() => {
@@ -124,20 +124,20 @@ export default function VehicleLoadingPage() {
       </Dialog>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Cargas */}
         <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">Total Cargas</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">{loadings.length}</p>
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Cargas</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">{loadings.length}</p>
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
                 </div>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <ClipboardList className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
@@ -145,17 +145,17 @@ export default function VehicleLoadingPage() {
 
         {/* Cargas Hoy */}
         <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">Cargas Hoy</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">{todayLoadings.length}</p>
-                  <Calendar className="h-4 w-4 text-green-500" />
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Cargas Hoy</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">{todayLoadings.length}</p>
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
                 </div>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
@@ -163,19 +163,19 @@ export default function VehicleLoadingPage() {
 
         {/* Pendientes */}
         <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">Pendientes</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-3xl font-bold">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Pendientes</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">
                     {loadings.filter(l => l.status === "pending").length}
                   </p>
-                  <Package className="h-4 w-4 text-yellow-500" />
+                  <Package className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
                 </div>
               </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                <PackageOpen className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+              <div className="p-2 sm:p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                <PackageOpen className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-600 dark:text-yellow-400" />
               </div>
             </div>
           </CardContent>
@@ -183,16 +183,16 @@ export default function VehicleLoadingPage() {
 
         {/* Valor Total */}
         <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground mb-1">Valor Total</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-bold">${totalValue.toFixed(2)}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Total</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-xl sm:text-2xl font-bold">${totalValue.toFixed(2)}</p>
                 </div>
               </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <DollarSign className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
@@ -202,16 +202,16 @@ export default function VehicleLoadingPage() {
       {/* Lista de Cargas */}
       {loadings.length === 0 ? (
         <Card className="border-2 border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
-              <Truck className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+          <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <div className="p-3 sm:p-4 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3 sm:mb-4">
+              <Truck className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No hay cargas registradas</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">No hay cargas registradas</h3>
+            <p className="text-sm sm:text-base text-muted-foreground text-center mb-4 sm:mb-6 max-w-md">
               Comienza creando una nueva carga de vehículo para gestionar tus entregas
             </p>
-            <Button onClick={() => setShowForm(true)} size="lg">
-              <Plus className="h-5 w-5 mr-2" />
+            <Button onClick={() => setShowForm(true)} size="default" className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
               Crear Primera Carga
             </Button>
           </CardContent>
