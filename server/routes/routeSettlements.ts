@@ -357,9 +357,10 @@ export async function registerRouteSettlements(app: Express) {
         
         const allOrdersData = await db
           .select()
-          .from(orders);
+          .from(orders)
+          .where(eq(orders.companyId, companyId));
         
-        console.log("Todas las órdenes en la base de datos:");
+        console.log("Todas las órdenes en la base de datos (de la empresa):");
         allOrdersData.forEach(order => {
           console.log(`Orden #${order.id}: routeId=${order.routeId} (tipo: ${typeof order.routeId}), status=${order.status}, total=${order.total}`);
         });
@@ -370,6 +371,7 @@ export async function registerRouteSettlements(app: Express) {
           .from(orders)
           .where(and(
             eq(orders.routeId, routeIdToSearch),
+            eq(orders.companyId, companyId),
             // Verificar que el status sea "delivered" o "completed" (compatibilidad con ambos términos)
             sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
           ));
@@ -398,7 +400,10 @@ export async function registerRouteSettlements(app: Express) {
           const driverRoutes = await db
             .select()
             .from(routes)
-            .where(eq(routes.driverId, loading.driverId));
+            .where(and(
+              eq(routes.driverId, loading.driverId),
+              eq(routes.companyId, companyId)
+            ));
           
           const driverRouteIds = driverRoutes.map(route => route.id);
           console.log(`El conductor tiene ${driverRouteIds.length} rutas asignadas: ${driverRouteIds.join(', ')}`);
@@ -413,6 +418,7 @@ export async function registerRouteSettlements(app: Express) {
               .where(
                 and(
                   inArray(orders.routeId, driverRouteIds),
+                  eq(orders.companyId, companyId),
                   gte(orders.date, startOfDay),
                   lt(orders.date, endOfDay),
                   // Filtrar también por estado para obtener solo órdenes completadas
@@ -426,6 +432,7 @@ export async function registerRouteSettlements(app: Express) {
               .from(orders)
               .where(
                 and(
+                  eq(orders.companyId, companyId),
                   gte(orders.date, startOfDay),
                   lt(orders.date, endOfDay),
                   // Filtrar también por estado para obtener solo órdenes completadas
@@ -470,7 +477,10 @@ export async function registerRouteSettlements(app: Express) {
           const productsData = await db
             .select()
             .from(products)
-            .where(inArray(products.id, productIds));
+            .where(and(
+              inArray(products.id, productIds),
+              eq(products.companyId, companyId)
+            ));
           
           console.log(`Datos de ${productsData.length} productos recuperados`);
           
@@ -591,7 +601,10 @@ export async function registerRouteSettlements(app: Express) {
             id: routes.id
           })
           .from(routes)
-          .where(eq(routes.driverId, loading.driverId));
+          .where(and(
+            eq(routes.driverId, loading.driverId),
+            eq(routes.companyId, companyId)
+          ));
 
         let routeIds = driverRoutes.map(route => route.id);
         
@@ -615,14 +628,20 @@ export async function registerRouteSettlements(app: Express) {
               .select()
               .from(orders)
               // No podemos usar driverId o createdAt hasta actualizar el schema
-              .where(sql`driver_id = ${loading.driverId}`)
+              .where(and(
+                sql`driver_id = ${loading.driverId}`,
+                eq(orders.companyId, companyId)
+              ))
               .orderBy(sql`created_at`);
           } else {
             // Buscar normalmente por routeId usando la cláusula IN
             ordersData = await db
               .select()
               .from(orders)
-              .where(inArray(orders.routeId, routeIds))
+              .where(and(
+                inArray(orders.routeId, routeIds),
+                eq(orders.companyId, companyId)
+              ))
               .orderBy(orders.createdAt);
           }
           
@@ -639,7 +658,10 @@ export async function registerRouteSettlements(app: Express) {
               const productData = await db
                 .select()
                 .from(products)
-                .where(eq(products.id, item.productId))
+                .where(and(
+                  eq(products.id, item.productId),
+                  eq(products.companyId, companyId)
+                ))
                 .limit(1);
               
               const product = productData.length > 0 ? productData[0] : null;
@@ -670,7 +692,10 @@ export async function registerRouteSettlements(app: Express) {
         const returns = await db
           .select()
           .from(bottleReturns)
-          .where(inArray(bottleReturns.orderId, orderIds));
+          .where(and(
+            inArray(bottleReturns.orderId, orderIds),
+            eq(bottleReturns.companyId, companyId)
+          ));
               
         // Para cada devolución, obtener el nombre del producto correspondiente
         bottleReturnData = await Promise.all(
@@ -679,7 +704,10 @@ export async function registerRouteSettlements(app: Express) {
             const product = await db
               .select({ name: products.name })
               .from(products)
-              .where(eq(products.id, bottleReturn.productId))
+              .where(and(
+                eq(products.id, bottleReturn.productId),
+                eq(products.companyId, companyId)
+              ))
               .then(results => results[0]);
                 
             // Devolver la devolución con el nombre del producto
