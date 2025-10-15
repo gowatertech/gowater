@@ -5335,7 +5335,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/vehicle-loading", async (req, res) => {
     try {
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`POST /api/vehicle-loading - Creando carga para empresa ${companyId}`);
       console.log("POST /api/vehicle-loading - Datos recibidos:", req.body);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
 
       const result = insertVehicleLoadingSchema.safeParse(req.body);
       if (!result.success) {
@@ -5347,11 +5354,12 @@ export async function registerRoutes(router: express.Router) {
 
       const { items, ...loadingData } = result.data;
 
-      // Insertar la carga del vehículo
+      // Insertar la carga del vehículo CON companyId desde la sesión
       await db
         .insert(vehicleLoading)
         .values({
           ...loadingData,
+          companyId, // Agregar companyId desde la sesión
           status: "pending",
         })
         .execute();
@@ -5363,15 +5371,17 @@ export async function registerRoutes(router: express.Router) {
         .orderBy(vehicleLoading.id, "desc")
         .limit(1);
 
-      // Insertar los items si existen
+      // Insertar los items si existen CON companyId
       if (items && items.length > 0) {
         await db
           .insert(vehicleLoadingItems)
           .values(
             items.map(item => ({
               loadingId: newLoading.id,
+              companyId, // Agregar companyId desde la sesión
               productId: Number(item.productId),
-              quantity: Number(item.quantity)
+              quantity: Number(item.quantity),
+              notes: item.notes || ""
             }))
           )
           .execute();

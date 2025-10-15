@@ -883,12 +883,8 @@ export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ on
   }),
 }));
 
-// Vehicle Loading schema update
+// Vehicle Loading schema update (companyId se agrega automáticamente en el backend)
 export const insertVehicleLoadingSchema = z.object({
-  companyId: z.union([
-    z.number().int().positive(),
-    z.string().transform(val => parseInt(val))
-  ]).optional(),
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional().nullable(),
