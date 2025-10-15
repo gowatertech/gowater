@@ -630,17 +630,204 @@ export default function RecurringOrdersPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredOrders().map((order: RecurringOrder) => (
-                <RecurringOrderCard 
-                  key={order.id} 
-                  order={order} 
-                  onDeleteClick={handleDelete}
-                  onStatusChange={handleStatusChange}
-                  onGenerateOrder={handleGenerateOrder}
-                />
-              ))}
-            </div>
+            <>
+              {/* Vista Móvil - Cards */}
+              <div className="grid gap-4 md:hidden">
+                {filteredOrders().map((order: RecurringOrder) => (
+                  <RecurringOrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onDeleteClick={handleDelete}
+                    onStatusChange={handleStatusChange}
+                    onGenerateOrder={handleGenerateOrder}
+                  />
+                ))}
+              </div>
+
+              {/* Vista Desktop - Tabla */}
+              <div className="hidden md:block">
+                <div className="rounded-md border">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-muted/50 border-b">
+                          <th className="text-left p-3 text-sm font-medium">Nombre</th>
+                          <th className="text-left p-3 text-sm font-medium">Cliente</th>
+                          <th className="text-center p-3 text-sm font-medium">Frecuencia</th>
+                          <th className="text-center p-3 text-sm font-medium">Próxima Generación</th>
+                          <th className="text-center p-3 text-sm font-medium">Monto</th>
+                          <th className="text-center p-3 text-sm font-medium">Método Pago</th>
+                          <th className="text-center p-3 text-sm font-medium">Estado</th>
+                          <th className="text-center p-3 text-sm font-medium">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOrders().map((order: RecurringOrder) => {
+                          const frequencyLabels: Record<RecurringOrderFrequency, string> = {
+                            daily: "Diario",
+                            weekly: "Semanal",
+                            biweekly: "Quincenal",
+                            monthly: "Mensual",
+                          };
+                          
+                          const statusColors: Record<RecurringOrderStatus, string> = {
+                            active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+                            paused: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+                            completed: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+                            cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+                          };
+                          
+                          const statusLabels: Record<RecurringOrderStatus, string> = {
+                            active: "Activo",
+                            paused: "Pausado",
+                            completed: "Completado",
+                            cancelled: "Cancelado",
+                          };
+                          
+                          const formatDate = (dateString?: string) => {
+                            if (!dateString) return "N/A";
+                            const date = new Date(dateString);
+                            return new Intl.DateTimeFormat('es', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            }).format(date);
+                          };
+                          
+                          const daysUntilNext = order.nextGenerationDate 
+                            ? Math.ceil((new Date(order.nextGenerationDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                            : null;
+
+                          return (
+                            <tr 
+                              key={order.id} 
+                              className="border-b hover:bg-muted/50 transition-colors"
+                              data-testid={`recurring-order-row-${order.id}`}
+                            >
+                              <td className="p-3">
+                                <div className="font-medium">{order.name}</div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-1 text-sm">
+                                  <Users className="h-3 w-3 text-muted-foreground" />
+                                  <span>{order.customer?.name || "N/A"}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 rounded-md">
+                                  <Repeat className="h-3 w-3 text-primary" />
+                                  <span className="text-xs text-primary font-medium">
+                                    {frequencyLabels[order.frequency]}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                {order.nextGenerationDate && order.status === "active" ? (
+                                  <div className="space-y-1">
+                                    <div className="text-sm">{formatDate(order.nextGenerationDate)}</div>
+                                    {daysUntilNext !== null && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {daysUntilNext === 0 ? "Hoy" : daysUntilNext === 1 ? "Mañana" : `${daysUntilNext} días`}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <DollarSign className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-sm font-bold">
+                                    {new Intl.NumberFormat('es', {
+                                      style: 'currency',
+                                      currency: 'DOP'
+                                    }).format(parseFloat(order.totalAmount))}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-md">
+                                  <Package className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-xs">
+                                    {order.paymentMethod === "cash" ? "Efectivo" : 
+                                     order.paymentMethod === "credit" ? "Crédito" : "Tarjeta"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${statusColors[order.status]}`}>
+                                  {statusLabels[order.status]}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 px-2"
+                                      data-testid={`button-actions-table-${order.id}`}
+                                      aria-label="Más acciones"
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                    <DropdownMenuItem onClick={() => setLocation(`/recurring-orders/${order.id}`)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleGenerateOrder(order.id)}>
+                                      <ExternalLink className="mr-2 h-4 w-4" />
+                                      Generar Pedido
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    {order.status === "active" && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(order.id, "paused")}>
+                                        <Pause className="mr-2 h-4 w-4" />
+                                        Pausar
+                                      </DropdownMenuItem>
+                                    )}
+                                    {order.status === "paused" && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(order.id, "active")}>
+                                        <Play className="mr-2 h-4 w-4" />
+                                        Activar
+                                      </DropdownMenuItem>
+                                    )}
+                                    {(order.status === "active" || order.status === "paused") && (
+                                      <>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, "completed")}>
+                                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                                          Marcar completado
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
+                                          <XCircle className="mr-2 h-4 w-4" />
+                                          Cancelar
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      className="text-red-600 focus:text-red-600"
+                                      onClick={() => handleDelete(order.id)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Eliminar
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </TabsContent>
       </Tabs>

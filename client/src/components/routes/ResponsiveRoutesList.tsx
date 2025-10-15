@@ -112,76 +112,93 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
       {/* Vista para móviles (tarjetas) */}
       <div className="block md:hidden space-y-3">
         {filteredRoutes.map(route => (
-          <Card key={route.id} className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4" />
-                <span className="font-medium text-sm">
-                  {route.name || `Ruta #${route.id}`}
-                </span>
+          <Card 
+            key={route.id} 
+            className="border-l-4 border-l-primary hover:shadow-md transition-shadow"
+            data-testid={`route-card-${route.id}`}
+          >
+            <div className="p-4 space-y-3">
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Truck className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm truncate">
+                      {route.name || `Ruta #${route.id}`}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(route.date)}
+                    </div>
+                  </div>
+                </div>
+                <Badge
+                  className={`text-xs ${getStatusColor(route.status)}`}
+                  data-testid={`badge-status-${route.id}`}
+                >
+                  {getStatusLabel(route.status)}
+                </Badge>
               </div>
-              <Badge
-                className={`text-xs py-0 h-5 ${getStatusColor(route.status)}`}
-              >
-                {getStatusLabel(route.status)}
-              </Badge>
-            </div>
-            
-            <div className="text-xs text-muted-foreground mb-2">
-              <Calendar className="h-3 w-3 inline mr-1" />
-              {formatDate(route.date)}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-              {route.stops && (
-                <div className="flex items-center">
-                  <RouteIcon className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
-                    {route.stops.length} paradas
-                  </span>
-                </div>
-              )}
               
-              {route.totalDistance && (
-                <div className="flex items-center">
-                  <RouteIcon className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
-                    {Number(route.totalDistance).toFixed(1)} km
-                  </span>
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                  <RouteIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase">Paradas</p>
+                    <p className="font-medium">{route.stops?.length || 0}</p>
+                  </div>
                 </div>
-              )}
+                
+                <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase">Distancia</p>
+                    <p className="font-medium">
+                      {route.totalDistance ? `${Number(route.totalDistance).toFixed(1)} km` : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
               
+              {/* Conductor Info */}
               {route.driverId && (
-                <div className="flex items-center">
-                  <Truck className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
+                <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                  <Truck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                     Conductor #{route.driverId}
                   </span>
                 </div>
               )}
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="text-xs h-8 col-span-2"
-              >
-                <Link href={`/routes/${route.id}`}>
-                  <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalles
-                </Link>
-              </Button>
-              {!route.isCompleted && (
+              
+              {/* Actions */}
+              <div className="flex gap-2 pt-2 border-t">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-xs h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleDeleteRoute(route.id)}
+                  asChild
+                  className="flex-1 text-xs h-8"
+                  data-testid={`button-view-${route.id}`}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <Link href={`/routes/${route.id}`}>
+                    <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalles
+                  </Link>
                 </Button>
-              )}
+                {!route.isCompleted && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleDeleteRoute(route.id)}
+                    data-testid={`button-delete-${route.id}`}
+                    aria-label="Eliminar ruta"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
         ))}
@@ -189,67 +206,102 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
       
       {/* Vista para tablet/desktop (tabla) */}
       <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[60px]">{t("ID")}</TableHead>
-              <TableHead>{t("Nombre")}</TableHead>
-              <TableHead>{t("Fecha")}</TableHead>
-              <TableHead className="text-center">{t("Paradas")}</TableHead>
-              <TableHead className="text-center">{t("Distancia")}</TableHead>
-              <TableHead className="text-center">{t("Estado")}</TableHead>
-              <TableHead className="text-center">{t("Acciones")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRoutes.map(route => (
-              <TableRow key={route.id}>
-                <TableCell className="font-medium">#{route.id}</TableCell>
-                <TableCell>{route.name || `-`}</TableCell>
-                <TableCell>{formatDate(route.date)}</TableCell>
-                <TableCell className="text-center">
-                  {route.stops ? route.stops.length : "-"}
-                </TableCell>
-                <TableCell className="text-center">
-                  {route.totalDistance 
-                    ? `${Number(route.totalDistance).toFixed(1)} km` 
-                    : "-"}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Badge
-                    className={`text-xs py-0 h-5 ${getStatusColor(route.status)}`}
-                  >
-                    {getStatusLabel(route.status)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="text-muted-foreground hover:text-primary h-8 px-2"
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-[60px]">ID</TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="text-center">Conductor</TableHead>
+                <TableHead className="text-center">Paradas</TableHead>
+                <TableHead className="text-center">Distancia</TableHead>
+                <TableHead className="text-center">Estado</TableHead>
+                <TableHead className="text-center">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRoutes.map(route => (
+                <TableRow 
+                  key={route.id} 
+                  className="hover:bg-muted/50"
+                  data-testid={`route-row-${route.id}`}
+                >
+                  <TableCell className="font-medium">#{route.id}</TableCell>
+                  <TableCell className="font-medium">
+                    {route.name || `Ruta #${route.id}`}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(route.date)}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {route.driverId ? (
+                      <Badge variant="outline" className="gap-1">
+                        <Truck className="h-3 w-3" />
+                        #{route.driverId}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <RouteIcon className="h-3 w-3 text-muted-foreground" />
+                      {route.stops?.length || 0}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      {route.totalDistance 
+                        ? `${Number(route.totalDistance).toFixed(1)} km` 
+                        : "N/A"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge
+                      className={`text-xs ${getStatusColor(route.status)}`}
+                      data-testid={`badge-status-table-${route.id}`}
                     >
-                      <Link href={`/routes/${route.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    {!route.isCompleted && (
+                      {getStatusLabel(route.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground hover:text-destructive h-8 px-2"
-                        onClick={() => handleDeleteRoute(route.id)}
+                        asChild
+                        className="h-8 px-2"
+                        data-testid={`button-view-table-${route.id}`}
+                        aria-label="Ver detalles"
                       >
-                        <X className="h-4 w-4" />
+                        <Link href={`/routes/${route.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
                       </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                      {!route.isCompleted && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteRoute(route.id)}
+                          data-testid={`button-delete-table-${route.id}`}
+                          aria-label="Eliminar ruta"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </ScrollArea>
   );

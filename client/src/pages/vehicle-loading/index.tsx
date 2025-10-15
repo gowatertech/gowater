@@ -217,104 +217,209 @@ export default function VehicleLoadingPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {loadings.map((loading) => {
-            const totalItems = loading.items.reduce((sum, item) => sum + item.quantity, 0);
-            const value = calculateTotalValue(loading.items);
-            
-            return (
-              <Card key={loading.id} className="hover:shadow-lg transition-all border-l-4 border-l-blue-500" data-testid="loading-card">
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-lg">Carga #{loading.loadingNumber}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(loading.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        loading.status === "completed" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
-                        loading.status === "in_progress" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
-                        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                      }`}>
-                        {loading.status === "completed" ? "Completado" :
-                         loading.status === "in_progress" ? "En Progreso" :
-                         "Pendiente"}
-                      </div>
-                    </div>
-
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <UserIcon className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">Conductor</p>
-                          <p className="text-sm font-medium truncate">
-                            {loading.driver?.name || "No asignado"}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <Truck className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">Vehículo</p>
-                          <p className="text-sm font-medium truncate">
-                            {loading.truck?.plate || "No asignado"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">Productos</p>
-                          <p className="text-sm font-medium">{totalItems} unidades</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-muted-foreground">Efectivo</p>
-                          <p className="text-sm font-medium">${loading.initialCash}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ruta si existe */}
-                    {loading.route && (
-                      <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <div className="flex-1">
-                          <p className="text-xs text-muted-foreground">Ruta Asignada</p>
-                          <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {loading.route.name}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Valor Total */}
-                    <div className="pt-3 border-t">
+        <>
+          {/* Vista Móvil - Cards */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {loadings.map((loading) => {
+              const totalItems = loading.items.reduce((sum, item) => sum + item.quantity, 0);
+              const value = calculateTotalValue(loading.items);
+              
+              return (
+                <Card key={loading.id} className="hover:shadow-lg transition-all border-l-4 border-l-blue-500" data-testid="loading-card">
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      {/* Header */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Valor Total</span>
-                        <span className="text-lg font-bold">${value}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                            <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">Carga #{loading.loadingNumber}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(loading.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          loading.status === "completed" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                          loading.status === "in_progress" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
+                          "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                        }`}>
+                          {loading.status === "completed" ? "Completado" :
+                           loading.status === "in_progress" ? "En Progreso" :
+                           "Pendiente"}
+                        </div>
+                      </div>
+
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                          <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase">Conductor</p>
+                            <p className="text-xs font-medium truncate">
+                              {loading.driver?.name || "No asignado"}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                          <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase">Vehículo</p>
+                            <p className="text-xs font-medium truncate">
+                              {loading.truck?.plate || "No asignado"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase">Productos</p>
+                            <p className="text-xs font-medium">{totalItems} und</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase">Efectivo</p>
+                            <p className="text-xs font-medium">${loading.initialCash}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ruta si existe */}
+                      {loading.route && (
+                        <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+                          <MapPin className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-muted-foreground uppercase">Ruta</p>
+                            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 truncate">
+                              {loading.route.name}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Valor Total */}
+                      <div className="pt-2 border-t flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Valor Total</span>
+                        <span className="text-sm font-bold">${value}</span>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Vista Desktop - Tabla */}
+          <div className="hidden md:block">
+            <div className="rounded-md border">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="text-left p-3 text-sm font-medium">Carga</th>
+                      <th className="text-left p-3 text-sm font-medium">Fecha</th>
+                      <th className="text-left p-3 text-sm font-medium">Conductor</th>
+                      <th className="text-left p-3 text-sm font-medium">Vehículo</th>
+                      <th className="text-center p-3 text-sm font-medium">Ruta</th>
+                      <th className="text-center p-3 text-sm font-medium">Productos</th>
+                      <th className="text-center p-3 text-sm font-medium">Efectivo</th>
+                      <th className="text-center p-3 text-sm font-medium">Valor</th>
+                      <th className="text-center p-3 text-sm font-medium">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadings.map((loading) => {
+                      const totalItems = loading.items.reduce((sum, item) => sum + item.quantity, 0);
+                      const value = calculateTotalValue(loading.items);
+                      
+                      return (
+                        <tr 
+                          key={loading.id} 
+                          className="border-b hover:bg-muted/50 transition-colors"
+                          data-testid={`loading-row-${loading.id}`}
+                        >
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded">
+                                <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <span className="font-semibold">#{loading.loadingNumber}</span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              <span className="text-sm">
+                                {new Date(loading.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              <UserIcon className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm">{loading.driver?.name || "No asignado"}</span>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1">
+                              <Truck className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm font-medium">{loading.truck?.plate || "No asignado"}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            {loading.route ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                                <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  {loading.route.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Package className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm font-medium">{totalItems}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <DollarSign className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm">${loading.initialCash}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="text-sm font-bold">${value}</span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                              loading.status === "completed" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                              loading.status === "in_progress" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" :
+                              "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            }`}>
+                              {loading.status === "completed" ? "Completado" :
+                               loading.status === "in_progress" ? "En Progreso" :
+                               "Pendiente"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
