@@ -236,6 +236,7 @@ export default function VehicleSettlementPage() {
                 loading={{
                   // Extraer sólo las propiedades que existen en LoadingWithRelations
                   id: selectedSettlement.id,
+                  companyId: selectedSettlement.companyId,
                   date: selectedSettlement.date,
                   loadingNumber: selectedSettlement.loadingNumber,
                   truckId: selectedSettlement.truckId,

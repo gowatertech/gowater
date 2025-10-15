@@ -226,10 +226,23 @@ export function setupAuth(app: Express) {
         // Establecer companyId en el contexto global
         setCurrentCompanyId(user.companyId);
         
-        return res.status(200).json({
-          success: true,
-          message: 'Login exitoso',
-          user
+        // Guardar sesión explícitamente para asegurar persistencia
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Error al guardar sesión:', saveErr);
+            return res.status(500).json({
+              success: false,
+              message: 'Error al guardar sesión'
+            });
+          }
+          
+          console.log(`✅ Sesión guardada - CompanyId: ${user.companyId}`);
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Login exitoso',
+            user
+          });
         });
       });
     })(req, res, next);
@@ -278,10 +291,23 @@ export function setupAuth(app: Express) {
         // Establecer companyId en el contexto global
         setCurrentCompanyId(user.companyId);
         
-        return res.status(200).json({
-          success: true,
-          message: 'Login exitoso',
-          user
+        // Guardar sesión explícitamente para asegurar persistencia
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Error al guardar sesión móvil:', saveErr);
+            return res.status(500).json({
+              success: false,
+              message: 'Error al guardar sesión'
+            });
+          }
+          
+          console.log(`✅ Sesión móvil guardada - CompanyId: ${user.companyId}`);
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Login exitoso',
+            user
+          });
         });
       });
     })(req, res, next);
