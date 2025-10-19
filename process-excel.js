@@ -27,14 +27,21 @@ const processedData = dataRows
     const nombre = row[1];
     const cedula = row[2] || '';
     const direccion = row[3] || '';
-    let telefono = row[4] || '';
+    let telefonoRaw = row[4] || '';
     
-    // Procesar teléfono: eliminar guiones, paréntesis, espacios
-    telefono = telefono.toString().replace(/[-\(\)\s]/g, '');
-    
-    // Añadir 1 al inicio si no está vacío
-    if (telefono) {
-      telefono = '1' + telefono;
+    // Procesar teléfono: extraer solo dígitos
+    let telefono = '';
+    if (telefonoRaw) {
+      // Eliminar TODOS los caracteres no numéricos
+      const digitsOnly = telefonoRaw.toString().replace(/\D/g, '');
+      
+      // Tomar solo los primeros 10 dígitos (número dominicano estándar)
+      if (digitsOnly.length >= 10) {
+        const mainNumber = digitsOnly.substring(0, 10);
+        // Añadir 1 al inicio
+        telefono = '1' + mainNumber;
+      }
+      // Si no hay suficientes dígitos, dejar vacío
     }
     
     return {
