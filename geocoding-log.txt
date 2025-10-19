@@ -1,0 +1,10 @@
+🌍 Iniciando geocodificación de clientes...
+
+📊 Total de clientes a geocodificar: 229
+
+[1/229] Geocodificando: ANGELICA ORTIZ MARTINEZ
+   Dirección: LIBERTDAD, Cotuí, Sánchez Ramírez
+   ✓ Coordenadas asignadas: 19.058468,-70.1533738
+
+[2/229] Geocodificando: ORPHA  POLANCO 
+   Dirección: Residencial Brisas del Coral #69 , Cotuí, Sánchez Ramírez
