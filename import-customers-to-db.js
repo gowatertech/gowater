@@ -77,7 +77,7 @@ async function importCustomers() {
           customer.nombre, // businessname
           customer.nombre, // managername (usamos el mismo nombre)
           phone,
-          customer.cedula || null, // rnc (usando cédula si está disponible)
+          customer.cedula || null, // rnc = cedula
           customer.direccion || 'Sin dirección', // street
           'S/N', // streetnumber
           PROVINCE_ID,
