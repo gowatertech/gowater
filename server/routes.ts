@@ -1044,8 +1044,8 @@ export async function registerRoutes(router: express.Router) {
   // Users
   router.get("/users", async (req, res) => {
     try {
-      // Obtener companyId de la sesión
-      const companyId = req.session.companyId;
+      // Obtener companyId con fallback
+      const companyId = getCurrentCompanyId() || req.session.companyId;
       console.log(`GET /api/users - Obteniendo usuarios para empresa ${companyId}`);
       
       if (!companyId) {
