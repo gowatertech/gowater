@@ -156,6 +156,9 @@ export default function Inventory() {
       isReturnable: false,
       depositAmount: "0.00",
       hasCommission: true,
+      isCommissionable: false,
+      driverCommissionValue: "0.00",
+      helperCommissionValue: "0.00",
     },
   });
 
@@ -169,6 +172,9 @@ export default function Inventory() {
       isReturnable: false,
       depositAmount: "0.00",
       hasCommission: true,
+      isCommissionable: false,
+      driverCommissionValue: "0.00",
+      helperCommissionValue: "0.00",
     },
   });
 
@@ -180,7 +186,10 @@ export default function Inventory() {
         stock: Number(data.stock),
         isReturnable: !!data.isReturnable,
         depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00",
-        hasCommission: !!data.hasCommission
+        hasCommission: !!data.hasCommission,
+        isCommissionable: !!data.isCommissionable,
+        driverCommissionValue: data.isCommissionable ? Number(data.driverCommissionValue).toFixed(2) : "0.00",
+        helperCommissionValue: data.isCommissionable ? Number(data.helperCommissionValue).toFixed(2) : "0.00",
       };
       return await apiRequest({
         method: "POST",
@@ -217,7 +226,10 @@ export default function Inventory() {
         icon: data.icon || null,
         isReturnable: !!data.isReturnable,
         depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00",
-        hasCommission: !!data.hasCommission
+        hasCommission: !!data.hasCommission,
+        isCommissionable: !!data.isCommissionable,
+        driverCommissionValue: data.isCommissionable ? Number(data.driverCommissionValue).toFixed(2) : "0.00",
+        helperCommissionValue: data.isCommissionable ? Number(data.helperCommissionValue).toFixed(2) : "0.00",
       };
       
       return await apiRequest({
@@ -302,7 +314,11 @@ export default function Inventory() {
       // Campos para productos retornables
       isReturnable: product.isReturnable ?? false,
       depositAmount: product.depositAmount?.toString() || "0.00",
-      hasCommission: product.hasCommission ?? true
+      hasCommission: product.hasCommission ?? true,
+      // Campos para comisiones
+      isCommissionable: product.isCommissionable ?? false,
+      driverCommissionValue: product.driverCommissionValue?.toString() || "0.00",
+      helperCommissionValue: product.helperCommissionValue?.toString() || "0.00",
     };
     
     editForm.reset(formValues);
@@ -417,7 +433,10 @@ export default function Inventory() {
                         icon: "",
                         isReturnable: false,
                         depositAmount: "0.00",
-                        hasCommission: true
+                        hasCommission: true,
+                        isCommissionable: false,
+                        driverCommissionValue: "0.00",
+                        helperCommissionValue: "0.00",
                       });
                       setActiveTab("form");
                     }}
@@ -464,14 +483,16 @@ export default function Inventory() {
                         <TableHead className="py-0.5 px-1 w-[60px] text-center">Stock</TableHead>
                         <TableHead className="py-0.5 px-1 w-[60px] text-center">Retornable</TableHead>
                         <TableHead className="py-0.5 px-1 w-[80px] text-center">Depósito</TableHead>
-                        <TableHead className="py-0.5 px-1 w-[60px] text-center">Comisión</TableHead>
+                        <TableHead className="py-0.5 px-1 w-[60px] text-center">Comisionable</TableHead>
+                        <TableHead className="py-0.5 px-1 w-[70px] text-center">Com. Chofer</TableHead>
+                        <TableHead className="py-0.5 px-1 w-[70px] text-center">Com. Ayudante</TableHead>
                         <TableHead className="py-0.5 px-1 w-[70px] text-center">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-2 text-[10px] text-muted-foreground">
+                          <TableCell colSpan={10} className="text-center py-2 text-[10px] text-muted-foreground">
                             Cargando productos...
                           </TableCell>
                         </TableRow>
@@ -515,7 +536,21 @@ export default function Inventory() {
                                   : 'N/A'}
                               </TableCell>
                               <TableCell className="py-1 px-1 text-center">
-                                {product.hasCommission ? 'S' : 'N'}
+                                {product.isCommissionable ? (
+                                  <Badge variant="default" className="px-1.5 py-0 text-[9px] bg-green-500">✓ Sí</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="px-1.5 py-0 text-[9px]">✗ No</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="py-1 px-1 text-center">
+                                {product.isCommissionable 
+                                  ? `RD$ ${parseFloat(product.driverCommissionValue?.toString() || '0').toFixed(2)}` 
+                                  : 'N/A'}
+                              </TableCell>
+                              <TableCell className="py-1 px-1 text-center">
+                                {product.isCommissionable 
+                                  ? `RD$ ${parseFloat(product.helperCommissionValue?.toString() || '0').toFixed(2)}` 
+                                  : 'N/A'}
                               </TableCell>
                               <TableCell className="py-1 px-1">
                                 <div className="flex justify-center space-x-1">
@@ -729,6 +764,95 @@ export default function Inventory() {
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    {/* Sección de Comisiones */}
+                    <div className="border-t pt-2 mt-2">
+                      <h3 className="text-xs font-semibold mb-2 flex items-center gap-1">
+                        <CircleDollarSign className="h-3 w-3 text-primary" />
+                        Configuración de Comisiones
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <FormField
+                          control={editingProduct ? editForm.control : form.control}
+                          name="isCommissionable"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 space-y-0 py-1">
+                              <FormControl>
+                                <Checkbox
+                                  className="h-3.5 w-3.5"
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    // Si se desmarca, resetear los valores de comisión
+                                    if (!checked) {
+                                      const setCommissionsToZero = editingProduct 
+                                        ? editForm.setValue 
+                                        : form.setValue;
+                                      setCommissionsToZero("driverCommissionValue", "0.00");
+                                      setCommissionsToZero("helperCommissionValue", "0.00");
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-[10px] cursor-pointer">
+                                Es Comisionable
+                              </FormLabel>
+                              <FormMessage className="text-[9px]" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editingProduct ? editForm.control : form.control}
+                          name="driverCommissionValue"
+                          render={({ field }) => {
+                            // Obtener el valor de isCommissionable
+                            const isCommissionableValue = editingProduct 
+                              ? editForm.watch("isCommissionable") 
+                              : form.watch("isCommissionable");
+                            
+                            return (
+                              <FormItem className="space-y-1">
+                                <FormLabel className="text-[10px]">Comisión Chofer (RD$)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="h-7 text-[10px]"
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    disabled={!isCommissionableValue}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-[9px]" />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                        <FormField
+                          control={editingProduct ? editForm.control : form.control}
+                          name="helperCommissionValue"
+                          render={({ field }) => {
+                            // Obtener el valor de isCommissionable
+                            const isCommissionableValue = editingProduct 
+                              ? editForm.watch("isCommissionable") 
+                              : form.watch("isCommissionable");
+                            
+                            return (
+                              <FormItem className="space-y-1">
+                                <FormLabel className="text-[10px]">Comisión Ayudante (RD$)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    className="h-7 text-[10px]"
+                                    onChange={(e) => field.onChange(e.target.value)}
+                                    disabled={!isCommissionableValue}
+                                  />
+                                </FormControl>
+                                <FormMessage className="text-[9px]" />
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div className="flex justify-between pt-1">
