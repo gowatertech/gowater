@@ -1157,40 +1157,81 @@ export async function registerRoutes(router: express.Router) {
   router.put("/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      const userData = req.body;
       
-      // Verificar si el usuario existe
+      // Obtener el companyId del contexto con fallback
+      const companyId = getCurrentCompanyId() || req.session.companyId;
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      // Verificar que el usuario existe y pertenece a la compañía del usuario autenticado
       const [existingUser] = await db
         .select()
         .from(usersSimple)
-        .where(eq(usersSimple.id, userId));
+        .where(and(
+          eq(usersSimple.id, userId),
+          eq(usersSimple.companyId, companyId)
+        ));
         
       if (!existingUser) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
+        return res.status(404).json({ error: "Usuario no encontrado o no tiene permiso para editarlo" });
       }
       
-      // Preparar datos para actualización
-      const updateData = {
-        ...userData,
-        licenseExpiry: userData.licenseExpiry ? new Date(userData.licenseExpiry) : null
+      // Validar y sanitizar los datos de entrada - CRÍTICO: excluir campos sensibles
+      const allowedFields = {
+        name: req.body.name,
+        username: req.body.username,
+        email: req.body.email,
+        password: req.body.password,
+        phone: req.body.phone,
+        license: req.body.license,
+        licenseExpiry: req.body.licenseExpiry,
+        emergencyContact: req.body.emergencyContact,
+        active: req.body.active
       };
       
-      // Si la contraseña está vacía, no actualizarla
-      if (!updateData.password) {
-        delete updateData.password;
-      } else {
-        // Hash la contraseña si se está actualizando
-        console.log(`Actualizando contraseña para el usuario ${existingUser.username} a formato bcrypt`);
-        updateData.password = await bcrypt.hash(updateData.password, 10);
+      // IMPORTANTE: NO permitir actualizar companyId, id, o role para prevenir escalada de privilegios
+      // Si se necesita cambiar el rol, debe hacerse en un endpoint separado con validación adicional
+      
+      // Preparar datos para actualización
+      const updateData: any = {};
+      
+      if (allowedFields.name !== undefined) updateData.name = allowedFields.name;
+      if (allowedFields.username !== undefined) updateData.username = allowedFields.username;
+      if (allowedFields.email !== undefined) updateData.email = allowedFields.email;
+      if (allowedFields.phone !== undefined) updateData.phone = allowedFields.phone;
+      if (allowedFields.license !== undefined) updateData.license = allowedFields.license;
+      if (allowedFields.emergencyContact !== undefined) updateData.emergencyContact = allowedFields.emergencyContact;
+      if (allowedFields.active !== undefined) updateData.active = allowedFields.active;
+      
+      // Manejar licenseExpiry
+      if (allowedFields.licenseExpiry !== undefined) {
+        updateData.licenseExpiry = allowedFields.licenseExpiry ? new Date(allowedFields.licenseExpiry) : null;
       }
       
-      // Actualizar el usuario
+      // Si la contraseña está presente y no vacía, hashearla
+      if (allowedFields.password && allowedFields.password.trim() !== '') {
+        console.log(`Actualizando contraseña para el usuario ${existingUser.username} a formato bcrypt`);
+        updateData.password = await bcrypt.hash(allowedFields.password, 10);
+      }
+      
+      // Actualizar el usuario solo si pertenece a la compañía correcta
       const [updatedUser] = await db
         .update(usersSimple)
         .set(updateData)
-        .where(eq(usersSimple.id, userId))
+        .where(and(
+          eq(usersSimple.id, userId),
+          eq(usersSimple.companyId, companyId)
+        ))
         .returning();
       
+      console.log(`PUT /api/users/${userId} - Usuario actualizado para empresa ${companyId}`);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error al actualizar usuario:", error);
@@ -1203,23 +1244,42 @@ export async function registerRoutes(router: express.Router) {
     try {
       const userId = parseInt(req.params.id);
       
-      // Verificar si el usuario existe
+      // Obtener el companyId del contexto con fallback
+      const companyId = getCurrentCompanyId() || req.session.companyId;
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      // Verificar que el usuario existe y pertenece a la compañía del usuario autenticado
       const [existingUser] = await db
         .select()
         .from(usersSimple)
-        .where(eq(usersSimple.id, userId));
+        .where(and(
+          eq(usersSimple.id, userId),
+          eq(usersSimple.companyId, companyId)
+        ));
         
       if (!existingUser) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
+        return res.status(404).json({ error: "Usuario no encontrado o no tiene permiso para eliminarlo" });
       }
       
-      // Marcar como inactivo en lugar de eliminar
+      // Marcar como inactivo en lugar de eliminar, solo si pertenece a la compañía correcta
       const [deletedUser] = await db
         .update(usersSimple)
         .set({ active: false })
-        .where(eq(usersSimple.id, userId))
+        .where(and(
+          eq(usersSimple.id, userId),
+          eq(usersSimple.companyId, companyId)
+        ))
         .returning();
       
+      console.log(`DELETE /api/users/${userId} - Usuario desactivado para empresa ${companyId}`);
       res.json(deletedUser);
     } catch (error) {
       console.error("Error al eliminar usuario:", error);
