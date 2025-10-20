@@ -935,20 +935,36 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+
       const { name, color } = req.body;
       
       if (!name || !color) {
         return res.status(400).json({ error: "Nombre y color son requeridos" });
       }
 
+      // Verificar que la zona existe y pertenece a la compañía del usuario
       const existingZone = await db
         .select()
         .from(zones)
-        .where(eq(zones.id, zoneId))
+        .where(and(
+          eq(zones.id, zoneId),
+          eq(zones.companyId, companyId)
+        ))
         .limit(1);
 
       if (existingZone.length === 0) {
-        return res.status(404).json({ error: "Zona no encontrada" });
+        return res.status(404).json({ error: "Zona no encontrada o no tiene permiso para editarla" });
       }
 
       const [updatedZone] = await db
@@ -957,9 +973,13 @@ export async function registerRoutes(router: express.Router) {
           name,
           color
         })
-        .where(eq(zones.id, zoneId))
+        .where(and(
+          eq(zones.id, zoneId),
+          eq(zones.companyId, companyId)
+        ))
         .returning();
 
+      console.log(`PATCH /api/zones/${zoneId} - Zona actualizada para empresa ${companyId}`);
       res.json(updatedZone);
     } catch (error) {
       console.error("Error al actualizar zona:", error);
@@ -974,22 +994,42 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+
+      // Verificar que la zona existe y pertenece a la compañía del usuario
       const existingZone = await db
         .select()
         .from(zones)
-        .where(eq(zones.id, zoneId))
+        .where(and(
+          eq(zones.id, zoneId),
+          eq(zones.companyId, companyId)
+        ))
         .limit(1);
 
       if (existingZone.length === 0) {
-        return res.status(404).json({ error: "Zona no encontrada" });
+        return res.status(404).json({ error: "Zona no encontrada o no tiene permiso para eliminarla" });
       }
 
       // Eliminar la zona
       const [deletedZone] = await db
         .delete(zones)
-        .where(eq(zones.id, zoneId))
+        .where(and(
+          eq(zones.id, zoneId),
+          eq(zones.companyId, companyId)
+        ))
         .returning();
 
+      console.log(`DELETE /api/zones/${zoneId} - Zona eliminada para empresa ${companyId}`);
       res.json({ 
         message: "Zona eliminada exitosamente", 
         id: zoneId,

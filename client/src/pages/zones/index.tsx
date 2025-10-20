@@ -83,12 +83,11 @@ export default function ZonesPage() {
   // Mutation para actualizar una zona
   const updateZoneMutation = useMutation({
     mutationFn: async (zone: { id: number; name: string; color: string }) => {
-      const response = await apiRequest("PATCH", `/api/zones/${zone.id}`, zone);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al actualizar la zona');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/zones/${zone.id}`,
+        method: "PATCH",
+        data: { name: zone.name, color: zone.color }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
@@ -109,12 +108,10 @@ export default function ZonesPage() {
   // Mutation para eliminar una zona
   const deleteZoneMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/zones/${id}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al eliminar la zona');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/zones/${id}`,
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
