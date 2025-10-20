@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useLocation } from 'wouter';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, isSameDay, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   ArrowLeft,
@@ -19,6 +19,8 @@ import {
   Package,
   ExternalLink,
   Truck,
+  TrendingUp,
+  DollarSign,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -32,6 +34,7 @@ import { toast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -284,6 +287,35 @@ export default function CommissionDetailsPage() {
   const handleStatusUpdate = () => {
     refetch();
   };
+
+  const dailyBreakdown = useMemo(() => {
+    if (!commission) return [];
+    
+    const start = parseISO(commission.weekStartDate);
+    const end = parseISO(commission.weekEndDate);
+    const days = eachDayOfInterval({ start, end });
+    
+    return days.map((day) => {
+      const dayItems = commission.items.filter((item: CommissionItem) => 
+        isSameDay(parseISO(item.deliveryDate), day)
+      );
+      
+      const totalAmount = dayItems.reduce((sum, item) => 
+        sum + parseFloat(item.commissionAmount), 0
+      );
+      
+      const productCount = dayItems.reduce((sum, item) => 
+        sum + item.quantity, 0
+      );
+      
+      return {
+        date: day,
+        items: dayItems,
+        totalAmount,
+        productCount,
+      };
+    });
+  }, [commission]);
 
   if (isLoading) {
     return (
