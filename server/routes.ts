@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
@@ -3132,6 +3132,87 @@ export async function registerRoutes(router: express.Router) {
       res.json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas de envases:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para estadísticas de comisiones
+  router.get("/api/dashboard/commission-stats", async (req, res) => {
+    try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      console.log(`GET /api/dashboard/commission-stats - Obteniendo estadísticas de comisiones para empresa ${companyId}`);
+      
+      // Calcular el inicio y fin de la semana actual (Lunes a Domingo)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Si es domingo, retroceder 6 días
+      
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() + diffToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      console.log(`Semana actual: ${weekStart.toISOString().split('T')[0]} a ${weekEnd.toISOString().split('T')[0]}`);
+      
+      // Obtener comisiones de choferes para la semana actual
+      const driversCommissions = await db
+        .select({
+          total: sql`COALESCE(SUM(CAST(${commissions.totalAmount} AS NUMERIC)), 0)`.mapWith(Number),
+        })
+        .from(commissions)
+        .where(
+          and(
+            eq(commissions.companyId, companyId),
+            eq(commissions.userRole, 'driver'),
+            sql`${commissions.weekStartDate} >= ${weekStart}`,
+            sql`${commissions.weekStartDate} <= ${weekEnd}`
+          )
+        );
+      
+      // Obtener comisiones de ayudantes para la semana actual
+      const helpersCommissions = await db
+        .select({
+          total: sql`COALESCE(SUM(CAST(${commissions.totalAmount} AS NUMERIC)), 0)`.mapWith(Number),
+        })
+        .from(commissions)
+        .where(
+          and(
+            eq(commissions.companyId, companyId),
+            eq(commissions.userRole, 'helper'),
+            sql`${commissions.weekStartDate} >= ${weekStart}`,
+            sql`${commissions.weekStartDate} <= ${weekEnd}`
+          )
+        );
+      
+      const driversTotal = driversCommissions[0]?.total || 0;
+      const helpersTotal = helpersCommissions[0]?.total || 0;
+      
+      const stats = {
+        driversTotal,
+        helpersTotal,
+        weekTotal: driversTotal + helpersTotal,
+        weekStartDate: weekStart.toISOString(),
+        weekEndDate: weekEnd.toISOString(),
+      };
+      
+      console.log(`Estadísticas de comisiones:`, stats);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error al obtener estadísticas de comisiones:", error);
       res.status(500).json({ error: String(error) });
     }
   });

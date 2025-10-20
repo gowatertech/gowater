@@ -28,7 +28,8 @@ import {
   PieChart,
   BarChart,
   LineChart,
-  LogOut
+  LogOut,
+  BadgeDollarSign
 } from "lucide-react";
 
 // Colores consistentes para los gráficos
@@ -72,6 +73,14 @@ interface BottleStats {
   overdueReturns: number;
 }
 
+interface CommissionStats {
+  driversTotal: number;
+  helpersTotal: number;
+  weekTotal: number;
+  weekStartDate: string;
+  weekEndDate: string;
+}
+
 interface ChartData {
   name: string;
   value: number;
@@ -106,6 +115,11 @@ export default function Dashboard() {
 
   const { data: bottleStats, isLoading: bottlesLoading } = useQuery<BottleStats>({
     queryKey: ["/api/dashboard/bottle-stats"],
+    refetchInterval: 30000 // Refresca cada 30 segundos
+  });
+
+  const { data: commissionStats, isLoading: commissionsLoading } = useQuery<CommissionStats>({
+    queryKey: ["/api/dashboard/commission-stats"],
     refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
@@ -299,6 +313,53 @@ export default function Dashboard() {
               onClick={() => navigateTo("/bottles/balance")}
             />
           </div>
+          
+          {/* Widget de Comisiones */}
+          {commissionStats && (
+            <Card className="overflow-hidden" data-testid="card-commissions-widget">
+              <CardHeader className="pb-2 px-3 sm:px-6">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <BadgeDollarSign className="h-4 w-4 text-primary" />
+                    {t("Comisiones de la Semana")}
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => navigateTo("/commissions")}
+                    data-testid="button-view-all-commissions"
+                  >
+                    {t("Ver todas")}
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  {t("Del")} {new Date(commissionStats.weekStartDate).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })} {t("al")} {new Date(commissionStats.weekEndDate).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+                    <span className="text-xs text-muted-foreground font-medium">🚗 {t("Choferes")}</span>
+                    <span className="text-2xl font-bold" data-testid="text-drivers-total">
+                      {formatCurrency(commissionStats.driversTotal)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+                    <span className="text-xs text-muted-foreground font-medium">👤 {t("Ayudantes")}</span>
+                    <span className="text-2xl font-bold" data-testid="text-helpers-total">
+                      {formatCurrency(commissionStats.helpersTotal)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+                    <span className="text-xs text-muted-foreground font-medium">💰 {t("Total")}</span>
+                    <span className="text-2xl font-bold" data-testid="text-week-total">
+                      {formatCurrency(commissionStats.weekTotal)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Gráficos principales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
