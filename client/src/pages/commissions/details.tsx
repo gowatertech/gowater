@@ -300,11 +300,11 @@ export default function CommissionDetailsPage() {
         isSameDay(parseISO(item.deliveryDate), day)
       );
       
-      const totalAmount = dayItems.reduce((sum, item) => 
+      const totalAmount = dayItems.reduce((sum: number, item: CommissionItem) => 
         sum + parseFloat(item.commissionAmount), 0
       );
       
-      const productCount = dayItems.reduce((sum, item) => 
+      const productCount = dayItems.reduce((sum: number, item: CommissionItem) => 
         sum + item.quantity, 0
       );
       
@@ -481,6 +481,72 @@ export default function CommissionDetailsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Timeline Semanal Día por Día */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Progreso Semanal
+          </CardTitle>
+          <CardDescription>
+            Comisiones generadas día por día durante la semana
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(() => {
+            const rawMax = Math.max(...dailyBreakdown.map(d => d.totalAmount));
+            
+            return dailyBreakdown.map((day, index) => {
+            const progressPercent = rawMax > 0 ? (day.totalAmount / rawMax) * 100 : 0;
+            const dayName = format(day.date, 'EEEE', { locale: es });
+            const dayDate = format(day.date, 'dd MMM', { locale: es });
+            const isToday = isSameDay(day.date, new Date());
+            
+            return (
+              <div key={index} className={`rounded-lg border p-4 transition-all ${isToday ? 'bg-primary/5 border-primary' : ''}`}>
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold capitalize">{dayName}</h4>
+                    <p className="text-sm text-muted-foreground">{dayDate}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">
+                      RD${day.totalAmount.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {day.productCount} productos
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Progress value={progressPercent} className="h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{day.items.length} entregas</span>
+                    <span>{progressPercent.toFixed(0)}% del máximo</span>
+                  </div>
+                </div>
+                {day.items.length > 0 && (
+                  <div className="mt-3 space-y-1 border-t pt-3">
+                    {day.items.slice(0, 3).map((item: CommissionItem) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{item.productName} x{item.quantity}</span>
+                        <span className="font-medium">RD${parseFloat(item.commissionAmount).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    {day.items.length > 3 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        +{day.items.length - 3} productos más
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          });
+          })()}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="px-6 pb-3 pt-6">
