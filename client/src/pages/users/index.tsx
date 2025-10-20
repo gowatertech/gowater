@@ -248,7 +248,8 @@ export default function Users() {
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
 
-        if (!updateData.password) {
+        // Si el campo de contraseña está vacío o solo tiene espacios, eliminarlo para no actualizar la contraseña
+        if (!updateData.password || updateData.password.trim() === '') {
           delete updateData.password;
         }
 
