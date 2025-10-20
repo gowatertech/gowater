@@ -64,6 +64,7 @@ import {
 } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { insertUserSchema } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -108,7 +109,10 @@ export default function Users() {
   // Formulario con esquema de validación condicional
   const formSchema = editingUser
     ? insertUserSchema.extend({
-        password: insertUserSchema.shape.password.optional(),
+        password: z.union([
+          z.string().length(0), // Permite string vacío para mantener la contraseña actual
+          z.string().min(8, "La contraseña debe tener al menos 8 caracteres")
+        ]),
       })
     : insertUserSchema;
 
