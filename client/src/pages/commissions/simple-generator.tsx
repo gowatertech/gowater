@@ -86,187 +86,113 @@ const SimpleCommissionGenerator = () => {
     }
   };
   
-  // Estilos directos para no depender de bibliotecas externas
-  const styles = {
-    container: {
-      maxWidth: '600px',
-      margin: '40px auto',
-      padding: '30px',
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      fontFamily: 'system-ui, sans-serif'
-    },
-    header: {
-      marginBottom: '20px'
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '10px'
-    },
-    subtitle: {
-      fontSize: '16px',
-      color: '#666',
-      marginBottom: '20px'
-    },
-    formGroup: {
-      marginBottom: '20px'
-    },
-    label: {
-      display: 'block',
-      marginBottom: '8px',
-      fontWeight: '500'
-    },
-    input: {
-      width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '16px'
-    },
-    select: {
-      width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '16px',
-      backgroundColor: 'white'
-    },
-    button: {
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      padding: '12px 20px',
-      borderRadius: '4px',
-      fontSize: '16px',
-      cursor: 'pointer',
-      width: '100%'
-    },
-    buttonDisabled: {
-      backgroundColor: '#93c5fd',
-      cursor: 'not-allowed'
-    },
-    buttonSecondary: {
-      backgroundColor: '#f1f5f9',
-      color: '#334155',
-      border: '1px solid #cbd5e1',
-      padding: '12px 20px',
-      borderRadius: '4px',
-      fontSize: '16px',
-      cursor: 'pointer',
-      width: '100%',
-      marginTop: '10px'
-    },
-    error: {
-      backgroundColor: '#fee2e2',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      color: '#b91c1c',
-      fontSize: '14px',
-      border: '1px solid #fecaca'
-    },
-    success: {
-      backgroundColor: '#dcfce7',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      color: '#15803d',
-      fontSize: '14px',
-      border: '1px solid #bbf7d0'
-    },
-    buttonRow: {
-      display: 'flex',
-      gap: '10px',
-      marginTop: '20px'
-    }
-  };
-  
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Generar Comisiones</h1>
-        <p style={styles.subtitle}>
-          Complete el formulario para calcular las comisiones de choferes y ayudantes
-        </p>
-      </div>
-      
-      {error && <div style={styles.error}>{error}</div>}
-      {success && <div style={styles.success}>{success}</div>}
-      
-      <form onSubmit={handleSubmit}>
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="startDate">Fecha de inicio</label>
-          <input
-            id="startDate"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={styles.input}
-            required
-          />
-        </div>
-        
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="endDate">Fecha de fin</label>
-          <input
-            id="endDate"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={styles.input}
-            required
-          />
-        </div>
-        
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="userRole">Tipo de empleado</label>
-          <select
-            id="userRole"
-            value={userRole}
-            onChange={(e) => setUserRole(e.target.value)}
-            style={styles.select}
-            required
-          >
-            <option value="driver">Choferes</option>
-            <option value="helper">Ayudantes</option>
-          </select>
-        </div>
-        
-        <div style={styles.formGroup}>
-          <label style={styles.label} htmlFor="userId">ID del empleado (opcional)</label>
-          <input
-            id="userId"
-            type="number"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder="Dejar vacío para todos los empleados"
-            style={styles.input}
-          />
-        </div>
-        
-        <div style={styles.buttonRow}>
-          <button
-            type="button"
-            onClick={() => window.location.href = '/commissions'}
-            style={styles.buttonSecondary}
-          >
-            Cancelar
-          </button>
+    <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="rounded-lg border bg-card shadow-sm">
+        <div className="p-6 sm:p-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold sm:text-3xl">Generar Comisiones</h1>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Complete el formulario para calcular las comisiones de choferes y ayudantes
+            </p>
+          </div>
           
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...styles.button,
-              ...(loading ? styles.buttonDisabled : {})
-            }}
-          >
-            {loading ? 'Procesando...' : 'Generar Comisiones'}
-          </button>
+          {error && (
+            <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 sm:p-4">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-5 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 sm:p-4">
+              {success}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <div>
+              <label htmlFor="startDate" className="block mb-2 text-sm font-medium">
+                Fecha de inicio
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                required
+                data-testid="input-start-date"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="endDate" className="block mb-2 text-sm font-medium">
+                Fecha de fin
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                required
+                data-testid="input-end-date"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="userRole" className="block mb-2 text-sm font-medium">
+                Tipo de empleado
+              </label>
+              <select
+                id="userRole"
+                value={userRole}
+                onChange={(e) => setUserRole(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                required
+                data-testid="select-user-role"
+              >
+                <option value="driver">Choferes</option>
+                <option value="helper">Ayudantes</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="userId" className="block mb-2 text-sm font-medium">
+                ID del empleado (opcional)
+              </label>
+              <input
+                id="userId"
+                type="number"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="Dejar vacío para todos los empleados"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                data-testid="input-user-id"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => window.location.href = '/commissions'}
+                className="flex-1 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                data-testid="button-cancel"
+              >
+                Cancelar
+              </button>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                data-testid="button-submit"
+              >
+                {loading ? 'Procesando...' : 'Generar Comisiones'}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

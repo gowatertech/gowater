@@ -204,6 +204,10 @@ export default function CommissionsPage() {
     });
   }, [commissions, weekDates]);
 
+  const maxAmount = useMemo(() => {
+    return Math.max(...(commissions?.map((c: Commission) => parseFloat(c.totalAmount)) || []), 100);
+  }, [commissions]);
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header con Selector de Semana */}
@@ -215,8 +219,9 @@ export default function CommissionsPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-4">
+          {/* Selector de semana - optimizado para móvil */}
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="icon"
@@ -226,12 +231,12 @@ export default function CommissionsPage() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[200px]">
               <Select
                 value={selectedWeek.toString()}
                 onValueChange={(value) => setSelectedWeek(parseInt(value))}
               >
-                <SelectTrigger className="w-[140px]" data-testid="select-week">
+                <SelectTrigger className="w-full sm:w-[140px]" data-testid="select-week">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   <SelectValue />
                 </SelectTrigger>
@@ -248,7 +253,7 @@ export default function CommissionsPage() {
                 value={selectedYear.toString()}
                 onValueChange={handleYearChange}
               >
-                <SelectTrigger className="w-[120px]" data-testid="select-year">
+                <SelectTrigger className="w-full sm:w-[120px]" data-testid="select-year">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,12 +279,25 @@ export default function CommissionsPage() {
               variant="outline"
               onClick={handleCurrentWeek}
               data-testid="button-current-week"
+              className="hidden sm:inline-flex"
             >
               Semana Actual
             </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCurrentWeek}
+              data-testid="button-current-week-mobile"
+              className="sm:hidden"
+              title="Semana Actual"
+              aria-label="Ir a semana actual"
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-2">
+          {/* Rango de fechas */}
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-2 self-start">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">
               {format(weekDates.start, 'dd MMM', { locale: es })} - {format(weekDates.end, 'dd MMM yyyy', { locale: es })}
@@ -363,28 +381,32 @@ export default function CommissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="day" 
-                tick={{ fontSize: 12 }}
-                label={{ value: '', position: 'insideBottom', offset: -5 }}
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                label={{ value: 'Monto (RD$)', angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip 
-                formatter={(value: number) => `RD$ ${value.toFixed(2)}`}
-                labelFormatter={(label, payload) => {
-                  const item = payload[0]?.payload;
-                  return item ? `${label} (${item.date})` : label;
-                }}
-              />
-              <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-56 sm:h-72 md:h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="day" 
+                  tick={{ fontSize: 10 }}
+                  className="text-[10px] sm:text-xs"
+                  label={{ value: '', position: 'insideBottom', offset: -5 }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                  className="text-[10px] sm:text-xs"
+                  label={{ value: 'Monto (RD$)', angle: -90, position: 'insideLeft' }}
+                />
+                <Tooltip 
+                  formatter={(value: number) => `RD$ ${value.toFixed(2)}`}
+                  labelFormatter={(label, payload) => {
+                    const item = payload[0]?.payload;
+                    return item ? `${label} (${item.date})` : label;
+                  }}
+                />
+                <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
@@ -413,66 +435,123 @@ export default function CommissionsPage() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Empleado</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead className="text-center">Productos</TableHead>
-                    <TableHead className="text-right">Monto</TableHead>
-                    <TableHead>Progreso</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {commissions.map((commission) => {
-                    const maxAmount = Math.max(...commissions.map(c => parseFloat(c.totalAmount)), 100);
-                    const progressPercent = Math.min((parseFloat(commission.totalAmount) / maxAmount) * 100, 100);
-                    
-                    return (
-                      <TableRow key={commission.id}>
-                        <TableCell className="font-medium">{commission.userName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {commission.userRole === 'driver' ? '🚗 Chofer' : '👤 Ayudante'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="inline-flex items-center gap-1">
-                            <Package className="h-3 w-3 text-muted-foreground" />
-                            {commission.productCount}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          RD$ {parseFloat(commission.totalAmount).toFixed(2)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Progress value={progressPercent} className="h-2" />
-                            <p className="text-xs text-muted-foreground">
-                              {progressPercent.toFixed(0)}% del objetivo
-                            </p>
+            <>
+              {/* Vista de tarjetas para móvil */}
+              <div className="md:hidden space-y-4">
+                {commissions.map((commission) => {
+                  const progressPercent = Math.min((parseFloat(commission.totalAmount) / maxAmount) * 100, 100);
+                  
+                  return (
+                    <Card key={commission.id} className="overflow-hidden" data-testid={`card-commission-${commission.id}`}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <CardTitle className="text-base truncate">{commission.userName}</CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {commission.userRole === 'driver' ? '🚗 Chofer' : '👤 Ayudante'}
+                              </Badge>
+                              <StatusBadge status={commission.status} />
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={commission.status} />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link to={`/commissions/details/${commission.id}`}>
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${commission.id}`}>
-                              <Eye className="mr-1 h-3 w-3" />
-                              Ver
-                            </Button>
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Monto Total:</span>
+                          <span className="text-lg font-bold">RD$ {parseFloat(commission.totalAmount).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Productos:</span>
+                          <span className="font-medium">{commission.productCount}</span>
+                        </div>
+                        {commission.routeName && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Ruta:</span>
+                            <span className="font-medium text-sm truncate max-w-[150px]">{commission.routeName}</span>
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <Progress value={progressPercent} className="h-2" />
+                          <p className="text-xs text-muted-foreground">
+                            {progressPercent.toFixed(0)}% del objetivo
+                          </p>
+                        </div>
+                        <Link to={`/commissions/details/${commission.id}`} className="w-full">
+                          <Button variant="default" size="sm" className="w-full" data-testid={`button-view-mobile-${commission.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalles
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Vista de tabla para escritorio */}
+              <div className="hidden md:block overflow-x-auto">
+                <div className="min-w-[800px]">
+                  <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Empleado</TableHead>
+                      <TableHead>Rol</TableHead>
+                      <TableHead className="text-center">Productos</TableHead>
+                      <TableHead className="text-right">Monto</TableHead>
+                      <TableHead className="hidden lg:table-cell">Progreso</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {commissions.map((commission) => {
+                      const progressPercent = Math.min((parseFloat(commission.totalAmount) / maxAmount) * 100, 100);
+                      
+                      return (
+                        <TableRow key={commission.id}>
+                          <TableCell className="font-medium">{commission.userName}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {commission.userRole === 'driver' ? '🚗 Chofer' : '👤 Ayudante'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center gap-1">
+                              <Package className="h-3 w-3 text-muted-foreground" />
+                              {commission.productCount}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            RD$ {parseFloat(commission.totalAmount).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            <div className="space-y-1 min-w-[120px]">
+                              <Progress value={progressPercent} className="h-2" />
+                              <p className="text-xs text-muted-foreground">
+                                {progressPercent.toFixed(0)}% del objetivo
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={commission.status} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link to={`/commissions/details/${commission.id}`}>
+                              <Button variant="ghost" size="sm" data-testid={`button-view-${commission.id}`}>
+                                <Eye className="mr-1 h-3 w-3" />
+                                Ver
+                              </Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
