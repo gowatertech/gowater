@@ -13,7 +13,9 @@ import {
   ArrowLeft, 
   ShoppingCart, 
   User,
-  Search
+  Search,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 
 // Componentes UI
@@ -40,6 +42,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 // Interfaces
 interface OrderItem {
@@ -61,6 +76,7 @@ export default function NewOrder() {
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { code: "", description: "", quantity: 0, price: 0, total: 0 },
     { code: "", description: "", quantity: 0, price: 0, total: 0 },
@@ -286,64 +302,63 @@ export default function NewOrder() {
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
-                <Select
-                  value={selectedCustomer?.id?.toString() || ""}
-                  onValueChange={(value) => {
-                    const customer = customers.find((c: any) => c.id === parseInt(value));
-                    setSelectedCustomer(customer || null);
-                    setCustomerSearchTerm("");
-                  }}
-                >
-                  <SelectTrigger data-testid="select-customer" className="h-9 text-sm w-full">
-                    <SelectValue placeholder="Buscar y seleccionar cliente...">
+                <Popover open={openCustomerPopover} onOpenChange={setOpenCustomerPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCustomerPopover}
+                      data-testid="select-customer"
+                      className="h-9 w-full justify-between text-sm font-normal"
+                    >
                       {selectedCustomer ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{selectedCustomer.businessname}</span>
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="font-medium truncate">{selectedCustomer.businessname}</span>
                           <span className="text-xs text-muted-foreground">• {selectedCustomer.phone}</span>
                         </div>
                       ) : (
-                        "Buscar y seleccionar cliente..."
+                        <span className="text-muted-foreground">Buscar y seleccionar cliente...</span>
                       )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <div className="p-2 border-b sticky top-0 bg-background">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          data-testid="input-customer-search"
-                          type="text"
-                          placeholder="Buscar por nombre o teléfono..."
-                          value={customerSearchTerm}
-                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                          className="h-8 pl-8 text-sm"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </div>
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {filteredCustomers.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground text-center">
-                          No se encontraron clientes
-                        </div>
-                      ) : (
-                        filteredCustomers.map((customer: any) => (
-                          <SelectItem
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Buscar por nombre o teléfono..." 
+                        data-testid="input-customer-search"
+                        value={customerSearchTerm}
+                        onValueChange={setCustomerSearchTerm}
+                      />
+                      <CommandEmpty>No se encontraron clientes</CommandEmpty>
+                      <CommandGroup className="max-h-[300px] overflow-y-auto">
+                        {filteredCustomers.map((customer: any) => (
+                          <CommandItem
                             key={customer.id}
-                            value={customer.id.toString()}
-                            className="text-sm cursor-pointer"
+                            value={`${customer.businessname} ${customer.phone}`}
+                            onSelect={() => {
+                              setSelectedCustomer(customer);
+                              setOpenCustomerPopover(false);
+                              setCustomerSearchTerm("");
+                            }}
+                            className="cursor-pointer"
                           >
-                            <div className="flex flex-col py-1">
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
                               <span className="font-medium">{customer.businessname}</span>
                               <span className="text-xs text-muted-foreground">{customer.phone}</span>
                             </div>
-                          </SelectItem>
-                        ))
-                      )}
-                    </div>
-                  </SelectContent>
-                </Select>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {selectedCustomer && (
