@@ -908,6 +908,78 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
     const updatedOrder = result.rows[0];
     console.log(`✅ Estado actualizado exitosamente para orden ${orderId}`);
     
+    // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
+    if (status === "delivered" && currentStatus !== "delivered") {
+      console.log(`📄 Creando factura automáticamente para pedido ${orderId}...`);
+      
+      try {
+        // Obtener el siguiente número de factura para esta compañía
+        const maxInvoiceQuery = `
+          SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
+          FROM invoices 
+          WHERE company_id = $1
+        `;
+        const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
+        const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
+        
+        // Crear la factura
+        const createInvoiceQuery = `
+          INSERT INTO invoices (
+            company_id, customer_id, total, status, payment_method, 
+            date, invoice_number, notes
+          )
+          VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+          RETURNING *
+        `;
+        
+        const invoiceResult = await pool.query(createInvoiceQuery, [
+          companyId,
+          updatedOrder.customer_id,
+          updatedOrder.total,
+          'pending', // La factura empieza como pendiente de pago
+          updatedOrder.payment_method,
+          nextInvoiceNumber,
+          `Generada automáticamente desde pedido #${orderId}`
+        ]);
+        
+        const invoice = invoiceResult.rows[0];
+        console.log(`✅ Factura #${invoice.id} (número ${invoice.invoice_number}) creada`);
+        
+        // Copiar los items del pedido a la factura
+        const orderItemsQuery = `
+          SELECT * FROM order_items 
+          WHERE order_id = $1 AND company_id = $2
+        `;
+        const orderItemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
+        
+        // Insertar cada item en la factura
+        for (const item of orderItemsResult.rows) {
+          const createInvoiceItemQuery = `
+            INSERT INTO invoice_items (
+              company_id, invoice_id, product_id, quantity, price, total
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `;
+          
+          await pool.query(createInvoiceItemQuery, [
+            companyId,
+            invoice.id,
+            item.product_id,
+            item.quantity,
+            item.price,
+            item.total
+          ]);
+        }
+        
+        console.log(`✅ ${orderItemsResult.rows.length} items copiados a la factura #${invoice.id}`);
+        
+      } catch (invoiceError) {
+        console.error(`❌ Error al crear factura automática:`, invoiceError);
+        // No fallar la actualización del pedido por un error en la factura
+        // Solo registrar el error
+      }
+    }
+    
     // Convertir nombres de propiedades de snake_case a camelCase
     const formattedOrder = {
       id: updatedOrder.id,
