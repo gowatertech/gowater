@@ -65,6 +65,8 @@ The system automatically creates invoices when orders are marked as delivered:
 -   **Data Replication**: Invoice inherits customer_id, payment_method, and date from the order
 -   **Item Copying**: All order items are copied to invoice_items with their product_id, quantity, price, and total
 -   **Sequential Numbering**: Invoice numbers are generated using company-specific MAX+1 logic
+    -   Database constraint: UNIQUE (company_id, invoice_number) allows each company independent numbering
+    -   Each company can have invoices numbered 1, 2, 3... without conflicts between companies
 -   **Error Isolation**: Invoice creation errors are logged but do not prevent order status updates
 -   **Legacy Data Handling**: Frontend includes robust fallbacks (`|| "0"`) to handle invoices created before subtotal/tax fields were added
 -   **Implementation**: Located in PATCH /api/orders/:orderId/status endpoint in server/routes/orders.ts
