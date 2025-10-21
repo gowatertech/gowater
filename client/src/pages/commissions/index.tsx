@@ -192,11 +192,23 @@ export default function CommissionsPage() {
 
   const chartData = useMemo(() => {
     const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-    const totalWeekAmount = Array.isArray(commissions) 
-      ? commissions.reduce((sum, c) => sum + parseFloat(c.totalAmount), 0) 
-      : 0;
     
-    const avgPerDay = totalWeekAmount / 7;
+    // Agrupar comisiones por día de entrega (basado en weekStartDate)
+    const amountsByDay = new Map<number, number>();
+    
+    if (Array.isArray(commissions)) {
+      commissions.forEach(commission => {
+        // Parsear la fecha de inicio de la semana para obtener el día
+        const commissionDate = new Date(commission.weekStartDate);
+        const dayOfWeek = commissionDate.getDay(); // 0=Domingo, 1=Lunes, etc.
+        
+        // Ajustar para que lunes sea 0 (en vez de domingo)
+        const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        const currentAmount = amountsByDay.get(adjustedDay) || 0;
+        amountsByDay.set(adjustedDay, currentAmount + parseFloat(commission.totalAmount));
+      });
+    }
     
     return days.map((day, index) => {
       const dayDate = new Date(weekDates.start);
@@ -204,7 +216,7 @@ export default function CommissionsPage() {
       
       return {
         day,
-        amount: avgPerDay,
+        amount: amountsByDay.get(index) || 0,
         date: format(dayDate, 'dd/MM'),
       };
     });
@@ -380,10 +392,10 @@ export default function CommissionsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Promedio Diario de Comisiones
+            Distribución de Comisiones por Día
           </CardTitle>
           <CardDescription>
-            Distribución promedio de comisiones por día (total semanal / 7 días)
+            Comisiones agrupadas por día de inicio de la semana laboral
           </CardDescription>
         </CardHeader>
         <CardContent>
