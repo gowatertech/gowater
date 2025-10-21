@@ -261,7 +261,8 @@ export default function Billing() {
 
   const calculateTotal = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax = subtotal * 0.18;
+    const taxRate = settings?.tax ? parseFloat(settings.tax) / 100 : 0;
+    const tax = subtotal * taxRate;
     return { subtotal, tax, total: subtotal + tax };
   };
 
@@ -295,11 +296,14 @@ export default function Billing() {
       }
 
       const subtotal = validItems.reduce((sum, item) => sum + item.total, 0);
-      const tax = subtotal * 0.18;
+      const taxRate = settings?.tax ? parseFloat(settings.tax) / 100 : 0;
+      const tax = subtotal * taxRate;
       const total = subtotal + tax;
 
       const invoiceData = {
         customerId: parseInt(data.customerId),
+        subtotal: subtotal.toFixed(2),
+        tax: tax.toFixed(2),
         total: total.toFixed(2),
         status: "pending" as const,
         paymentMethod,
@@ -1270,7 +1274,7 @@ export default function Billing() {
                       <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>ITBIS (18%):</span>
+                      <span>ITBIS ({settings?.tax || "0"}%):</span>
                       <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                     </div>
                     <Separator className="my-1" />
@@ -1479,11 +1483,21 @@ export default function Billing() {
                       <div></div>
                       <div className="space-y-1.5 p-3 bg-muted/30 rounded-lg">
                         <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>RD$ {parseFloat(selectedInvoice.subtotal || "0").toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>ITBIS ({settings?.tax || "0"}%):</span>
+                          <span>RD$ {parseFloat(selectedInvoice.tax || "0").toFixed(2)}</span>
+                        </div>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between text-sm font-medium">
                           <span>Total:</span>
                           <span className="font-medium">RD$ {parseFloat(selectedInvoice.total).toFixed(2)}</span>
                         </div>
                         {selectedInvoice.totalPaid && (
                           <>
+                            <Separator className="my-1" />
                             <div className="flex justify-between text-sm">
                               <span>Pagado:</span>
                               <span className="font-medium">RD$ {parseFloat(selectedInvoice.totalPaid).toFixed(2)}</span>
