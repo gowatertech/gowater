@@ -558,14 +558,15 @@ export default function CommissionsPage() {
 
       {/* Enlace para Generar Comisiones */}
       <div className="flex justify-center">
-        <a 
-          href="/generate-commissions.html" 
-          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          data-testid="link-generate-commissions"
-        >
-          <DollarSign className="mr-2 h-4 w-4" />
-          Generar Comisiones para esta Semana
-        </a>
+        <Link to="/commissions/simple-old">
+          <Button 
+            className="px-6 py-3"
+            data-testid="link-generate-commissions"
+          >
+            <DollarSign className="mr-2 h-4 w-4" />
+            Generar Comisiones para esta Semana
+          </Button>
+        </Link>
       </div>
     </div>
   );
