@@ -12,7 +12,8 @@ import {
   Plus, 
   ArrowLeft, 
   ShoppingCart, 
-  User
+  User,
+  Search
 } from "lucide-react";
 
 // Componentes UI
@@ -57,6 +58,7 @@ export default function NewOrder() {
   const { user } = useCurrentUser();
   
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
@@ -86,6 +88,17 @@ export default function NewOrder() {
         url: "/api/products"
       });
     }
+  });
+
+  // Filtrar clientes según el término de búsqueda
+  const filteredCustomers = customers.filter((customer: any) => {
+    if (!customerSearchTerm) return true;
+    
+    const searchLower = customerSearchTerm.toLowerCase();
+    const businessName = (customer.businessname || "").toLowerCase();
+    const phone = String(customer.phone ?? "").toLowerCase();
+    
+    return businessName.includes(searchLower) || phone.includes(searchLower);
   });
 
   // Función para agregar un nuevo producto vacío al arreglo
@@ -200,6 +213,7 @@ export default function NewOrder() {
         description: "El pedido se ha creado correctamente",
       });
       setSelectedCustomer(null);
+      setCustomerSearchTerm("");
       setNotes("");
       setOrderItems([
         { code: "", description: "", quantity: 0, price: 0, total: 0 },
@@ -271,26 +285,51 @@ export default function NewOrder() {
             
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Buscar Cliente</label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    data-testid="input-customer-search"
+                    type="text"
+                    placeholder="Buscar por nombre o teléfono..."
+                    value={customerSearchTerm}
+                    onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                    className="h-9 pl-8 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
                 <Select
+                  value={selectedCustomer?.id?.toString() || ""}
                   onValueChange={(value) => {
                     const customer = customers.find((c: any) => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
                   }}
                 >
-                  <SelectTrigger className="h-9 text-sm w-full">
+                  <SelectTrigger data-testid="select-customer" className="h-9 text-sm w-full">
                     <SelectValue placeholder="Seleccionar Cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {customers.map((customer: any) => (
-                      <SelectItem
-                        key={customer.id}
-                        value={customer.id.toString()}
-                        className="text-sm"
-                      >
-                        {customer.businessname}
-                      </SelectItem>
-                    ))}
+                    {filteredCustomers.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        No se encontraron clientes
+                      </div>
+                    ) : (
+                      filteredCustomers.map((customer: any) => (
+                        <SelectItem
+                          key={customer.id}
+                          value={customer.id.toString()}
+                          className="text-sm"
+                        >
+                          <div className="flex flex-col">
+                            <span>{customer.businessname}</span>
+                            <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
