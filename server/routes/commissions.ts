@@ -24,7 +24,7 @@ const updateCommissionStatusSchema = z.object({
   notes: z.string().optional(),
 });
 
-// Obtener comisiones con filtros
+// Obtener comisiones calculadas en tiempo real desde órdenes delivered
 router.get('/', async (req, res) => {
   try {
     // Get company ID from context for multi-tenant security
@@ -35,61 +35,210 @@ router.get('/', async (req, res) => {
     }
     
     // Parsear parámetros de consulta
-    const { status, userRole, startDate, endDate, userId } = req.query;
+    const { userRole, startDate, endDate, userId } = req.query;
     
-    // Construir query dinámicamente con filtros
-    let query = db.select({
-      id: commissions.id,
-      userId: commissions.userId,
-      userName: users.name,
-      userRole: commissions.userRole,
-      weekStartDate: commissions.weekStartDate,
-      weekEndDate: commissions.weekEndDate,
-      productCount: commissions.productCount,
-      totalAmount: commissions.totalAmount,
-      status: commissions.status,
-      paymentDate: commissions.paymentDate,
-      routeName: routes.name,
-      routeId: commissions.routeId,
-      createdAt: commissions.createdAt,
-    })
-    .from(commissions)
-    .leftJoin(users, eq(commissions.userId, users.id))
-    .leftJoin(routes, eq(commissions.routeId, routes.id));
+    // Calcular semana actual (lunes a domingo) si no se especifican fechas
+    let weekStart: Date;
+    let weekEnd: Date;
     
-    // Aplicar filtros según los parámetros recibidos (always include companyId)
-    const conditions = [eq(commissions.companyId, companyId)];
-    
-    if (status) {
-      conditions.push(eq(commissions.status, status as "pending" | "paid" | "cancelled"));
+    if (startDate && endDate) {
+      weekStart = new Date(startDate as string);
+      weekEnd = new Date(endDate as string);
+    } else {
+      // Obtener semana actual (lunes a domingo)
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      
+      weekStart = new Date(today);
+      weekStart.setDate(today.getDate() + mondayOffset);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
     }
     
-    if (userRole) {
-      conditions.push(eq(commissions.userRole, userRole as "driver" | "helper"));
+    console.log('Calculando comisiones para el rango:', weekStart, 'hasta', weekEnd);
+    
+    // Obtener todos los empleados (choferes y ayudantes) filtrados según los parámetros
+    const roleFilter = userRole ? (userRole === 'helper' ? 'assistant' : userRole as string) : null;
+    
+    let usersQuery = db
+      .select({
+        id: users.id,
+        name: users.name,
+        role: users.role,
+      })
+      .from(users)
+      .where(and(
+        eq(users.companyId, companyId),
+        eq(users.active, true)
+      ));
+    
+    // Filtrar por rol si se especifica
+    if (roleFilter) {
+      usersQuery = usersQuery.where(eq(users.role, roleFilter)) as any;
+    } else {
+      // Si no se especifica rol, buscar solo choferes y ayudantes
+      usersQuery = usersQuery.where(or(
+        eq(users.role, 'driver'),
+        eq(users.role, 'assistant')
+      )) as any;
     }
     
+    // Filtrar por userId si se especifica
     if (userId) {
-      conditions.push(eq(commissions.userId, parseInt(userId as string)));
+      usersQuery = usersQuery.where(eq(users.id, parseInt(userId as string))) as any;
     }
     
-    if (startDate) {
-      conditions.push(sql`${commissions.weekStartDate} >= ${startDate}`);
+    const employeesList = await usersQuery;
+    
+    console.log(`Encontrados ${employeesList.length} empleados`);
+    
+    // Array para almacenar comisiones calculadas
+    const calculatedCommissions = [];
+    
+    // Para cada empleado, calcular sus comisiones desde órdenes delivered
+    for (const employee of employeesList) {
+      const employeeRole = employee.role === 'driver' ? 'driver' : 'helper';
+      
+      // Buscar órdenes entregadas en el período por este empleado
+      let deliveredOrders;
+      
+      if (employee.role === 'driver') {
+        deliveredOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId,
+            actualDeliveryTime: orders.actualDeliveryTime,
+          })
+          .from(orders)
+          .leftJoin(routes, eq(orders.routeId, routes.id))
+          .where(
+            and(
+              eq(orders.status, 'delivered'),
+              eq(orders.companyId, companyId),
+              eq(routes.companyId, companyId),
+              sql`${orders.actualDeliveryTime} >= ${weekStart}`,
+              sql`${orders.actualDeliveryTime} <= ${weekEnd}`,
+              eq(routes.driverId, employee.id)
+            )
+          );
+      } else {
+        // Para ayudantes
+        deliveredOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId,
+            actualDeliveryTime: orders.actualDeliveryTime,
+          })
+          .from(orders)
+          .leftJoin(routes, eq(orders.routeId, routes.id))
+          .where(
+            and(
+              eq(orders.status, 'delivered'),
+              eq(orders.companyId, companyId),
+              eq(routes.companyId, companyId),
+              sql`${orders.actualDeliveryTime} >= ${weekStart}`,
+              sql`${orders.actualDeliveryTime} <= ${weekEnd}`,
+              eq(routes.assistantId, employee.id),
+              sql`${routes.assistantId} IS NOT NULL`
+            )
+          );
+      }
+      
+      if (deliveredOrders.length === 0) {
+        continue; // Sin órdenes para este empleado
+      }
+      
+      const orderIds = deliveredOrders.map(o => o.id);
+      
+      // Buscar productos comisionables en esas órdenes
+      let commissionableItems;
+      
+      if (employee.role === 'driver') {
+        commissionableItems = await db
+          .select({
+            productId: orderItems.productId,
+            productName: products.name,
+            quantity: orderItems.quantity,
+            commissionValue: products.driverCommissionValue,
+            actualDeliveryTime: orders.actualDeliveryTime,
+          })
+          .from(orderItems)
+          .leftJoin(products, eq(orderItems.productId, products.id))
+          .leftJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              inArray(orderItems.orderId, orderIds),
+              eq(products.companyId, companyId),
+              eq(products.isCommissionable, true),
+              sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
+            )
+          );
+      } else {
+        commissionableItems = await db
+          .select({
+            productId: orderItems.productId,
+            productName: products.name,
+            quantity: orderItems.quantity,
+            commissionValue: products.helperCommissionValue,
+            actualDeliveryTime: orders.actualDeliveryTime,
+          })
+          .from(orderItems)
+          .leftJoin(products, eq(orderItems.productId, products.id))
+          .leftJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              inArray(orderItems.orderId, orderIds),
+              eq(products.companyId, companyId),
+              eq(products.isCommissionable, true),
+              sql`${products.helperCommissionValue} IS NOT NULL`,
+              sql`CAST(${products.helperCommissionValue} AS DECIMAL) > 0`
+            )
+          );
+      }
+      
+      if (commissionableItems.length === 0) {
+        continue; // Sin productos comisionables
+      }
+      
+      // Calcular total de comisiones y cantidad de productos
+      let totalAmount = 0;
+      let productCount = 0;
+      
+      for (const item of commissionableItems) {
+        const commissionValue = parseFloat(item.commissionValue || '0');
+        const quantity = item.quantity || 0;
+        totalAmount += commissionValue * quantity;
+        productCount += quantity;
+      }
+      
+      // Crear registro de comisión calculada
+      calculatedCommissions.push({
+        id: null, // No es un registro en BD, es calculado
+        userId: employee.id,
+        userName: employee.name,
+        userRole: employeeRole,
+        weekStartDate: weekStart,
+        weekEndDate: weekEnd,
+        productCount,
+        totalAmount: parseFloat(totalAmount.toFixed(2)),
+        status: 'calculated', // Estado especial para indicar que es calculado, no generado
+        paymentDate: null,
+        routeName: null,
+        routeId: null,
+        createdAt: null,
+      });
     }
     
-    if (endDate) {
-      conditions.push(sql`${commissions.weekEndDate} <= ${endDate}`);
-    }
+    console.log(`Comisiones calculadas: ${calculatedCommissions.length}`);
     
-    // Aplicar condiciones a la consulta (always has companyId filter)
-    query = query.where(and(...conditions)) as any;
-    
-    // Ejecutar consulta con ordenamiento por fecha descendente
-    const result = await query.orderBy(desc(commissions.weekStartDate));
-    
-    res.json(result);
+    res.json(calculatedCommissions);
   } catch (error) {
-    console.error('Error al obtener comisiones:', error);
-    res.status(500).json({ error: 'Error al obtener comisiones' });
+    console.error('Error al calcular comisiones:', error);
+    res.status(500).json({ error: 'Error al calcular comisiones' });
   }
 });
 
