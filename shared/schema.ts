@@ -514,6 +514,8 @@ export const invoices = pgTable("invoices", {
   companyId: integer("company_id").notNull(), // Añadido companyId
   invoiceNumber: serial("invoice_number").unique(),
   customerId: integer("customer_id").notNull().references(() => customers.id),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
@@ -534,6 +536,8 @@ export const invoiceItems = pgTable("invoice_items", {
 
 export const insertInvoiceSchema = z.object({
   customerId: z.number(),
+  subtotal: z.string().regex(/^\d+\.\d{2}$/, "El subtotal debe tener 2 decimales"),
+  tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales"),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
