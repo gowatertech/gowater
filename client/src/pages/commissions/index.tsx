@@ -34,11 +34,11 @@ import {
 } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-type Status = 'pending' | 'paid' | 'cancelled';
+type Status = 'calculated' | 'pending' | 'paid' | 'cancelled';
 type UserRole = 'driver' | 'helper';
 
 type Commission = {
-  id: number;
+  id: number | null;
   userId: number;
   userName: string;
   userRole: UserRole;
@@ -47,13 +47,19 @@ type Commission = {
   productCount: number;
   totalAmount: string;
   status: Status;
-  paymentDate?: string;
-  routeName?: string;
-  createdAt?: string;
+  paymentDate?: string | null;
+  routeName?: string | null;
+  createdAt?: string | null;
 };
 
 function StatusBadge({ status }: { status: Status }) {
   switch (status) {
+    case 'calculated':
+      return (
+        <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700">
+          💡 Calculado
+        </Badge>
+      );
     case 'pending':
       return (
         <Badge variant="outline" className="border-yellow-500 bg-yellow-50 text-yellow-700">
@@ -431,7 +437,7 @@ export default function CommissionsPage() {
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm font-medium">No hay comisiones para esta semana</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Genere comisiones para ver los datos aquí
+                No se encontraron órdenes completadas en este período
               </p>
             </div>
           ) : (
@@ -440,9 +446,11 @@ export default function CommissionsPage() {
               <div className="md:hidden space-y-4">
                 {commissions.map((commission) => {
                   const progressPercent = Math.min((parseFloat(commission.totalAmount) / maxAmount) * 100, 100);
+                  const isCalculated = commission.status === 'calculated';
+                  const commissionKey = commission.id || `calc-${commission.userId}`;
                   
                   return (
-                    <Card key={commission.id} className="overflow-hidden" data-testid={`card-commission-${commission.id}`}>
+                    <Card key={commissionKey} className="overflow-hidden" data-testid={`card-commission-${commissionKey}`}>
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
@@ -477,12 +485,18 @@ export default function CommissionsPage() {
                             {progressPercent.toFixed(0)}% del objetivo
                           </p>
                         </div>
-                        <Link to={`/commissions/details/${commission.id}`} className="w-full">
-                          <Button variant="default" size="sm" className="w-full" data-testid={`button-view-mobile-${commission.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver Detalles
-                          </Button>
-                        </Link>
+                        {!isCalculated && commission.id ? (
+                          <Link to={`/commissions/details/${commission.id}`} className="w-full">
+                            <Button variant="default" size="sm" className="w-full" data-testid={`button-view-mobile-${commission.id}`}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Ver Detalles
+                            </Button>
+                          </Link>
+                        ) : (
+                          <div className="text-center py-2 text-xs text-blue-600 bg-blue-50 rounded">
+                            💡 Comisión calculada en tiempo real
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
@@ -507,9 +521,11 @@ export default function CommissionsPage() {
                   <TableBody>
                     {commissions.map((commission) => {
                       const progressPercent = Math.min((parseFloat(commission.totalAmount) / maxAmount) * 100, 100);
+                      const isCalculated = commission.status === 'calculated';
+                      const commissionKey = commission.id || `calc-${commission.userId}`;
                       
                       return (
-                        <TableRow key={commission.id}>
+                        <TableRow key={commissionKey}>
                           <TableCell className="font-medium">{commission.userName}</TableCell>
                           <TableCell>
                             <Badge variant="outline">
@@ -537,12 +553,18 @@ export default function CommissionsPage() {
                             <StatusBadge status={commission.status} />
                           </TableCell>
                           <TableCell className="text-right">
-                            <Link to={`/commissions/details/${commission.id}`}>
-                              <Button variant="ghost" size="sm" data-testid={`button-view-${commission.id}`}>
-                                <Eye className="mr-1 h-3 w-3" />
-                                Ver
-                              </Button>
-                            </Link>
+                            {!isCalculated && commission.id ? (
+                              <Link to={`/commissions/details/${commission.id}`}>
+                                <Button variant="ghost" size="sm" data-testid={`button-view-${commission.id}`}>
+                                  <Eye className="mr-1 h-3 w-3" />
+                                  Ver
+                                </Button>
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-blue-600">
+                                💡 Tiempo real
+                              </span>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
@@ -556,18 +578,20 @@ export default function CommissionsPage() {
         </CardContent>
       </Card>
 
-      {/* Enlace para Generar Comisiones */}
-      <div className="flex justify-center">
-        <Link to="/commissions/simple-old">
-          <Button 
-            className="px-6 py-3"
-            data-testid="link-generate-commissions"
-          >
-            <DollarSign className="mr-2 h-4 w-4" />
-            Generar Comisiones para esta Semana
-          </Button>
-        </Link>
-      </div>
+      {/* Enlace para Generar/Oficializar Comisiones */}
+      {commissions.length > 0 && commissions.some((c: Commission) => c.status === 'calculated') && (
+        <div className="flex justify-center">
+          <Link to="/commissions/simple-old">
+            <Button 
+              className="px-6 py-3"
+              data-testid="link-generate-commissions"
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Oficializar Comisiones como Pagables
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
