@@ -314,56 +314,75 @@ export default function Dashboard() {
             />
           </div>
           
-          {/* Widget de Comisiones */}
-          <Card className="overflow-hidden" data-testid="card-commissions-widget">
-            <CardHeader className="pb-2 px-3 sm:px-6">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <BadgeDollarSign className="h-4 w-4 text-primary" />
-                  {t("Comisiones de la Semana")}
-                </CardTitle>
+          {/* Widget de Comisiones - Diseño Moderno */}
+          <div className="overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-lg" data-testid="card-commissions-widget">
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <BadgeDollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    {t("Comisiones de la Semana")}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-blue-100 mt-1">
+                    {commissionStats ? (
+                      <>
+                        {t("Del")} {new Date(commissionStats.weekStartDate).toLocaleDateString('es-DO', { weekday: 'short', day: '2-digit', month: 'short' })} {t("al")} {new Date(commissionStats.weekEndDate).toLocaleDateString('es-DO', { weekday: 'short', day: '2-digit', month: 'short' })}
+                      </>
+                    ) : (
+                      t("Cargando...")
+                    )}
+                  </p>
+                </div>
                 <Button 
                   size="sm" 
-                  variant="ghost" 
+                  variant="secondary"
+                  className="bg-white/20 hover:bg-white/30 text-white border-0 self-start sm:self-auto"
                   onClick={() => navigateTo("/commissions")}
                   data-testid="button-view-all-commissions"
                 >
                   {t("Ver todas")}
                 </Button>
               </div>
-              <CardDescription className="text-xs">
-                {commissionStats ? (
-                  <>
-                    {t("Del")} {new Date(commissionStats.weekStartDate).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })} {t("al")} {new Date(commissionStats.weekEndDate).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })}
-                  </>
-                ) : (
-                  t("Cargando...")
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-                  <span className="text-xs text-muted-foreground font-medium">🚗 {t("Choferes")}</span>
-                  <span className="text-2xl font-bold" data-testid="text-drivers-total">
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="flex flex-col space-y-2 p-4 sm:p-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20">
+                      <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-blue-100 font-medium">{t("Choferes")}</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-bold text-white" data-testid="text-drivers-total">
                     {formatCurrency(commissionStats?.driversTotal || 0)}
                   </span>
                 </div>
-                <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
-                  <span className="text-xs text-muted-foreground font-medium">👤 {t("Ayudantes")}</span>
-                  <span className="text-2xl font-bold" data-testid="text-helpers-total">
+                
+                <div className="flex flex-col space-y-2 p-4 sm:p-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20">
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-blue-100 font-medium">{t("Ayudantes")}</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-bold text-white" data-testid="text-helpers-total">
                     {formatCurrency(commissionStats?.helpersTotal || 0)}
                   </span>
                 </div>
-                <div className="flex flex-col space-y-1 p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
-                  <span className="text-xs text-muted-foreground font-medium">💰 {t("Total")}</span>
-                  <span className="text-2xl font-bold" data-testid="text-week-total">
+                
+                <div className="flex flex-col space-y-2 p-4 sm:p-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all sm:col-span-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20">
+                      <BadgeDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-blue-100 font-medium">{t("Total Semanal")}</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-bold text-white" data-testid="text-week-total">
                     {formatCurrency(commissionStats?.weekTotal || 0)}
                   </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
           
           {/* Gráficos principales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
