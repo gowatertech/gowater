@@ -53,9 +53,10 @@ The dashboard features a real-time commission tracking widget that displays curr
 -   **Visual Feedback**: Gradient-styled cards for drivers (blue), helpers (green), and total (purple) earnings
 
 ### Automatic Invoice Generation & Dynamic Tax Calculation
-The system automatically creates invoices when orders are marked as delivered:
+The system automatically creates invoices when orders are marked as delivered, implementing robust concurrency control to guarantee exactly one invoice per delivered order:
+
+**Core Functionality:**
 -   **Trigger Condition**: Invoice creation occurs only when order status transitions from any non-delivered state to "delivered"
--   **Duplicate Prevention**: Guards prevent multiple invoice creation if status is updated repeatedly
 -   **Dynamic Tax (ITBIS) Calculation**: 
     -   Tax rate is dynamically read from `company_settings.tax` (e.g., 0.18 for 18%)
     -   Subtotal is calculated by summing all order items
@@ -64,17 +65,45 @@ The system automatically creates invoices when orders are marked as delivered:
     -   All three values (subtotal, tax, total) are stored in the invoice for transparency and auditing
 -   **Data Replication**: Invoice inherits customer_id, payment_method, and date from the order
 -   **Item Copying**: All order items are copied to invoice_items with their product_id, quantity, price, and total
--   **Sequential Numbering**: Invoice numbers are generated using company-specific MAX+1 logic
+-   **Sequential Numbering**: Invoice numbers are generated using company-specific MAX+1 logic within a transaction
     -   Database constraint: UNIQUE (company_id, invoice_number) allows each company independent numbering
     -   Each company can have invoices numbered 1, 2, 3... without conflicts between companies
 -   **Automatic Payment for Cash Invoices**:
     -   When payment_method is 'cash', the system automatically creates a payment record and marks the invoice as 'paid'
-    -   Payment record includes invoice_id, customer_id, amount (total), and notes indicating automatic creation
-    -   Applies to both manual invoice creation (POST /api/invoices) and automatic creation (from delivered orders)
-    -   Error-isolated: Payment creation failures don't prevent invoice creation
--   **Error Isolation**: Invoice creation errors are logged but do not prevent order status updates
+    -   Payment record includes invoice_id, customer_id, amount (total), and notes: "Pago automático en efectivo - Factura #[invoice_number] - Pedido #[order_id]"
+    -   For credit/transfer payment methods, invoice status is set to 'pending' without creating a payment record
+    -   All operations are part of the same atomic transaction
+
+**Concurrency Safety (Production-Ready):**
+-   **Database Transactions**: All operations (order update, invoice creation, item copying, payment creation) are wrapped in a single BEGIN/COMMIT/ROLLBACK transaction for atomicity
+-   **Row-Level Locking**: Uses `SELECT ... FOR UPDATE` to lock the order row before reading its status, ensuring the previous status is captured atomically
+-   **Duplicate Prevention**: 
+    -   Early exit if order is already delivered (prevents double invoice creation)
+    -   Checks for existing invoice using exact note matching: `notes = 'Factura generada automáticamente para pedido #[order_id]'`
+    -   If duplicate found, commits transaction without creating new invoice
+-   **Atomic Invoice Numbering**: 
+    -   Uses `LOCK TABLE invoices IN EXCLUSIVE MODE` within the transaction to serialize invoice number generation
+    -   Prevents concurrent requests from generating duplicate invoice numbers
+    -   Note: Table-wide lock may throttle throughput under high load; future optimization could use per-company sequences
+-   **Rollback on Error**: Any error during the process triggers automatic rollback, ensuring no partial data is committed
+
+**Implementation Details:**
+-   **Primary Endpoint**: POST /api/update-order-status in server/routes/update-order-status.ts
+-   **Transaction Flow**:
+    1. BEGIN transaction and acquire database client from connection pool
+    2. SELECT ... FOR UPDATE to lock order and capture previous status atomically
+    3. Verify order not already delivered (exit early if so)
+    4. UPDATE order status to "delivered"
+    5. Check for existing invoice (exact note match)
+    6. Calculate subtotal, tax, and total from order items
+    7. LOCK TABLE invoices to serialize numbering
+    8. Generate next invoice number using MAX() + 1
+    9. INSERT new invoice record
+    10. INSERT all invoice items (copying from order items)
+    11. If cash: INSERT automatic payment record
+    12. COMMIT transaction (or ROLLBACK on any error)
 -   **Legacy Data Handling**: Frontend includes robust fallbacks (`|| "0"`) to handle invoices created before subtotal/tax fields were added
--   **Implementation**: Located in PATCH /api/orders/:orderId/status endpoint in server/routes/orders.ts and POST /api/invoices in server/routes.ts
+-   **Known Limitations**: Table-wide EXCLUSIVE lock for invoice numbering may impact performance under high concurrent load; recommended future optimization is per-company sequence or GENERATED BY IDENTITY column
 
 ## External Dependencies
 
