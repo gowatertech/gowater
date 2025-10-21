@@ -52,6 +52,16 @@ The dashboard features a real-time commission tracking widget that displays curr
 -   **Real-Time Updates**: Automatically refreshes every 30 seconds with commission totals
 -   **Visual Feedback**: Gradient-styled cards for drivers (blue), helpers (green), and total (purple) earnings
 
+### Automatic Invoice Generation
+The system automatically creates invoices when orders are marked as delivered:
+-   **Trigger Condition**: Invoice creation occurs only when order status transitions from any non-delivered state to "delivered"
+-   **Duplicate Prevention**: Guards prevent multiple invoice creation if status is updated repeatedly
+-   **Data Replication**: Invoice inherits customer_id, total, payment_method, and date from the order
+-   **Item Copying**: All order items are copied to invoice_items with their product_id, quantity, price, and total
+-   **Sequential Numbering**: Invoice numbers are generated using company-specific MAX+1 logic
+-   **Error Isolation**: Invoice creation errors are logged but do not prevent order status updates
+-   **Implementation**: Located in PATCH /api/orders/:orderId/status endpoint in server/routes/orders.ts
+
 ## External Dependencies
 
 ### Core Infrastructure
