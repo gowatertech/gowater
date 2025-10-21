@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, decimal, boolean, unique } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
@@ -512,7 +512,7 @@ export const insertWarehouseSchema = z.object({
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(), // Añadido companyId
-  invoiceNumber: serial("invoice_number").unique(),
+  invoiceNumber: integer("invoice_number").notNull(),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
@@ -521,7 +521,10 @@ export const invoices = pgTable("invoices", {
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
   notes: text("notes"),
-});
+}, (table) => ({
+  // Restricción unique compuesta: cada compañía tiene su propia numeración
+  uniqueInvoiceNumber: unique().on(table.companyId, table.invoiceNumber),
+}));
 
 // Invoice Items (Items de Factura)
 export const invoiceItems = pgTable("invoice_items", {
