@@ -285,51 +285,63 @@ export default function NewOrder() {
             
             <div className="grid grid-cols-1 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Buscar Cliente</label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    data-testid="input-customer-search"
-                    type="text"
-                    placeholder="Buscar por nombre o teléfono..."
-                    value={customerSearchTerm}
-                    onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                    className="h-9 pl-8 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
                 <Select
                   value={selectedCustomer?.id?.toString() || ""}
                   onValueChange={(value) => {
                     const customer = customers.find((c: any) => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
+                    setCustomerSearchTerm("");
                   }}
                 >
                   <SelectTrigger data-testid="select-customer" className="h-9 text-sm w-full">
-                    <SelectValue placeholder="Seleccionar Cliente" />
+                    <SelectValue placeholder="Buscar y seleccionar cliente...">
+                      {selectedCustomer ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{selectedCustomer.businessname}</span>
+                          <span className="text-xs text-muted-foreground">• {selectedCustomer.phone}</span>
+                        </div>
+                      ) : (
+                        "Buscar y seleccionar cliente..."
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredCustomers.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        No se encontraron clientes
+                    <div className="p-2 border-b sticky top-0 bg-background">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          data-testid="input-customer-search"
+                          type="text"
+                          placeholder="Buscar por nombre o teléfono..."
+                          value={customerSearchTerm}
+                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                          className="h-8 pl-8 text-sm"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
                       </div>
-                    ) : (
-                      filteredCustomers.map((customer: any) => (
-                        <SelectItem
-                          key={customer.id}
-                          value={customer.id.toString()}
-                          className="text-sm"
-                        >
-                          <div className="flex flex-col">
-                            <span>{customer.businessname}</span>
-                            <span className="text-xs text-muted-foreground">{customer.phone}</span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {filteredCustomers.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground text-center">
+                          No se encontraron clientes
+                        </div>
+                      ) : (
+                        filteredCustomers.map((customer: any) => (
+                          <SelectItem
+                            key={customer.id}
+                            value={customer.id.toString()}
+                            className="text-sm cursor-pointer"
+                          >
+                            <div className="flex flex-col py-1">
+                              <span className="font-medium">{customer.businessname}</span>
+                              <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </div>
                   </SelectContent>
                 </Select>
               </div>
