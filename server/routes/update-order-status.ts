@@ -253,9 +253,9 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
             
             const createPaymentQuery = `
               INSERT INTO payments (
-                company_id, invoice_id, customer_id, amount, date, notes
+                company_id, invoice_id, customer_id, amount, payment_method, date, notes
               )
-              VALUES ($1, $2, $3, $4, NOW(), $5)
+              VALUES ($1, $2, $3, $4, $5, NOW(), $6)
               RETURNING *
             `;
             
@@ -264,7 +264,8 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
               createdInvoice.id,
               updatedOrder.customer_id,
               total.toFixed(2),
-              `Pago automático en efectivo - Factura #${createdInvoice.invoice_number}`
+              updatedOrder.payment_method, // Incluir el método de pago
+              `Pago automático en efectivo - Factura #${createdInvoice.invoice_number} - Pedido #${orderIdNum}`
             ]);
             
             console.log(`✅ Pago automático creado con ID ${paymentResult.rows[0].id} por monto ${paymentResult.rows[0].amount}`);
