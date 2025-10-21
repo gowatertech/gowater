@@ -1005,15 +1005,38 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         // Si el método de pago es efectivo, crear automáticamente el registro de pago
         if (updatedOrder.payment_method === 'cash') {
           console.log(`💵 Creando pago automático en efectivo para factura #${invoice.id}`);
+          console.log(`📋 Datos de factura para pago:`, { 
+            invoice_id: invoice.id, 
+            invoice_number: invoice.invoice_number,
+            customer_id: updatedOrder.customer_id,
+            amount: total.toFixed(2)
+          });
           
           try {
+            // Verificar que invoice.invoice_number existe
+            if (!invoice.invoice_number) {
+              console.error(`⚠️ ADVERTENCIA: invoice.invoice_number está undefined o null`, invoice);
+            }
+            
+            const paymentNotes = `Pago automático en efectivo - Factura #${invoice.invoice_number || 'N/A'}`;
+            console.log(`📝 Notes para pago: "${paymentNotes}" (longitud: ${paymentNotes.length})`);
+            
             const createPaymentQuery = `
               INSERT INTO payments (
                 company_id, invoice_id, customer_id, amount, payment_method, date, notes
               )
-              VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+              VALUES ($1, $2, $3, $4, $5, NOW(), $6::text)
               RETURNING *
             `;
+            
+            console.log(`🔧 Parámetros del pago:`, [
+              companyId,
+              invoice.id,
+              updatedOrder.customer_id,
+              total.toFixed(2),
+              'cash',
+              paymentNotes
+            ]);
             
             const paymentResult = await pool.query(createPaymentQuery, [
               companyId,
@@ -1021,13 +1044,15 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
               updatedOrder.customer_id,
               total.toFixed(2),
               'cash',
-              `Pago automático en efectivo - Factura #${invoice.invoice_number}`
+              paymentNotes
             ]);
             
             const payment = paymentResult.rows[0];
             console.log(`✅ Pago automático #${payment.id} creado para factura #${invoice.id}`);
+            console.log(`✅ Notes del pago: "${payment.notes}" (longitud: ${payment.notes ? payment.notes.length : 0})`);
           } catch (paymentError) {
             console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
+            console.error(`Error stack:`, paymentError.stack);
             // No fallar la creación de la factura si falla el pago
           }
         }
