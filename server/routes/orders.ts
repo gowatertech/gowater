@@ -913,6 +913,36 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
       console.log(`📄 Creando factura automáticamente para pedido ${orderId}...`);
       
       try {
+        // Obtener la configuración de impuestos de la compañía
+        const settingsQuery = `
+          SELECT tax FROM company_settings 
+          WHERE company_id = $1
+        `;
+        const settingsResult = await pool.query(settingsQuery, [companyId]);
+        const taxRate = settingsResult.rows[0]?.tax ? parseFloat(settingsResult.rows[0].tax) / 100 : 0;
+        
+        console.log(`📊 Tasa de impuesto de la compañía: ${taxRate * 100}%`);
+        
+        // Obtener los items del pedido para calcular el subtotal
+        const orderItemsQuery = `
+          SELECT * FROM order_items 
+          WHERE order_id = $1 AND company_id = $2
+        `;
+        const orderItemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
+        
+        // Calcular subtotal (suma de todos los items)
+        const subtotal = orderItemsResult.rows.reduce((sum, item) => {
+          return sum + parseFloat(item.total);
+        }, 0);
+        
+        // Calcular impuesto
+        const tax = subtotal * taxRate;
+        
+        // Calcular total
+        const total = subtotal + tax;
+        
+        console.log(`💰 Cálculos: Subtotal=${subtotal.toFixed(2)}, Impuesto=${tax.toFixed(2)}, Total=${total.toFixed(2)}`);
+        
         // Obtener el siguiente número de factura para esta compañía
         const maxInvoiceQuery = `
           SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
@@ -922,20 +952,22 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
         const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
         
-        // Crear la factura
+        // Crear la factura con subtotal, tax y total
         const createInvoiceQuery = `
           INSERT INTO invoices (
-            company_id, customer_id, total, status, payment_method, 
+            company_id, customer_id, subtotal, tax, total, status, payment_method, 
             date, invoice_number, notes
           )
-          VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
           RETURNING *
         `;
         
         const invoiceResult = await pool.query(createInvoiceQuery, [
           companyId,
           updatedOrder.customer_id,
-          updatedOrder.total,
+          subtotal.toFixed(2),
+          tax.toFixed(2),
+          total.toFixed(2),
           'pending', // La factura empieza como pendiente de pago
           updatedOrder.payment_method,
           nextInvoiceNumber,
@@ -945,14 +977,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         const invoice = invoiceResult.rows[0];
         console.log(`✅ Factura #${invoice.id} (número ${invoice.invoice_number}) creada`);
         
-        // Copiar los items del pedido a la factura
-        const orderItemsQuery = `
-          SELECT * FROM order_items 
-          WHERE order_id = $1 AND company_id = $2
-        `;
-        const orderItemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
-        
-        // Insertar cada item en la factura
+        // Copiar los items del pedido a la factura (ya los tenemos de la consulta anterior)
         for (const item of orderItemsResult.rows) {
           const createInvoiceItemQuery = `
             INSERT INTO invoice_items (
