@@ -106,6 +106,16 @@ export default function NewOrder() {
     }
   });
 
+  const { data: settings, isLoading: isLoadingSettings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      return apiRequest({
+        method: "GET",
+        url: "/api/settings"
+      });
+    }
+  });
+
   // Filtrar clientes según el término de búsqueda
   const filteredCustomers = customers.filter((customer: any) => {
     if (!customerSearchTerm) return true;
@@ -156,7 +166,9 @@ export default function NewOrder() {
 
   const calculateTotal = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax = subtotal * 0.18; // 18% ITBIS
+    // Obtener el porcentaje de ITBIS desde la configuración de la empresa
+    const taxRate = settings?.tax ? parseFloat(settings.tax) / 100 : 0;
+    const tax = subtotal * taxRate;
     return { subtotal, tax, total: subtotal + tax };
   };
 
@@ -176,7 +188,9 @@ export default function NewOrder() {
         const itemTotal = parseFloat((item.total || 0).toFixed(2));
         return parseFloat((sum + itemTotal).toFixed(2));
       }, 0);
-      const tax = parseFloat((subtotal * 0.18).toFixed(2));
+      // Obtener el porcentaje de ITBIS desde la configuración de la empresa
+      const taxRate = settings?.tax ? parseFloat(settings.tax) / 100 : 0;
+      const tax = parseFloat((subtotal * taxRate).toFixed(2));
       const total = parseFloat((subtotal + tax).toFixed(2));
 
       // 3. Preparar datos del pedido con los items incluidos
@@ -265,6 +279,15 @@ export default function NewOrder() {
         variant: "destructive",
         title: "Error",
         description: "Debe agregar al menos un producto"
+      });
+      return;
+    }
+
+    if (!settings || settings.tax === undefined) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se puede crear el pedido. La configuración de ITBIS no está disponible."
       });
       return;
     }
@@ -593,7 +616,7 @@ export default function NewOrder() {
                 <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>ITBIS (18%):</span>
+                <span>ITBIS ({settings?.tax ? parseFloat(settings.tax).toFixed(0) : '0'}%):</span>
                 <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
               </div>
               <Separator className="my-1" />
@@ -616,13 +639,15 @@ export default function NewOrder() {
             <Button
               className="w-full sm:w-auto"
               onClick={handleCreateOrder}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || isLoadingSettings || !settings || settings.tax === undefined}
             >
               {createMutation.isPending ? (
                 <>
                   <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
                   Creando...
                 </>
+              ) : isLoadingSettings ? (
+                "Cargando configuración..."
               ) : (
                 "Crear Pedido"
               )}
