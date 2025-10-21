@@ -71,7 +71,7 @@ const SimpleCommissionGenerator = () => {
       }
       
       console.log('Respuesta recibida:', result);
-      setSuccess(`Se han generado ${result.commissions?.length || 0} comisiones correctamente`);
+      setSuccess(`Se han oficializado ${result.commissions?.length || 0} comisiones correctamente. Ahora están disponibles para pago.`);
       
       // Redireccionar después de un tiempo
       setTimeout(() => {
@@ -91,9 +91,9 @@ const SimpleCommissionGenerator = () => {
       <div className="rounded-lg border bg-card shadow-sm">
         <div className="p-6 sm:p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold sm:text-3xl">Generar Comisiones</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Oficializar Comisiones</h1>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Complete el formulario para calcular las comisiones de choferes y ayudantes
+              Complete el formulario para oficializar las comisiones calculadas y marcarlas como pagables
             </p>
           </div>
           
@@ -187,7 +187,7 @@ const SimpleCommissionGenerator = () => {
                 className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 data-testid="button-submit"
               >
-                {loading ? 'Procesando...' : 'Generar Comisiones'}
+                {loading ? 'Oficializando...' : 'Oficializar Comisiones'}
               </button>
             </div>
           </form>
