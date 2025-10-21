@@ -2887,27 +2887,38 @@ export async function registerRoutes(router: express.Router) {
           )
         );
         
-      // Consulta para obtener ventas diarias (todas, no solo de hoy)
+      // Consulta para obtener ventas diarias (pedidos entregados de hoy)
       const dailySales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
-        .from(invoices)
+        .from(orders)
         .where(
-          eq(invoices.companyId, companyId)
+          and(
+            eq(orders.companyId, companyId),
+            eq(orders.status, "delivered"),
+            sql`DATE(date) = CURRENT_DATE`
+          )
         );
         
-      console.log("Total ventas diarias (sin filtro de fecha):", dailySales);
+      console.log("Total ventas diarias (pedidos entregados hoy):", dailySales);
         
-      // Consulta para obtener tendencia de ventas (sin límite de 7 días)
+      // Consulta para obtener tendencia de ventas (últimos 7 días de pedidos entregados)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
       const weeklyTrend = await db
         .select({
           day: sql`DATE(date)`,
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
-        .from(invoices)
+        .from(orders)
         .where(
-          eq(invoices.companyId, companyId)
+          and(
+            eq(orders.companyId, companyId),
+            eq(orders.status, "delivered"),
+            sql`date >= ${sevenDaysAgo.toISOString()}`
+          )
         )
         .groupBy(sql`DATE(date)`)
         .orderBy(sql`DATE(date)`);
