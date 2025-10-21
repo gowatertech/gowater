@@ -399,12 +399,14 @@ app.use((req, res, next) => {
     // Montamos los routers en sus respectivas rutas DESPUÉS de registrar las rutas
     app.use("/api/platform", platformApiRouter);
     app.use("/api/geo", geoDataApiRouter);
-    app.use("/api", companyApiRouter);
-    log("All routers mounted successfully");
     
-    // Usar el router de órdenes personalizado con el middleware consolidado
+    // IMPORTANTE: Montar ordersRouter ANTES de companyApiRouter para que tenga prioridad
+    // en rutas como /api/orders/... ya que ambos responden a paths que comienzan con /api
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
+    
+    app.use("/api", companyApiRouter);
+    log("All routers mounted successfully");
     
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
