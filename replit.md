@@ -44,6 +44,14 @@ Adheres to **WCAG 2.1** guidelines, including `aria-label` for icon-only buttons
 ### UI/UX Design Approach
 Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience across all devices, including mobile-first redesigns for key pages like Users, Customers, Bottle Returns, Routes, Vehicle Loading, and Recurring Orders. A comprehensive user manual with intelligent search and PDF export functionality is also integrated.
 
+### Dashboard Commission Widget
+The dashboard features a real-time commission tracking widget that displays current week earnings (Monday-Sunday) for drivers and helpers. Key improvements include:
+-   **Always-Visible Design**: Widget renders even when data is loading or unavailable, showing default values (RD$0.00)
+-   **Robust Error Handling**: Enhanced queryClient with JSON parsing error handling and empty response detection
+-   **Guaranteed JSON Responses**: Backend endpoint always returns valid JSON with explicit Content-Type headers and numeric type coercion
+-   **Real-Time Updates**: Automatically refreshes every 30 seconds with commission totals
+-   **Visual Feedback**: Gradient-styled cards for drivers (blue), helpers (green), and total (purple) earnings
+
 ## External Dependencies
 
 ### Core Infrastructure

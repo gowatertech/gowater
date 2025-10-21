@@ -6,7 +6,7 @@ import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from './company-db';
-import { eq, and, sql, inArray, desc } from 'drizzle-orm';
+import { eq, and, sql, inArray, desc, gte, lte } from 'drizzle-orm';
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { Resend } from 'resend';
@@ -3178,8 +3178,8 @@ export async function registerRoutes(router: express.Router) {
           and(
             eq(commissions.companyId, companyId),
             eq(commissions.userRole, 'driver'),
-            sql`${commissions.weekStartDate} >= ${weekStart}`,
-            sql`${commissions.weekStartDate} <= ${weekEnd}`
+            gte(commissions.weekStartDate, weekStart),
+            lte(commissions.weekStartDate, weekEnd)
           )
         );
       
@@ -3193,24 +3193,25 @@ export async function registerRoutes(router: express.Router) {
           and(
             eq(commissions.companyId, companyId),
             eq(commissions.userRole, 'helper'),
-            sql`${commissions.weekStartDate} >= ${weekStart}`,
-            sql`${commissions.weekStartDate} <= ${weekEnd}`
+            gte(commissions.weekStartDate, weekStart),
+            lte(commissions.weekStartDate, weekEnd)
           )
         );
       
-      const driversTotal = driversCommissions[0]?.total || 0;
-      const helpersTotal = helpersCommissions[0]?.total || 0;
+      const driversTotal = Number(driversCommissions[0]?.total) || 0;
+      const helpersTotal = Number(helpersCommissions[0]?.total) || 0;
+      const weekTotal = Number(driversTotal) + Number(helpersTotal);
       
       const stats = {
-        driversTotal,
-        helpersTotal,
-        weekTotal: driversTotal + helpersTotal,
+        driversTotal: Number(driversTotal),
+        helpersTotal: Number(helpersTotal),
+        weekTotal: Number(weekTotal),
         weekStartDate: weekStart.toISOString(),
         weekEndDate: weekEnd.toISOString(),
       };
       
       console.log(`Estadísticas de comisiones:`, stats);
-      res.json(stats);
+      res.type("application/json").status(200).json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas de comisiones:", error);
       res.status(500).json({ error: String(error) });

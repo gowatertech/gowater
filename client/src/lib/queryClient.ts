@@ -133,9 +133,23 @@ export const getQueryFn: <T>(options: {
       }
 
       await throwIfResNotOk(res);
-      const data = await res.json();
-      console.log(`Data received from ${fullUrl}:`, data);
-      return data;
+      
+      // Handle empty responses
+      const contentLength = res.headers.get('content-length');
+      if (res.status === 204 || contentLength === '0') {
+        console.log(`Empty response from ${fullUrl}, returning null`);
+        return null;
+      }
+      
+      // Parse JSON with error handling
+      try {
+        const data = await res.json();
+        console.log(`Data received from ${fullUrl}:`, data);
+        return data;
+      } catch (parseError) {
+        console.error(`JSON parse error for ${fullUrl}:`, parseError);
+        throw new Error(`Invalid JSON from ${fullUrl}: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      }
     } catch (error) {
       console.error(`Query Error (${fullUrl}):`, error);
       throw error;
