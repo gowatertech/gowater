@@ -67,9 +67,14 @@ The system automatically creates invoices when orders are marked as delivered:
 -   **Sequential Numbering**: Invoice numbers are generated using company-specific MAX+1 logic
     -   Database constraint: UNIQUE (company_id, invoice_number) allows each company independent numbering
     -   Each company can have invoices numbered 1, 2, 3... without conflicts between companies
+-   **Automatic Payment for Cash Invoices**:
+    -   When payment_method is 'cash', the system automatically creates a payment record and marks the invoice as 'paid'
+    -   Payment record includes invoice_id, customer_id, amount (total), and notes indicating automatic creation
+    -   Applies to both manual invoice creation (POST /api/invoices) and automatic creation (from delivered orders)
+    -   Error-isolated: Payment creation failures don't prevent invoice creation
 -   **Error Isolation**: Invoice creation errors are logged but do not prevent order status updates
 -   **Legacy Data Handling**: Frontend includes robust fallbacks (`|| "0"`) to handle invoices created before subtotal/tax fields were added
--   **Implementation**: Located in PATCH /api/orders/:orderId/status endpoint in server/routes/orders.ts
+-   **Implementation**: Located in PATCH /api/orders/:orderId/status endpoint in server/routes/orders.ts and POST /api/invoices in server/routes.ts
 
 ## External Dependencies
 
