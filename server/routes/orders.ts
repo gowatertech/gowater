@@ -952,6 +952,10 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
         const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
         
+        // Determinar el status inicial basado en el método de pago
+        // Si es efectivo, la factura se marca como pagada automáticamente
+        const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
+        
         // Crear la factura con subtotal, tax y total
         const createInvoiceQuery = `
           INSERT INTO invoices (
@@ -968,14 +972,14 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           subtotal.toFixed(2),
           tax.toFixed(2),
           total.toFixed(2),
-          'pending', // La factura empieza como pendiente de pago
+          invoiceStatus, // Usar el status determinado según el método de pago
           updatedOrder.payment_method,
           nextInvoiceNumber,
           `Generada automáticamente desde pedido #${orderId}`
         ]);
         
         const invoice = invoiceResult.rows[0];
-        console.log(`✅ Factura #${invoice.id} (número ${invoice.invoice_number}) creada`);
+        console.log(`✅ Factura #${invoice.id} (número ${invoice.invoice_number}) creada con status: ${invoiceStatus}`);
         
         // Copiar los items del pedido a la factura (ya los tenemos de la consulta anterior)
         for (const item of orderItemsResult.rows) {
@@ -997,6 +1001,36 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         }
         
         console.log(`✅ ${orderItemsResult.rows.length} items copiados a la factura #${invoice.id}`);
+        
+        // Si el método de pago es efectivo, crear automáticamente el registro de pago
+        if (updatedOrder.payment_method === 'cash') {
+          console.log(`💵 Creando pago automático en efectivo para factura #${invoice.id}`);
+          
+          try {
+            const createPaymentQuery = `
+              INSERT INTO payments (
+                company_id, invoice_id, customer_id, amount, payment_method, date, notes
+              )
+              VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+              RETURNING *
+            `;
+            
+            const paymentResult = await pool.query(createPaymentQuery, [
+              companyId,
+              invoice.id,
+              updatedOrder.customer_id,
+              total.toFixed(2),
+              'cash',
+              `Pago automático en efectivo - Factura #${invoice.invoice_number}`
+            ]);
+            
+            const payment = paymentResult.rows[0];
+            console.log(`✅ Pago automático #${payment.id} creado para factura #${invoice.id}`);
+          } catch (paymentError) {
+            console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
+            // No fallar la creación de la factura si falla el pago
+          }
+        }
         
       } catch (invoiceError) {
         console.error(`❌ Error al crear factura automática:`, invoiceError);
