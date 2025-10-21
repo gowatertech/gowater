@@ -2776,6 +2776,10 @@ export async function registerRoutes(router: express.Router) {
       const maxInvoiceNumber = maxInvoiceNumberResult[0]?.maxInvoiceNumber || 0;
       const nextInvoiceNumber = maxInvoiceNumber + 1;
 
+      // Determinar el status inicial de la factura
+      // Si es efectivo, marcarla como pagada automáticamente
+      const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
+
       // Crear la factura con el companyId del contexto
       const [invoice] = await db
         .insert(invoices)
@@ -2783,11 +2787,38 @@ export async function registerRoutes(router: express.Router) {
           ...result.data,
           companyId: companyId, // Asegurar que se guarda con el companyId correcto
           date: new Date(), // Aseguramos que tenga una fecha actual
-          invoiceNumber: nextInvoiceNumber // Usar el siguiente número de factura
+          invoiceNumber: nextInvoiceNumber, // Usar el siguiente número de factura
+          status: initialStatus // Usar el status determinado
         })
         .returning();
 
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
+
+      // Si es pago en efectivo, crear automáticamente el registro de pago
+      if (result.data.paymentMethod === 'cash') {
+        console.log(`💵 Creando pago automático en efectivo para factura #${invoice.id}`);
+        
+        try {
+          const [payment] = await db
+            .insert(payments)
+            .values({
+              companyId: companyId,
+              invoiceId: invoice.id,
+              customerId: invoice.customerId,
+              amount: invoice.total,
+              paymentMethod: 'cash',
+              date: new Date(),
+              notes: `Pago automático en efectivo al crear factura #${invoice.invoiceNumber}`
+            })
+            .returning();
+          
+          console.log(`✅ Pago automático #${payment.id} creado para factura #${invoice.id}`);
+        } catch (paymentError) {
+          console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
+          // No fallar la creación de la factura si falla el pago
+        }
+      }
+
       res.json(invoice);
     } catch (error) {
       console.error("Error al crear factura:", error);
