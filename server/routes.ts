@@ -2918,23 +2918,22 @@ export async function registerRoutes(router: express.Router) {
           )
         );
         
-      // Consulta para obtener ventas diarias (pedidos entregados de hoy)
+      // Consulta para obtener ventas diarias (facturas creadas hoy)
       const dailySales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
-        .from(orders)
+        .from(invoices)
         .where(
           and(
-            eq(orders.companyId, companyId),
-            eq(orders.status, "delivered"),
+            eq(invoices.companyId, companyId),
             sql`DATE(date) = CURRENT_DATE`
           )
         );
         
-      console.log("Total ventas diarias (pedidos entregados hoy):", dailySales);
+      console.log("Total ventas diarias (facturas creadas hoy):", dailySales);
         
-      // Consulta para obtener tendencia de ventas (últimos 7 días de pedidos entregados)
+      // Consulta para obtener tendencia de ventas (últimos 7 días de facturas)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
@@ -2943,18 +2942,17 @@ export async function registerRoutes(router: express.Router) {
           day: sql`DATE(date)`,
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
-        .from(orders)
+        .from(invoices)
         .where(
           and(
-            eq(orders.companyId, companyId),
-            eq(orders.status, "delivered"),
+            eq(invoices.companyId, companyId),
             sql`date >= ${sevenDaysAgo.toISOString()}`
           )
         )
         .groupBy(sql`DATE(date)`)
         .orderBy(sql`DATE(date)`);
         
-      console.log("Tendencia de ventas (sin filtro de 7 días):", weeklyTrend);
+      console.log("Tendencia de ventas (últimos 7 días de facturas):", weeklyTrend);
 
       const stats = {
         totalSales: totalSales[0]?.total || 0,
