@@ -2,7 +2,7 @@ import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
 import { 
   orders, invoices, invoiceItems, payments, orderItems,
-  routes, vehicleLoading, customers,
+  routes, vehicleLoading, customers, settings,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -462,16 +462,34 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Orden ${orderId} actualizada a estado 'delivered'`);
       
-      // 3. Crear la factura para esta orden
+      // 3. Obtener la configuración de la empresa para el cálculo de impuestos
+      const [companySettings] = await companyDb
+        .select()
+        .from(settings)
+        .where(eq(settings.companyId, companyId))
+        .limit(1);
+      
+      // Calcular la tasa de impuesto (convertir de porcentaje a decimal)
+      const taxRate = companySettings?.tax ? parseFloat(companySettings.tax.toString()) / 100 : 0;
+      
+      // 4. Crear la factura para esta orden
       const today = new Date();
       
       // Preparar datos para la factura según el esquema de validación
-      // Asegurarnos de que el total tenga exactamente 2 decimales
-      const formattedTotal = parseFloat(order.total).toFixed(2);
+      // Calcular subtotal, tax y total con exactamente 2 decimales
+      const totalAmount = parseFloat(order.total);
+      const subtotalAmount = totalAmount / (1 + taxRate); // Subtotal sin impuesto
+      const taxAmount = totalAmount - subtotalAmount; // Monto del impuesto
+      
+      const formattedSubtotal = subtotalAmount.toFixed(2);
+      const formattedTax = taxAmount.toFixed(2);
+      const formattedTotal = totalAmount.toFixed(2);
       
       const invoiceData = {
         customerId: order.customerId,
         companyId: companyId, // Agregar companyId para el multitenant
+        subtotal: formattedSubtotal,
+        tax: formattedTax,
         total: formattedTotal,
         status: paymentMethod === 'credit' ? 'pending' : 'paid',
         paymentMethod: paymentMethod,
