@@ -1291,12 +1291,12 @@ export default function Customers() {
                   {isEditing ? 'Editar Cliente' : 'Detalles del Cliente'}
                 </CardTitle>
                 {!isEditing ? (
-                  <Button onClick={handleEditClick} variant="outline" size="sm" className="h-7 text-xs">
+                  <Button onClick={handleEditClick} variant="outline" size="sm" className="h-7 text-xs" data-testid="button-edit-customer">
                     <Edit className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline">Editar</span>
                   </Button>
                 ) : (
-                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm" className="h-7 text-xs">
+                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm" className="h-7 text-xs" data-testid="button-cancel-edit">
                     <X className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline">Cancelar</span>
                   </Button>
@@ -1306,6 +1306,7 @@ export default function Customers() {
                 {isEditing ? 'Modifique la información del cliente según sea necesario' : 'Información detallada del cliente'}
               </CardDescription>
             </CardHeader>
+            <ScrollArea className="h-[calc(100vh-280px)]">
             <CardContent className="px-0 pb-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
@@ -1711,6 +1712,7 @@ export default function Customers() {
                   type="submit"
                   className="w-full"
                   disabled={updateMutation.isPending}
+                  data-testid="button-save-changes"
                 >
                   {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
@@ -1718,6 +1720,7 @@ export default function Customers() {
             </form>
           </Form>
           </CardContent>
+            </ScrollArea>
           </Card>
         </TabsContent>
       </Tabs>
