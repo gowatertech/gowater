@@ -1306,8 +1306,9 @@ export default function Customers() {
                 {isEditing ? 'Modifique la información del cliente según sea necesario' : 'Información detallada del cliente'}
               </CardDescription>
             </CardHeader>
-            <ScrollArea className="h-[calc(100vh-280px)]">
-            <CardContent className="px-0 pb-0">
+            <CardContent className="px-0 pb-4">
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
@@ -1710,7 +1711,7 @@ export default function Customers() {
               {isEditing && (
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full mt-4"
                   disabled={updateMutation.isPending}
                   data-testid="button-save-changes"
                 >
@@ -1719,8 +1720,9 @@ export default function Customers() {
               )}
             </form>
           </Form>
+              </div>
+          </ScrollArea>
           </CardContent>
-            </ScrollArea>
           </Card>
         </TabsContent>
       </Tabs>
