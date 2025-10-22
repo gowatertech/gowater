@@ -1307,10 +1307,10 @@ export default function Customers() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 pb-4">
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="pr-4">
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                 <FormField
                   control={form.control}
@@ -1707,6 +1707,8 @@ export default function Customers() {
                   )}
                 />
               </div>
+              </div>
+          </ScrollArea>
 
               {isEditing && (
                 <Button
@@ -1720,8 +1722,6 @@ export default function Customers() {
               )}
             </form>
           </Form>
-              </div>
-          </ScrollArea>
           </CardContent>
           </Card>
         </TabsContent>
