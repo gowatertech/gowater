@@ -220,7 +220,7 @@ export default function NewOrder() {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2), // Formato exacto: "0.00"
         status: "pending" as const,
-        paymentMethod: paymentMethod as "cash" | "credit" | "card",
+        paymentMethod: paymentMethod as "cash" | "credit" | "card" | "donation",
         date: dateStr, // Formato ISO completo
         routeId: null,
         notes: notes || "",
