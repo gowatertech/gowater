@@ -1270,6 +1270,30 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="isCharity"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-1 flex flex-row items-start space-x-2 space-y-0 p-3 border rounded-md">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="checkbox-is-charity"
+                          />
+                        </FormControl>
+                        <div className="space-y-0.5 leading-none">
+                          <FormLabel className="text-xs font-medium">
+                            Institución Benéfica
+                          </FormLabel>
+                          <FormDescription className="text-[10px] text-muted-foreground">
+                            Marcar si recibe donaciones
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div className="flex justify-end mt-4 mb-4">
