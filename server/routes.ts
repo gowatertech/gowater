@@ -4181,7 +4181,7 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
         .where(eq(payments.companyId, companyId)) // Filtramos por companyId
-        .orderBy(payments.date);
+        .orderBy(desc(payments.date));
 
       console.log(`GET /api/payments - Retornando: ${allPayments.length} pagos para empresa ${companyId}`);
       res.json(allPayments);
