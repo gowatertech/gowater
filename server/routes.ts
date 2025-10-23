@@ -2669,7 +2669,8 @@ export async function registerRoutes(router: express.Router) {
       const result = await pool.query(`
         SELECT 
           id, invoice_number as "invoiceNumber", customer_id as "customerId",
-          total::text, status, payment_method as "paymentMethod",
+          subtotal::text, tax::text, total::text, 
+          status, payment_method as "paymentMethod",
           date, notes, company_id as "companyId"
         FROM invoices
         WHERE company_id = $1
