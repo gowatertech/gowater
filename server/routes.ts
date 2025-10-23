@@ -2794,43 +2794,38 @@ export async function registerRoutes(router: express.Router) {
       // Si es efectivo, marcarla como pagada automáticamente
       const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
 
-      // Convertir strings a números para evitar problemas con Drizzle
-      const subtotalNum = parseFloat(result.data.subtotal);
-      const taxNum = parseFloat(result.data.tax);
-      const totalNum = parseFloat(result.data.total);
+      // Usar SQL directo como en pedidos para evitar problemas con Drizzle y decimales
+      const { pool } = await import('./db');
       
-      console.log(`🔢 Conversión a números - subtotal: ${subtotalNum}, tax: ${taxNum}, total: ${totalNum}`);
-
-      // Preparar los valores a insertar
-      const [invoice] = await db
-        .insert(invoices)
-        .values({
-          companyId: companyId,
-          customerId: result.data.customerId,
-          subtotal: subtotalNum.toFixed(2),
-          tax: taxNum.toFixed(2),
-          total: totalNum.toFixed(2),
-          status: initialStatus,
-          paymentMethod: result.data.paymentMethod,
-          date: new Date(),
-          invoiceNumber: nextInvoiceNumber,
-          notes: result.data.notes || null
-        })
-        .returning();
+      const invoiceQuery = `
+        INSERT INTO invoices (
+          company_id, invoice_number, customer_id, subtotal, tax, total,
+          status, payment_method, date, notes
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+        ) RETURNING *
+      `;
+      
+      const invoiceParams = [
+        companyId,
+        nextInvoiceNumber,
+        result.data.customerId,
+        result.data.subtotal,
+        result.data.tax,
+        result.data.total,
+        initialStatus,
+        result.data.paymentMethod,
+        new Date().toISOString(),
+        result.data.notes || null
+      ];
+      
+      console.log(`💾 Insertando factura con SQL directo - total: "${result.data.total}"`);
+      
+      const invoiceResult = await pool.query(invoiceQuery, invoiceParams);
+      const invoice = invoiceResult.rows[0];
 
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
       console.log(`✅ Total guardado en factura: "${invoice.total}"`);
-      
-      // Verificar inmediatamente en la BD con filtro de companyId
-      const [verificacion] = await db
-        .select()
-        .from(invoices)
-        .where(and(
-          eq(invoices.id, invoice.id),
-          eq(invoices.companyId, companyId)
-        ))
-        .limit(1);
-      console.log(`🔍 Verificación inmediata en BD (con companyId=${companyId}) - Total: "${verificacion.total}"`);
 
       // Si es pago en efectivo, crear automáticamente el registro de pago
       if (result.data.paymentMethod === 'cash') {
