@@ -110,7 +110,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     
     // Query para obtener la orden
     const orderQuery = `
-      SELECT o.*, c.businessname as customer_name, c.phone as customer_phone 
+      SELECT o.*, c.businessname as customer_name, c.phone as customer_phone, c.is_charity
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = $1 AND o.company_id = $2
@@ -170,6 +170,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       customerName: order.customer_name,
       customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
+      customerIsCharity: order.is_charity || false,
       routeId: order.route_id,
       total: order.total,
       status: order.status,
