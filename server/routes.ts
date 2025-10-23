@@ -2224,6 +2224,7 @@ export async function registerRoutes(router: express.Router) {
           municipalityid: customers.municipalityid,
           reference: customers.reference,
           coordinates: customers.coordinates,
+          isCharity: customers.isCharity,
           companyId: customers.companyId,
         })
         .from(customers)
@@ -2297,6 +2298,7 @@ export async function registerRoutes(router: express.Router) {
           municipalityid: customers.municipalityid,
           reference: customers.reference,
           coordinates: customers.coordinates,
+          isCharity: customers.isCharity,
           balance: customers.balance,
           provinceName: provinces.name,
           municipalityName: municipalities.name,
