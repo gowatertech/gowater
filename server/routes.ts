@@ -2794,16 +2794,22 @@ export async function registerRoutes(router: express.Router) {
       // Si es efectivo, marcarla como pagada automáticamente
       const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
 
-      // Preparar los valores a insertar usando SQL para los decimales
-      // Esto fuerza a PostgreSQL a manejar la conversión correctamente
+      // Convertir strings a números para evitar problemas con Drizzle
+      const subtotalNum = parseFloat(result.data.subtotal);
+      const taxNum = parseFloat(result.data.tax);
+      const totalNum = parseFloat(result.data.total);
+      
+      console.log(`🔢 Conversión a números - subtotal: ${subtotalNum}, tax: ${taxNum}, total: ${totalNum}`);
+
+      // Preparar los valores a insertar
       const [invoice] = await db
         .insert(invoices)
         .values({
           companyId: companyId,
           customerId: result.data.customerId,
-          subtotal: sql`${result.data.subtotal}::decimal(10,2)`,
-          tax: sql`${result.data.tax}::decimal(10,2)`,
-          total: sql`${result.data.total}::decimal(10,2)`,
+          subtotal: subtotalNum.toFixed(2),
+          tax: taxNum.toFixed(2),
+          total: totalNum.toFixed(2),
           status: initialStatus,
           paymentMethod: result.data.paymentMethod,
           date: new Date(),
