@@ -2664,21 +2664,19 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/invoices - Obteniendo facturas para la empresa ${companyId}`);
       
-      const allInvoices = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          customerId: invoices.customerId,
-          total: invoices.total,
-          status: invoices.status,
-          paymentMethod: invoices.paymentMethod,
-          date: invoices.date,
-          notes: invoices.notes,
-          companyId: invoices.companyId
-        })
-        .from(invoices)
-        .where(eq(invoices.companyId, companyId)) // Filtrar por companyId
-        .orderBy(invoices.date);
+      // Usar SQL directo para evitar problemas con Drizzle y decimales
+      const { pool } = await import('./db');
+      const result = await pool.query(`
+        SELECT 
+          id, invoice_number as "invoiceNumber", customer_id as "customerId",
+          total::text, status, payment_method as "paymentMethod",
+          date, notes, company_id as "companyId"
+        FROM invoices
+        WHERE company_id = $1
+        ORDER BY date
+      `, [companyId]);
+      
+      const allInvoices = result.rows;
 
       console.log(`GET /api/invoices - Retornando ${allInvoices.length} facturas`);
       res.json(allInvoices);
@@ -2802,7 +2800,7 @@ export async function registerRoutes(router: express.Router) {
           company_id, invoice_number, customer_id, subtotal, tax, total,
           status, payment_method, date, notes
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+          $1, $2, $3, $4::numeric, $5::numeric, $6::numeric, $7, $8, $9, $10
         ) RETURNING *
       `;
       
