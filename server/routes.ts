@@ -2674,7 +2674,7 @@ export async function registerRoutes(router: express.Router) {
           date, notes, company_id as "companyId"
         FROM invoices
         WHERE company_id = $1
-        ORDER BY date DESC
+        ORDER BY invoice_number DESC
       `, [companyId]);
       
       const allInvoices = result.rows;
