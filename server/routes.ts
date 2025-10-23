@@ -2777,6 +2777,7 @@ export async function registerRoutes(router: express.Router) {
 
       console.log(`POST /api/invoices - Datos validados:`, result.data);
       console.log(`POST /api/invoices - Total a insertar: "${result.data.total}"`);
+      console.log(`POST /api/invoices - Tipo de total:`, typeof result.data.total);
 
       // Obtener el último número de factura para esta empresa
       const maxInvoiceNumberResult = await db
@@ -2793,28 +2794,37 @@ export async function registerRoutes(router: express.Router) {
       // Si es efectivo, marcarla como pagada automáticamente
       const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
 
+      // Preparar los valores a insertar
+      const valuesToInsert = {
+        ...result.data,
+        companyId: companyId, // Asegurar que se guarda con el companyId correcto
+        date: new Date(), // Aseguramos que tenga una fecha actual
+        invoiceNumber: nextInvoiceNumber, // Usar el siguiente número de factura
+        status: initialStatus // Usar el status determinado
+      };
+      
+      console.log(`POST /api/invoices - Valores a insertar:`, valuesToInsert);
+      console.log(`POST /api/invoices - Total en valuesToInsert: "${valuesToInsert.total}" (tipo: ${typeof valuesToInsert.total})`);
+
       // Crear la factura con el companyId del contexto
       const [invoice] = await db
         .insert(invoices)
-        .values({
-          ...result.data,
-          companyId: companyId, // Asegurar que se guarda con el companyId correcto
-          date: new Date(), // Aseguramos que tenga una fecha actual
-          invoiceNumber: nextInvoiceNumber, // Usar el siguiente número de factura
-          status: initialStatus // Usar el status determinado
-        })
+        .values(valuesToInsert)
         .returning();
 
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
       console.log(`✅ Total guardado en factura: "${invoice.total}"`);
       
-      // Verificar inmediatamente en la BD
+      // Verificar inmediatamente en la BD con filtro de companyId
       const [verificacion] = await db
         .select()
         .from(invoices)
-        .where(eq(invoices.id, invoice.id))
+        .where(and(
+          eq(invoices.id, invoice.id),
+          eq(invoices.companyId, companyId)
+        ))
         .limit(1);
-      console.log(`🔍 Verificación inmediata en BD - Total: "${verificacion.total}"`);
+      console.log(`🔍 Verificación inmediata en BD (con companyId=${companyId}) - Total: "${verificacion.total}"`);
 
       // Si es pago en efectivo, crear automáticamente el registro de pago
       if (result.data.paymentMethod === 'cash') {
