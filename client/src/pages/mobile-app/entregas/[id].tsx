@@ -104,7 +104,7 @@ export default function DeliveryDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProducts, setEditedProducts] = useState<{id: number; name: string; quantity: number; price: number}[]>([]);
   const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation">("cash");
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
   const [companySettings, setCompanySettings] = useState<any>(null);
@@ -208,6 +208,8 @@ export default function DeliveryDetails() {
         orderId: orderData.id,
         customerId: orderData.customerId,
         customerName: orderData.customerName,
+        customerIsCharity: orderData.customerIsCharity,
+        paymentMethod: orderData.paymentMethod,
         address: orderData.customerStreet || orderData.customerAddress || 'Dirección no disponible',
         status: orderData.status as "pending" | "in_progress" | "delivered" | "cancelled",
         scheduledTime: new Date(orderData.date).toLocaleTimeString('es-DO', {
@@ -413,14 +415,18 @@ export default function DeliveryDetails() {
   // Abrir diálogo de confirmación de entrega
   const openDeliveryConfirm = () => {
     if (delivery) {
-      // Establecer el método de pago en efectivo por defecto
-      setPaymentMethod("cash");
+      // Detectar si es una donación y setear método de pago apropiado
+      const isDonation = delivery.customerIsCharity && delivery.paymentMethod === 'donation';
+      setPaymentMethod(isDonation ? "donation" : "cash");
       setPaymentReceived(delivery.total);
       setUpdateCustomerBalance(true);
       setShowDeliveryConfirm(true);
       
       // Log para depuración
       console.log("Abriendo diálogo de confirmación, total a cobrar:", delivery.total);
+      if (isDonation) {
+        console.log("Este es un pedido de DONACIÓN");
+      }
     }
   };
 
@@ -429,10 +435,10 @@ export default function DeliveryDetails() {
     if (!delivery) return;
     
     // Validar que se haya seleccionado un método de pago
-    if (!paymentMethod || !["cash", "credit"].includes(paymentMethod)) {
+    if (!paymentMethod || !["cash", "credit", "donation"].includes(paymentMethod)) {
       toast({
         title: "Error",
-        description: "Debes seleccionar un método de pago válido (Efectivo o Crédito)",
+        description: "Debes seleccionar un método de pago válido",
         variant: "destructive"
       });
       return;
@@ -1229,46 +1235,63 @@ export default function DeliveryDetails() {
             </div>
 
             {/* Opciones de pago con iconos más grandes y mejor visualización */}
-            <div>
-              <Label className="text-md font-medium mb-3 block">Seleccione método de pago:</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod("cash");
-                    // Mantener el monto recibido como el total si es un valor válido
-                    if (!paymentReceived || paymentReceived < delivery.total) {
-                      setPaymentReceived(delivery.total);
-                    }
-                  }}
-                  variant={paymentMethod === "cash" ? "default" : "outline"}
-                  className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
-                    paymentMethod === "cash" ? "ring-2 ring-primary" : ""
-                  }`}
-                >
-                  <DollarSign className="h-8 w-8" />
-                  <span className="font-medium">Efectivo</span>
-                </Button>
-                
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod("credit");
-                    setPaymentReceived(delivery.total);
-                  }}
-                  variant={paymentMethod === "credit" ? "default" : "outline"}
-                  className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
-                    paymentMethod === "credit" ? "ring-2 ring-primary" : ""
-                  }`}
-                >
-                  <CreditCard className="h-8 w-8" />
-                  <span className="font-medium">Crédito</span>
-                </Button>
+            {delivery && delivery.customerIsCharity && delivery.paymentMethod === 'donation' ? (
+              /* Si es una donación, mostrar SOLO opción de Donación */
+              <div>
+                <Label className="text-md font-medium mb-3 block">Método de pago:</Label>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Package className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <span className="font-semibold text-lg text-amber-800 dark:text-amber-200">Donación</span>
+                  </div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                    Este pedido es una donación a institución benéfica. No se generará factura.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Si NO es donación, mostrar opciones normales */
+              <div>
+                <Label className="text-md font-medium mb-3 block">Seleccione método de pago:</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod("cash");
+                      // Mantener el monto recibido como el total si es un valor válido
+                      if (!paymentReceived || paymentReceived < delivery.total) {
+                        setPaymentReceived(delivery.total);
+                      }
+                    }}
+                    variant={paymentMethod === "cash" ? "default" : "outline"}
+                    className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
+                      paymentMethod === "cash" ? "ring-2 ring-primary" : ""
+                    }`}
+                  >
+                    <DollarSign className="h-8 w-8" />
+                    <span className="font-medium">Efectivo</span>
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setPaymentMethod("credit");
+                      setPaymentReceived(delivery.total);
+                    }}
+                    variant={paymentMethod === "credit" ? "default" : "outline"}
+                    className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
+                      paymentMethod === "credit" ? "ring-2 ring-primary" : ""
+                    }`}
+                  >
+                    <CreditCard className="h-8 w-8" />
+                    <span className="font-medium">Crédito</span>
+                  </Button>
+                </div>
+              </div>
+            )}
             
             {/* Sección de pago en efectivo */}
-            {paymentMethod === "cash" && (
+            {paymentMethod === "cash" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
               <div className="border rounded-lg p-3 space-y-3">
                 <Label htmlFor="payment-amount" className="font-medium block">
                   Monto recibido:
@@ -1325,7 +1348,7 @@ export default function DeliveryDetails() {
             )}
 
             {/* Sección de crédito */}
-            {paymentMethod === "credit" && (
+            {paymentMethod === "credit" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Monto a crédito:</span>

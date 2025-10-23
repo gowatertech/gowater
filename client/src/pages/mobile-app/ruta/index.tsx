@@ -137,7 +137,7 @@ export default function DriverRoute() {
   const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
   const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation">("cash");
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
@@ -336,6 +336,8 @@ export default function DriverRoute() {
             order: index + 1, // Almacén es 0, las paradas empiezan en 1
             customerId: order.customerId,
             customerName: order.customerName || "Cliente",
+            customerIsCharity: order.customerIsCharity,
+            paymentMethod: order.paymentMethod,
             address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
             latitude: lat,
             longitude: lng,
@@ -465,8 +467,16 @@ export default function DriverRoute() {
   const openPaymentDialog = (stop: RouteStop) => {
     setCurrentStopForPayment(stop);
     setAmountPaid(toNumber(stop.totalValue).toFixed(2)); // Iniciar con el monto exacto
-    setPaymentMethod("cash");
+    
+    // Detectar si es una donación y setear método de pago apropiado
+    const isDonation = stop.customerIsCharity && stop.paymentMethod === 'donation';
+    setPaymentMethod(isDonation ? "donation" : "cash");
+    
     setShowPaymentDialog(true);
+    
+    if (isDonation) {
+      console.log("Este es un pedido de DONACIÓN para:", stop.customerName);
+    }
   };
   
   // Manejar pago y entrega
@@ -919,32 +929,49 @@ export default function DriverRoute() {
                 </div>
                 
                 {/* Opciones de método de pago */}
-                <div className="mb-2 sm:mb-3">
-                  <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <Button 
-                      type="button" 
-                      variant={paymentMethod === "cash" ? "default" : "outline"} 
-                      className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
-                      onClick={() => setPaymentMethod("cash")}
-                    >
-                      <DollarSign className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      Efectivo
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant={paymentMethod === "credit" ? "default" : "outline"} 
-                      className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
-                      onClick={() => setPaymentMethod("credit")}
-                    >
-                      <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      Crédito
-                    </Button>
+                {currentStopForPayment && currentStopForPayment.customerIsCharity && currentStopForPayment.paymentMethod === 'donation' ? (
+                  /* Si es una donación, mostrar SOLO opción de Donación */
+                  <div className="mb-2 sm:mb-3">
+                    <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
+                    <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg p-3 sm:p-4">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Package className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 dark:text-amber-400" />
+                        <span className="font-semibold text-sm sm:text-base text-amber-800 dark:text-amber-200">Donación</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-amber-700 dark:text-amber-300">
+                        Este pedido es una donación a institución benéfica. No se generará factura.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Si NO es donación, mostrar opciones normales */
+                  <div className="mb-2 sm:mb-3">
+                    <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <Button 
+                        type="button" 
+                        variant={paymentMethod === "cash" ? "default" : "outline"} 
+                        className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
+                        onClick={() => setPaymentMethod("cash")}
+                      >
+                        <DollarSign className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                        Efectivo
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant={paymentMethod === "credit" ? "default" : "outline"} 
+                        className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
+                        onClick={() => setPaymentMethod("credit")}
+                      >
+                        <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                        Crédito
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Calculadora de pago en efectivo */}
-                {paymentMethod === "cash" && (
+                {paymentMethod === "cash" && !(currentStopForPayment?.customerIsCharity && currentStopForPayment?.paymentMethod === 'donation') && (
                   <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
                     <div>
                       <Label htmlFor="amount" className="text-xs sm:text-sm font-medium mb-1 block">

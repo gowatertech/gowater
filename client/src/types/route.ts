@@ -3,6 +3,8 @@ export interface RouteStop {
   order: number;
   customerId: number;
   customerName: string;
+  customerIsCharity?: boolean;
+  paymentMethod?: string;
   address: string;
   latitude: number;
   longitude: number;
