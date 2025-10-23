@@ -425,10 +425,14 @@ export function createMobileApiEndpoints(): Router {
         });
       }
       
-      // 1. Verificar que la orden existe y obtener sus datos
-      const orderData = await companyDb
-        .select()
+      // 1. Verificar que la orden existe y obtener datos del cliente
+      const orderData = await db
+        .select({
+          order: orders,
+          isCharity: customers.isCharity
+        })
         .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(and(
           eq(orders.id, orderId),
           eq(orders.companyId, companyId)
@@ -439,7 +443,8 @@ export function createMobileApiEndpoints(): Router {
         return res.status(404).json({ error: "Orden no encontrada" });
       }
       
-      const order = orderData[0];
+      const { order, isCharity } = orderData[0];
+      const isCharityCustomer = isCharity || false;
       
       // 2. Actualizar el estado de la orden a "entregado"
       const [updatedOrder] = await companyDb
@@ -463,8 +468,10 @@ export function createMobileApiEndpoints(): Router {
       console.log(`Orden ${orderId} actualizada a estado 'delivered'`);
       
       // Verificar si es una donación - las donaciones NO generan factura
-      if (paymentMethod === 'donation') {
+      // Una donación requiere AMBOS: cliente benéfico (isCharity=true) Y método de pago 'donation'
+      if (isCharityCustomer && paymentMethod === 'donation') {
         console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
+        console.log(`   Cliente benéfico: ${isCharityCustomer}, Método: ${paymentMethod}`);
         return res.json({ 
           success: true, 
           message: "Entrega confirmada (donación - sin factura)",
