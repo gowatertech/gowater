@@ -431,7 +431,12 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // Obtener datos necesarios del body
-      const { paymentMethod, amountPaid, userId } = req.body;
+      const { paymentMethod, amountPaid, userId: userIdFromBody } = req.body;
+      
+      // Obtener userId: primero del body (app móvil lo envía), luego de la sesión como fallback
+      const userId = userIdFromBody || req.session?.user?.id || null;
+      
+      console.log(`[deliver-and-invoice] UserId obtenido: ${userId} (de body: ${userIdFromBody}, de sesión: ${req.session?.user?.id})`);
       
       if (!paymentMethod || amountPaid === undefined) {
         return res.status(400).json({ 
@@ -483,10 +488,14 @@ export function createMobileApiEndpoints(): Router {
       console.log(`Orden ${orderId} actualizada a estado 'delivered'`);
       
       // Verificar si es una donación - las donaciones NO generan factura
-      // Una donación requiere AMBOS: cliente benéfico (isCharity=true) Y método de pago 'donation'
-      if (isCharityCustomer && paymentMethod === 'donation') {
+      // Una donación requiere AMBOS: cliente benéfico (isCharity=true) Y método de pago 'donation' en el PEDIDO ORIGINAL
+      // IMPORTANTE: Usamos order.paymentMethod (del pedido original), NO el paymentMethod del request body
+      const isADonation = isCharityCustomer && order.paymentMethod === 'donation';
+      
+      if (isADonation) {
         console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
-        console.log(`   Cliente benéfico: ${isCharityCustomer}, Método: ${paymentMethod}`);
+        console.log(`   Cliente benéfico: ${isCharityCustomer}, Método de pago del pedido: ${order.paymentMethod}`);
+        console.log(`   (Se ignora el método de pago seleccionado en la UI: ${paymentMethod})`);
         return res.json({ 
           success: true, 
           message: "Entrega confirmada (donación - sin factura)",
