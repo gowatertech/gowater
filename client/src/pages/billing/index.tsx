@@ -34,6 +34,20 @@ import {
 } from "@/components/ui/select";
 
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+
+import {
   Table,
   TableBody,
   TableCell,
@@ -64,7 +78,10 @@ import {
   ListFilter,
   Printer,
   FileDown,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface OrderItem {
   id?: number;
