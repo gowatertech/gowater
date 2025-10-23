@@ -2775,6 +2775,9 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: result.error.format() });
       }
 
+      console.log(`POST /api/invoices - Datos validados:`, result.data);
+      console.log(`POST /api/invoices - Total a insertar: "${result.data.total}"`);
+
       // Obtener el último número de factura para esta empresa
       const maxInvoiceNumberResult = await db
         .select({
@@ -2803,6 +2806,15 @@ export async function registerRoutes(router: express.Router) {
         .returning();
 
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
+      console.log(`✅ Total guardado en factura: "${invoice.total}"`);
+      
+      // Verificar inmediatamente en la BD
+      const [verificacion] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, invoice.id))
+        .limit(1);
+      console.log(`🔍 Verificación inmediata en BD - Total: "${verificacion.total}"`);
 
       // Si es pago en efectivo, crear automáticamente el registro de pago
       if (result.data.paymentMethod === 'cash') {
