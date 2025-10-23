@@ -766,6 +766,7 @@ export type CustomerWithDetails = {
   reference: string | null;
   coordinates: string | null;
   creditlimit: string;
+  isCharity: boolean;
   balance: string;
   municipalityName?: string;
   provinceName?: string;
