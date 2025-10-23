@@ -1051,27 +1051,63 @@ export default function Billing() {
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
-                      <Select
-                        onValueChange={(value) => {
-                          const customer = customers.find((c: any) => c.id === parseInt(value));
-                          setSelectedCustomer(customer || null);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 text-sm w-full">
-                          <SelectValue placeholder="Seleccionar Cliente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {customers.map((customer: any) => (
-                            <SelectItem
-                              key={customer.id}
-                              value={customer.id.toString()}
-                              className="text-sm"
-                            >
-                              {customer.businessname}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openCustomerPopover} onOpenChange={setOpenCustomerPopover}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openCustomerPopover}
+                            data-testid="select-customer"
+                            className="h-9 w-full justify-between text-sm font-normal"
+                          >
+                            {selectedCustomer ? (
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="font-medium truncate">{selectedCustomer.businessname}</span>
+                                <span className="text-xs text-muted-foreground">• {selectedCustomer.phone}</span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Buscar y seleccionar cliente...</span>
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Buscar por nombre o teléfono..." 
+                              data-testid="input-customer-search"
+                              value={customerSearchTerm}
+                              onValueChange={setCustomerSearchTerm}
+                            />
+                            <CommandEmpty>No se encontraron clientes</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {filteredCustomers.map((customer: any) => (
+                                <CommandItem
+                                  key={customer.id}
+                                  value={`${customer.businessname} ${customer.phone}`}
+                                  onSelect={() => {
+                                    setSelectedCustomer(customer);
+                                    setOpenCustomerPopover(false);
+                                    setCustomerSearchTerm("");
+                                  }}
+                                  className="cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedCustomer?.id === customer.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{customer.businessname}</span>
+                                    <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     {selectedCustomer && (
