@@ -106,6 +106,8 @@ export default function Billing() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [notes, setNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("list");
@@ -215,6 +217,17 @@ export default function Billing() {
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"]
+  });
+  
+  // Filtrar clientes según el término de búsqueda
+  const filteredCustomers = customers.filter((customer: any) => {
+    if (!customerSearchTerm) return true;
+    
+    const searchLower = customerSearchTerm.toLowerCase();
+    const businessName = (customer.businessname || "").toLowerCase();
+    const phone = String(customer.phone ?? "").toLowerCase();
+    
+    return businessName.includes(searchLower) || phone.includes(searchLower);
   });
   
   const { data: settings } = useQuery<any>({
