@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
@@ -77,6 +77,15 @@ export default function NewOrder() {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
+
+  // Detectar si el cliente es institución benéfica y cambiar método de pago automáticamente
+  useEffect(() => {
+    if (selectedCustomer?.isCharity) {
+      setPaymentMethod("donation");
+    } else if (paymentMethod === "donation") {
+      setPaymentMethod("cash");
+    }
+  }, [selectedCustomer]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { code: "", description: "", quantity: 0, price: 0, total: 0 },
     { code: "", description: "", quantity: 0, price: 0, total: 0 },
@@ -406,35 +415,49 @@ export default function NewOrder() {
           {/* Método de Pago */}
           <div className="space-y-2">
             <div className="text-sm font-medium">Método de Pago</div>
-            <div className="flex flex-wrap sm:flex-nowrap gap-2">
-              <Button
-                type="button"
-                variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPaymentMethod('cash')}
-                className="flex-1"
-              >
-                Efectivo
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPaymentMethod('credit')}
-                className="flex-1"
-              >
-                Crédito
-              </Button>
-              <Button
-                type="button"
-                variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setPaymentMethod('card')}
-                className="flex-1"
-              >
-                Tarjeta
-              </Button>
-            </div>
+            {selectedCustomer?.isCharity ? (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  disabled
+                >
+                  Donación
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPaymentMethod('cash')}
+                  className="flex-1"
+                >
+                  Efectivo
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'credit' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPaymentMethod('credit')}
+                  className="flex-1"
+                >
+                  Crédito
+                </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPaymentMethod('card')}
+                  className="flex-1"
+                >
+                  Tarjeta
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Productos - Vista Móvil */}

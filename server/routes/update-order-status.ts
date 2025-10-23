@@ -126,8 +126,15 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         console.log(`✅ Pedido actualizado - Status anterior: ${previousStatus}, Nuevo: ${updatedOrder.status}`);
         
         // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
+        // EXCEPTO si es una donación (payment_method = 'donation')
         if (status === "delivered" && previousStatus !== "delivered") {
-          console.log(`📄 Creando factura automáticamente para pedido ${orderIdNum}...`);
+          // Verificar si es una donación - las donaciones NO generan factura
+          if (updatedOrder.payment_method === 'donation') {
+            console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
+            console.log(`   Cliente: ${updatedOrder.customer_id}, Total donado: ${updatedOrder.total}`);
+            // Continuar sin crear factura
+          } else {
+            console.log(`📄 Creando factura automáticamente para pedido ${orderIdNum}...`);
           
           // Obtener la configuración de impuestos de la compañía
           const settingsQuery = `
@@ -272,6 +279,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           }
           
           console.log(`🎉 Proceso de facturación automática completado exitosamente`);
+          }
         }
         
         // COMMIT de la transacción: todo salió bien

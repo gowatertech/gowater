@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -163,6 +164,7 @@ export default function Customers() {
       reference: "",
       coordinates: "",
       creditlimit: "0.00",
+      isCharity: false,
     }
   });
 
@@ -230,6 +232,7 @@ export default function Customers() {
         reference: "",
         coordinates: "",
         creditlimit: "0.00",
+        isCharity: false,
       });
       setActiveTab("list");
       setSelectedProvinceId(null);
@@ -263,6 +266,7 @@ export default function Customers() {
         reference: "",
         coordinates: "",
         creditlimit: "0.00",
+        isCharity: false,
       });
       setSelectedProvinceId(null);
     }
@@ -369,6 +373,7 @@ export default function Customers() {
       // Usar coordinates directamente si existe, de lo contrario usar una cadena vacía
       coordinates: customer.coordinates || "",
       creditlimit: customer.creditlimit.toString(),
+      isCharity: customer.isCharity || false,
       logo: customer.logo || undefined
     };
     
@@ -1703,6 +1708,31 @@ export default function Customers() {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isCharity"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-1 flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!isEditing}
+                          data-testid="checkbox-is-charity"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="font-medium">
+                          Institución Benéfica
+                        </FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Marcar si es una institución que recibe donaciones
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />

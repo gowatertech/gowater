@@ -166,6 +166,7 @@ export const customers = pgTable("customers", {
   coordinates: text("coordinates"),
   creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
+  isCharity: boolean("is_charity").notNull().default(false),
 });
 
 export const insertCustomerSchema = z.object({
@@ -184,6 +185,7 @@ export const insertCustomerSchema = z.object({
   coordinates: z.string().optional(), // Hacemos opcional la validación de coordenadas
   creditlimit: z.string().default("0.00").or(z.number().transform(n => n.toString())), // Permitimos tanto string como number
   balance: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  isCharity: z.boolean().default(false),
   companyId: z.number().int().positive().optional(), // Hacemos el companyId opcional en el frontend
 });
 
@@ -312,7 +314,7 @@ export const orders = pgTable("orders", {
   routeId: integer("route_id"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "in_transit", "delivered", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "donation"] }).notNull(),
   date: timestamp("date").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
   actualDeliveryTime: timestamp("actual_delivery_time"),
@@ -365,7 +367,7 @@ export const insertOrderSchema = z.object({
   companyId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
+  paymentMethod: z.enum(["cash", "credit", "card", "donation"]),
   date: z.string().datetime("La fecha debe estar en formato ISO"),
   routeId: z.number().nullable(),
   estimatedDeliveryTime: z.string().datetime().optional(),
@@ -556,45 +558,6 @@ export const insertInvoiceItemSchema = z.object({
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
 });
 
-// Bills (Facturas)
-export const bills = pgTable("bills", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(), // Añadido companyId
-  billNumber: serial("bill_number").unique(),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
-  date: timestamp("date").notNull().defaultNow(),
-  notes: text("notes").notNull(),
-});
-
-// Bill Items (Items de Factura)
-export const billItems = pgTable("bill_items", {
-  id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(), // Añadido companyId
-  billId: integer("bill_id").notNull().references(() => bills.id),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-});
-
-export const insertBillSchema = z.object({
-  customerId: z.number(),
-  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
-  status: z.enum(["pending", "paid", "cancelled"]),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
-  notes: z.string().max(200),
-  date: z.date(),
-});
-
-export const insertBillItemSchema = z.object({
-  billId: z.number(),
-  productId: z.number(),
-  quantity: z.number(),
-  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
-});
 
 // Payments
 export const payments = pgTable("payments", {
@@ -778,10 +741,6 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
-export type Bill = typeof bills.$inferSelect;
-export type BillItem = typeof billItems.$inferSelect;
-export type InsertBill = z.infer<typeof insertBillSchema>;
-export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;

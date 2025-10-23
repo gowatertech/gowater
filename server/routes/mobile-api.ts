@@ -462,6 +462,16 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Orden ${orderId} actualizada a estado 'delivered'`);
       
+      // Verificar si es una donación - las donaciones NO generan factura
+      if (paymentMethod === 'donation') {
+        console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
+        return res.json({ 
+          success: true, 
+          message: "Entrega confirmada (donación - sin factura)",
+          order: updatedOrder 
+        });
+      }
+      
       // 3. Obtener la configuración de la empresa para el cálculo de impuestos
       const [companySettings] = await companyDb
         .select()
