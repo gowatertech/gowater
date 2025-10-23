@@ -75,9 +75,11 @@ interface Delivery {
   orderId: number;
   customerId: number;
   customerName: string;
+  customerIsCharity?: boolean;
   address: string;
   status: "pending" | "in_progress" | "delivered" | "cancelled";
   scheduledTime: string;
+  paymentMethod?: string;
   products: { 
     id: number; 
     name: string; 

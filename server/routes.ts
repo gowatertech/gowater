@@ -4453,7 +4453,8 @@ export async function registerRoutes(router: express.Router) {
           c.businessname as "customerName", 
           c.email as "customerEmail", 
           c.phone as "customerPhone",
-          c.street as "customerStreet"
+          c.street as "customerStreet",
+          c.is_charity as "customerIsCharity"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
         WHERE o.id = $1 AND o.company_id = $2
