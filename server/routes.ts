@@ -2794,22 +2794,22 @@ export async function registerRoutes(router: express.Router) {
       // Si es efectivo, marcarla como pagada automáticamente
       const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
 
-      // Preparar los valores a insertar
-      const valuesToInsert = {
-        ...result.data,
-        companyId: companyId, // Asegurar que se guarda con el companyId correcto
-        date: new Date(), // Aseguramos que tenga una fecha actual
-        invoiceNumber: nextInvoiceNumber, // Usar el siguiente número de factura
-        status: initialStatus // Usar el status determinado
-      };
-      
-      console.log(`POST /api/invoices - Valores a insertar:`, valuesToInsert);
-      console.log(`POST /api/invoices - Total en valuesToInsert: "${valuesToInsert.total}" (tipo: ${typeof valuesToInsert.total})`);
-
-      // Crear la factura con el companyId del contexto
+      // Preparar los valores a insertar usando SQL para los decimales
+      // Esto fuerza a PostgreSQL a manejar la conversión correctamente
       const [invoice] = await db
         .insert(invoices)
-        .values(valuesToInsert)
+        .values({
+          companyId: companyId,
+          customerId: result.data.customerId,
+          subtotal: sql`${result.data.subtotal}::decimal(10,2)`,
+          tax: sql`${result.data.tax}::decimal(10,2)`,
+          total: sql`${result.data.total}::decimal(10,2)`,
+          status: initialStatus,
+          paymentMethod: result.data.paymentMethod,
+          date: new Date(),
+          invoiceNumber: nextInvoiceNumber,
+          notes: result.data.notes || null
+        })
         .returning();
 
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
