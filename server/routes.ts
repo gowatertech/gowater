@@ -3609,8 +3609,9 @@ export async function registerRoutes(router: express.Router) {
         })
         .returning();
 
-      // Actualizar el total de la factura
-      const [invoice] = await db
+      // Recalcular el subtotal, tax y total de la factura
+      // 1. Obtener la factura actual para conocer la tasa de impuesto
+      const [currentInvoice] = await db
         .select()
         .from(invoices)
         .where(and(
@@ -3618,18 +3619,48 @@ export async function registerRoutes(router: express.Router) {
           eq(invoices.companyId, companyId)
         ));
 
-      if (invoice) {
-        const newTotal = (parseFloat(invoice.total) + parseFloat(total)).toFixed(2);
-        await db
-          .update(invoices)
-          .set({ total: newTotal })
-          .where(and(
-            eq(invoices.id, invoiceId),
-            eq(invoices.companyId, companyId)
-          ));
+      if (!currentInvoice) {
+        console.error(`Factura ${invoiceId} no encontrada`);
+        return res.status(404).json({ error: "Factura no encontrada" });
       }
 
-      console.log("Item de factura creado:", item);
+      // 2. Obtener todos los items para recalcular el subtotal
+      const allItems = await db
+        .select()
+        .from(invoiceItems)
+        .where(and(
+          eq(invoiceItems.invoiceId, invoiceId),
+          eq(invoiceItems.companyId, companyId)
+        ));
+
+      const newSubtotal = allItems.reduce((sum, item) => 
+        sum + parseFloat(item.total || '0'), 0
+      );
+
+      // 3. Calcular la tasa de impuesto desde la factura original
+      // taxRate = tax / subtotal (evitar división por cero)
+      const originalSubtotal = parseFloat(currentInvoice.subtotal || '0');
+      const originalTax = parseFloat(currentInvoice.tax || '0');
+      const taxRate = originalSubtotal > 0 ? originalTax / originalSubtotal : 0;
+
+      // 4. Recalcular el tax y el total
+      const newTax = newSubtotal * taxRate;
+      const newTotal = newSubtotal + newTax;
+
+      // 5. Actualizar la factura con los nuevos valores
+      await db
+        .update(invoices)
+        .set({ 
+          subtotal: newSubtotal.toFixed(2),
+          tax: newTax.toFixed(2),
+          total: newTotal.toFixed(2)
+        })
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+
+      console.log(`Item de factura creado. Subtotal: ${newSubtotal.toFixed(2)}, Tax: ${newTax.toFixed(2)}, Total: ${newTotal.toFixed(2)}`);
       res.json(item);
     } catch (error) {
       console.error("Error al crear item de factura:", error);
@@ -3675,31 +3706,58 @@ export async function registerRoutes(router: express.Router) {
           eq(invoiceItems.companyId, companyId) // Filtrar por companyId
         ));
       
-      // Actualizar el total de la factura
-      const [invoice] = await db
+      // Recalcular el subtotal, tax y total de la factura
+      // 1. Obtener la factura actual para conocer la tasa de impuesto
+      const [currentInvoice] = await db
         .select()
         .from(invoices)
         .where(and(
           eq(invoices.id, invoiceId),
           eq(invoices.companyId, companyId)
         ));
-      
-      if (invoice) {
-        // Restar el valor del item eliminado
-        const newTotal = Math.max(0, parseFloat(invoice.total) - parseFloat(item.total)).toFixed(2);
-        
-        await db
-          .update(invoices)
-          .set({ total: newTotal })
-          .where(and(
-            eq(invoices.id, invoiceId),
-            eq(invoices.companyId, companyId)
-          ));
-          
-        console.log(`Total de factura actualizado a ${newTotal} después de eliminar item`);
+
+      if (!currentInvoice) {
+        console.error(`Factura ${invoiceId} no encontrada`);
+        return res.status(404).json({ error: "Factura no encontrada" });
       }
-      
-      console.log(`Item ${itemId} eliminado correctamente de la factura ${invoiceId}`);
+
+      // 2. Obtener todos los items restantes para recalcular el subtotal
+      const remainingItems = await db
+        .select()
+        .from(invoiceItems)
+        .where(and(
+          eq(invoiceItems.invoiceId, invoiceId),
+          eq(invoiceItems.companyId, companyId)
+        ));
+
+      const newSubtotal = remainingItems.reduce((sum, item) => 
+        sum + parseFloat(item.total || '0'), 0
+      );
+
+      // 3. Calcular la tasa de impuesto desde la factura original
+      // taxRate = tax / subtotal (evitar división por cero)
+      const originalSubtotal = parseFloat(currentInvoice.subtotal || '0');
+      const originalTax = parseFloat(currentInvoice.tax || '0');
+      const taxRate = originalSubtotal > 0 ? originalTax / originalSubtotal : 0;
+
+      // 4. Recalcular el tax y el total
+      const newTax = newSubtotal * taxRate;
+      const newTotal = newSubtotal + newTax;
+
+      // 5. Actualizar la factura con los nuevos valores
+      await db
+        .update(invoices)
+        .set({ 
+          subtotal: newSubtotal.toFixed(2),
+          tax: newTax.toFixed(2),
+          total: newTotal.toFixed(2)
+        })
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+        
+      console.log(`Item ${itemId} eliminado. Subtotal: ${newSubtotal.toFixed(2)}, Tax: ${newTax.toFixed(2)}, Total: ${newTotal.toFixed(2)}`);
       res.json({ success: true, message: "Item eliminado correctamente" });
     } catch (error) {
       console.error("Error al eliminar item de factura:", error);
