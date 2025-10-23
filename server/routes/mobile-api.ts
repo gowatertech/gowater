@@ -135,15 +135,25 @@ export function createMobileApiEndpoints(): Router {
         filter = eq(orders.companyId, companyId);
       }
       
-      // Usar db en lugar de companyDb para diagnóstico
-      const result = await db.select()
+      // Obtener órdenes con información del cliente (incluyendo isCharity)
+      const result = await db.select({
+        order: orders,
+        customerIsCharity: customers.isCharity,
+        customerName: customers.businessname
+      })
         .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(filter)
         .orderBy(desc(orders.id));
         
-      // Enriquecer cada orden con los productos
-      for (const order of result) {
-        // Usar db en lugar de companyDb para diagnóstico
+      // Enriquecer cada orden con los productos y información del cliente
+      const enrichedOrders = [];
+      for (const row of result) {
+        const order = row.order;
+        const isCharity = row.customerIsCharity || false;
+        const customerName = row.customerName || 'Cliente';
+        
+        // Obtener items del pedido
         const items = await db.select({
           id: orderItems.id,
           orderId: orderItems.orderId,
@@ -157,7 +167,7 @@ export function createMobileApiEndpoints(): Router {
           eq(orderItems.companyId, companyId)
         ));
         
-        // Obtener los nombres de los productos de una manera más simple
+        // Obtener los nombres de los productos
         const productsInfo = await Promise.all(
           items.map(async (item) => {
             try {
@@ -199,12 +209,17 @@ export function createMobileApiEndpoints(): Router {
           })
         );
           
-        // Añadir productos a la orden
-        (order as any).products = productsInfo;
+        // Combinar orden con información del cliente y productos
+        enrichedOrders.push({
+          ...order,
+          customerIsCharity: isCharity,
+          customerName: customerName,
+          products: productsInfo
+        });
       }
       
-      console.log(`MobileAPI - Se encontraron ${result.length} órdenes`);
-      res.json(result);
+      console.log(`MobileAPI - Se encontraron ${enrichedOrders.length} órdenes`);
+      res.json(enrichedOrders);
     } catch (error) {
       console.error("Error al obtener órdenes:", error);
       res.status(500).json({ error: "Error al obtener órdenes", details: String(error) });
