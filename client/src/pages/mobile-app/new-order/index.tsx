@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Search, Plus, Minus, ShoppingCart, User, DollarSign, CheckCircle } from "lucide-react";
+import { ArrowLeft, Search, Plus, Minus, ShoppingCart, User, DollarSign, CheckCircle, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ interface Customer {
   streetnumber: string;
   sector: string;
   city: string;
+  isCharity?: boolean;
 }
 
 interface Product {
@@ -57,6 +58,7 @@ export default function NewOrder() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation">("cash");
 
   // Fetch customers
   const { data: customers = [], isLoading: loadingCustomers } = useQuery<Customer[]>({
@@ -85,6 +87,15 @@ export default function NewOrder() {
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.id === selectedCustomerId);
   }, [customers, selectedCustomerId]);
+
+  // Auto-detect charity customers and set payment method to donation
+  useEffect(() => {
+    if (selectedCustomer?.isCharity) {
+      setPaymentMethod("donation");
+    } else if (paymentMethod === "donation") {
+      setPaymentMethod("cash");
+    }
+  }, [selectedCustomer]);
 
   // Calculate totals
   const subtotal = useMemo(() => {
@@ -142,7 +153,7 @@ export default function NewOrder() {
       const orderData = {
         customerId: selectedCustomerId,
         total,
-        paymentMethod: "cash",
+        paymentMethod: paymentMethod,
         orderDate: new Date().toISOString().split('T')[0],
         notes: "",
         items: orderItems.map(item => ({
@@ -298,6 +309,19 @@ export default function NewOrder() {
                   {selectedCustomer.street} #{selectedCustomer.streetnumber}
                   {selectedCustomer.sector && `, ${selectedCustomer.sector}`}
                 </div>
+              </div>
+            )}
+
+            {/* Payment Method indicator for donation orders */}
+            {selectedCustomer?.isCharity && paymentMethod === 'donation' && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-lg p-3 mt-3" data-testid="donation-indicator">
+                <div className="flex items-center gap-2 mb-1">
+                  <Package className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <span className="font-semibold text-amber-800 dark:text-amber-200">Pedido de Donación</span>
+                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Este pedido será procesado como donación a institución benéfica. No se generará factura.
+                </p>
               </div>
             )}
           </CardContent>
