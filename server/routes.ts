@@ -2104,7 +2104,9 @@ export async function registerRoutes(router: express.Router) {
         streetnumber: req.body.streetnumber,
         provinceid: req.body.provinceid,
         municipalityid: req.body.municipalityid,
-        companyId: companyId // Agregar companyId al cliente
+        companyId: companyId, // Agregar companyId al cliente
+        // Convertir isCharity a booleano si viene como string
+        isCharity: req.body.isCharity === 'true' || req.body.isCharity === true
       };
 
       const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
@@ -2169,6 +2171,7 @@ export async function registerRoutes(router: express.Router) {
           municipalityid: customers.municipalityid,
           reference: customers.reference,
           coordinates: customers.coordinates,
+          isCharity: customers.isCharity,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
           companyId: customers.companyId,
@@ -2350,6 +2353,11 @@ export async function registerRoutes(router: express.Router) {
       if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
       if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
+      
+      // Convertir isCharity a booleano si viene como string
+      if (updateData.isCharity !== undefined) {
+        updateData.isCharity = updateData.isCharity === 'true' || updateData.isCharity === true;
+      }
 
       const [updatedCustomer] = await db
         .update(customers)
