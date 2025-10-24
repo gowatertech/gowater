@@ -3302,6 +3302,8 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
+      console.log(`GET /api/dashboard/financial-stats - CompanyId: ${companyId}`);
+      
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       monthStart.setHours(0, 0, 0, 0);
@@ -3309,8 +3311,10 @@ export async function registerRoutes(router: express.Router) {
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       monthEnd.setHours(23, 59, 59, 999);
       
+      console.log(`Rango de fechas: ${monthStart.toISOString()} - ${monthEnd.toISOString()}`);
+      
       // 1. Ventas del mes (total de facturas del mes actual)
-      const monthlySales = await db
+      const monthlySales = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -3323,8 +3327,10 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
+      console.log(`Ventas del mes:`, monthlySales);
+      
       // 2. Cuentas por Cobrar (facturas pendientes de pago)
-      const accountsReceivable = await db
+      const accountsReceivable = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -3336,8 +3342,10 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
+      console.log(`Cuentas por cobrar:`, accountsReceivable);
+      
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
-      const donations = await db
+      const donations = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
           count: sql`COUNT(*)`.mapWith(Number),
@@ -3352,6 +3360,8 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
+      console.log(`Donaciones:`, donations);
+      
       const stats = {
         monthlySales: Number(monthlySales[0]?.total) || 0,
         accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
@@ -3361,6 +3371,7 @@ export async function registerRoutes(router: express.Router) {
         monthEndDate: monthEnd.toISOString(),
       };
       
+      console.log(`Estadísticas financieras finales:`, stats);
       res.json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas financieras:", error);
