@@ -432,20 +432,16 @@ export default function Dashboard() {
               <CardContent className="px-3 sm:px-6">
                 <div className="space-y-3">
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Ventas Totales")}</span>
-                    <span className="font-medium text-sm sm:text-base">{formatCurrency(stats?.totalSales || 0)}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Ventas del Mes")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(financialStats?.monthlySales || 0)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
                     <span className="text-xs sm:text-sm text-muted-foreground">{t("Cuentas por Cobrar")}</span>
-                    <span className="font-medium text-sm sm:text-base">{formatCurrency(stats?.pendingPayments || 0)}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(financialStats?.accountsReceivable || 0)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Pagos Anuales")}</span>
-                    <span className="font-medium text-sm sm:text-base">{formatCurrency(paymentStats?.yearlyPayments || 0)}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
-                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Pagos Mensuales")}</span>
-                    <span className="font-medium text-sm sm:text-base">{formatCurrency(paymentStats?.monthlyPayments || 0)}</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Donaciones del Mes")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(financialStats?.donations || 0)}</span>
                   </div>
                 </div>
               </CardContent>
