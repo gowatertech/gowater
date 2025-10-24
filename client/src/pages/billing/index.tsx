@@ -533,7 +533,7 @@ export default function Billing() {
   });
 
   const handlePayment = (invoice: InvoiceWithDetails, amount: string) => {
-    if (!invoice?.pendingAmount || !amount) {
+    if (!invoice || !amount) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -542,7 +542,12 @@ export default function Billing() {
       return;
     }
 
-    const pendingAmount = Number(parseFloat(invoice.pendingAmount).toFixed(2));
+    // Calcular el monto pendiente si no existe
+    // Si la factura tiene pendingAmount, usarlo; si no, usar el total de la factura
+    const pendingAmount = invoice.pendingAmount 
+      ? Number(parseFloat(invoice.pendingAmount).toFixed(2))
+      : Number(parseFloat(invoice.total).toFixed(2));
+    
     const paymentAmount = Number(parseFloat(amount).toFixed(2));
 
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
