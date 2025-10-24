@@ -603,38 +603,36 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
-      // 5. Registrar el pago (tanto para efectivo, tarjeta, transferencia, como para crédito)
-      // Para crédito: registramos el monto total de la factura para que aparezca en reportes
-      // Para otros métodos: registramos el monto recibido
-      const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
-      const invoiceTotal = parseFloat(order.total).toFixed(2);
-      
-      // Para crédito usamos el total de la factura, para los demás el monto recibido
-      const paymentAmount = paymentMethod === 'credit' ? invoiceTotal : formattedAmount;
-      
-      const paymentData = {
-        invoiceId: invoice.id,
-        customerId: order.customerId,
-        amount: paymentAmount,
-        paymentMethod: paymentMethod,
-        notes: paymentMethod === 'credit' 
-          ? `Crédito pendiente de pago - Entrega en ruta ${order.routeId || 'N/A'} - Total adeudado: ${invoiceTotal}`
-          : `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
-        companyId: companyId // Agregar companyId para el multitenant
-      };
-      
-      // Validar datos con el esquema
-      const validPaymentData = insertPaymentSchema.parse(paymentData);
-      
-      const [payment] = await companyDb
-        .insert(payments)
-        .values({
-          ...validPaymentData,
-          date: today // La fecha se agrega manualmente porque no está en el esquema
-        })
-        .returning();
-      
-      console.log(`Pago registrado para la factura ${invoice.invoiceNumber} (${paymentMethod})`);
+      // 5. Registrar el pago SOLO para efectivo (cash)
+      // Para crédito y transferencia: NO se crea pago, solo la factura queda pendiente
+      if (paymentMethod === 'cash') {
+        const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+        const invoiceTotal = parseFloat(order.total).toFixed(2);
+        
+        const paymentData = {
+          invoiceId: invoice.id,
+          customerId: order.customerId,
+          amount: invoiceTotal,
+          paymentMethod: paymentMethod,
+          notes: `Pago automático en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
+          companyId: companyId
+        };
+        
+        // Validar datos con el esquema
+        const validPaymentData = insertPaymentSchema.parse(paymentData);
+        
+        const [payment] = await companyDb
+          .insert(payments)
+          .values({
+            ...validPaymentData,
+            date: today
+          })
+          .returning();
+        
+        console.log(`Pago automático registrado para la factura ${invoice.invoiceNumber} (efectivo)`);
+      } else {
+        console.log(`Factura ${invoice.invoiceNumber} creada con estado "pending" - Método de pago: ${paymentMethod} - No se creó pago automático`);
+      }
       
       
       // 6. Devolver respuesta exitosa
