@@ -73,12 +73,13 @@ interface BottleStats {
   overdueReturns: number;
 }
 
-interface CommissionStats {
-  driversTotal: number;
-  helpersTotal: number;
-  weekTotal: number;
-  weekStartDate: string;
-  weekEndDate: string;
+interface FinancialStats {
+  monthlySales: number;
+  accountsReceivable: number;
+  donations: number;
+  donationsCount: number;
+  monthStartDate: string;
+  monthEndDate: string;
 }
 
 interface ChartData {
@@ -118,8 +119,8 @@ export default function Dashboard() {
     refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
-  const { data: commissionStats, isLoading: commissionsLoading } = useQuery<CommissionStats>({
-    queryKey: ["/api/dashboard/commission-stats"],
+  const { data: financialStats, isLoading: financialLoading } = useQuery<FinancialStats>({
+    queryKey: ["/api/dashboard/financial-stats"],
     refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
@@ -314,79 +315,79 @@ export default function Dashboard() {
             />
           </div>
           
-          {/* Widget de Comisiones - Diseño Moderno Responsive */}
-          <div className="overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-lg" data-testid="card-commissions-widget">
-            <div className="p-3 sm:p-5 md:p-6">
-              {/* Header con título y botón */}
-              <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm sm:text-base md:text-lg font-bold text-white flex items-center gap-1.5 sm:gap-2">
-                    <BadgeDollarSign className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white flex-shrink-0" />
-                    <span className="truncate">{t("Comisiones de la Semana")}</span>
-                  </h3>
-                  <p className="text-[10px] sm:text-xs md:text-sm text-blue-100 mt-0.5 sm:mt-1">
-                    {commissionStats ? (
-                      <>
-                        {t("Del")} {new Date(commissionStats.weekStartDate).toLocaleDateString('es-DO', { weekday: 'short', day: '2-digit', month: 'short' })} {t("al")} {new Date(commissionStats.weekEndDate).toLocaleDateString('es-DO', { weekday: 'short', day: '2-digit', month: 'short' })}
-                      </>
-                    ) : (
-                      t("Cargando...")
-                    )}
-                  </p>
-                </div>
-                <Button 
-                  size="sm" 
-                  variant="secondary"
-                  className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs sm:text-sm whitespace-nowrap w-full sm:w-auto"
-                  onClick={() => navigateTo("/commissions")}
-                  data-testid="button-view-all-commissions"
-                >
-                  {t("Ver todas")}
-                </Button>
-              </div>
-              
-              {/* Grid de tarjetas de comisiones */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-                {/* Tarjeta Choferes */}
-                <div className="flex flex-col space-y-1.5 sm:space-y-2 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/20 flex-shrink-0">
-                      <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
+          {/* Widgets Financieros - Grid de 3 columnas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Widget Ventas del Mes */}
+            <Card className="overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-lg border-none">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20 flex-shrink-0">
+                      <DollarSign className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-[10px] sm:text-xs md:text-sm text-blue-100 font-medium">{t("Choferes")}</span>
+                    <h3 className="text-sm font-semibold text-white">{t("Ventas del Mes")}</h3>
                   </div>
-                  <span className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate" data-testid="text-drivers-total">
-                    {formatCurrency(commissionStats?.driversTotal || 0)}
-                  </span>
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold text-white truncate">
+                      {formatCurrency(financialStats?.monthlySales || 0)}
+                    </p>
+                    <p className="text-xs text-blue-100">
+                      {financialStats ? (
+                        <>
+                          {new Date(financialStats.monthStartDate).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' })}
+                        </>
+                      ) : (
+                        t("Cargando...")
+                      )}
+                    </p>
+                  </div>
                 </div>
-                
-                {/* Tarjeta Ayudantes */}
-                <div className="flex flex-col space-y-1.5 sm:space-y-2 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/20 flex-shrink-0">
-                      <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
+              </CardContent>
+            </Card>
+
+            {/* Widget CxC (Cuentas por Cobrar) */}
+            <Card className="overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-lg border-none">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20 flex-shrink-0">
+                      <FileBarChart className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-[10px] sm:text-xs md:text-sm text-blue-100 font-medium">{t("Ayudantes")}</span>
+                    <h3 className="text-sm font-semibold text-white">{t("Cuentas por Cobrar")}</h3>
                   </div>
-                  <span className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate" data-testid="text-helpers-total">
-                    {formatCurrency(commissionStats?.helpersTotal || 0)}
-                  </span>
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold text-white truncate">
+                      {formatCurrency(financialStats?.accountsReceivable || 0)}
+                    </p>
+                    <p className="text-xs text-orange-100">
+                      {t("Facturas pendientes de pago")}
+                    </p>
+                  </div>
                 </div>
-                
-                {/* Tarjeta Total */}
-                <div className="flex flex-col space-y-1.5 sm:space-y-2 p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all md:col-span-1">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/20 flex-shrink-0">
-                      <BadgeDollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-white" />
+              </CardContent>
+            </Card>
+
+            {/* Widget Donaciones */}
+            <Card className="overflow-hidden bg-gradient-to-br from-green-600 via-green-700 to-green-800 shadow-lg border-none">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-white/20 flex-shrink-0">
+                      <Package className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-[10px] sm:text-xs md:text-sm text-blue-100 font-medium">{t("Total Semanal")}</span>
+                    <h3 className="text-sm font-semibold text-white">{t("Donaciones")}</h3>
                   </div>
-                  <span className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate" data-testid="text-week-total">
-                    {formatCurrency(commissionStats?.weekTotal || 0)}
-                  </span>
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold text-white truncate">
+                      {formatCurrency(financialStats?.donations || 0)}
+                    </p>
+                    <p className="text-xs text-green-100">
+                      {financialStats?.donationsCount || 0} {t("donaciones este mes")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
           
           {/* Gráficos principales */}

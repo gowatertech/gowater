@@ -3285,6 +3285,91 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Estadísticas de comisiones:`, stats);
       res.type("application/json").status(200).json(stats);
     } catch (error) {
+      console.error(`Error al obtener estadísticas de comisiones:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para estadísticas financieras del dashboard
+  router.get("/api/dashboard/financial-stats", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      console.log(`GET /api/dashboard/financial-stats - Obteniendo estadísticas financieras para empresa ${companyId}`);
+      
+      // Calcular el inicio y fin del mes actual
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      monthStart.setHours(0, 0, 0, 0);
+      
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      monthEnd.setHours(23, 59, 59, 999);
+      
+      console.log(`Mes actual: ${monthStart.toISOString().split('T')[0]} a ${monthEnd.toISOString().split('T')[0]}`);
+      
+      // 1. Ventas del mes (total de facturas del mes actual)
+      const monthlySales = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            gte(invoices.date, monthStart),
+            lte(invoices.date, monthEnd)
+          )
+        );
+      
+      // 2. Cuentas por Cobrar (facturas pendientes de pago)
+      const accountsReceivable = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            eq(invoices.status, 'pending')
+          )
+        );
+      
+      // 3. Donaciones del mes (pedidos con payment_method = 'donation')
+      const donations = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.companyId, companyId),
+            eq(orders.paymentMethod, 'donation'),
+            gte(orders.date, monthStart),
+            lte(orders.date, monthEnd)
+          )
+        );
+      
+      const stats = {
+        monthlySales: Number(monthlySales[0]?.total) || 0,
+        accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
+        donations: Number(donations[0]?.total) || 0,
+        donationsCount: Number(donations[0]?.count) || 0,
+        monthStartDate: monthStart.toISOString(),
+        monthEndDate: monthEnd.toISOString(),
+      };
+      
+      console.log(`Estadísticas financieras:`, stats);
+      res.type("application/json").status(200).json(stats);
+    } catch (error) {
       console.error("Error al obtener estadísticas de comisiones:", error);
       res.status(500).json({ error: String(error) });
     }
