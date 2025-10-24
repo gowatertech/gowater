@@ -1608,6 +1608,17 @@ export default function Billing() {
                         </div>
                       </div>
                     )}
+
+                    {/* Botón Volver */}
+                    <div className="flex justify-center sm:justify-end mt-4 pt-4 border-t">
+                      <Button 
+                        variant="outline"
+                        onClick={() => setActiveTab("list")}
+                        className="w-full sm:w-auto"
+                      >
+                        Volver a la Lista
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </>
