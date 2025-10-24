@@ -3291,7 +3291,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para estadísticas financieras del dashboard
-  router.get("/api/dashboard/financial-stats", async (req, res) => {
+  router.get("/dashboard/financial-stats", async (req, res) => {
     try {
       const companyId = getCurrentCompanyId();
       
