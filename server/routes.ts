@@ -3292,7 +3292,6 @@ export async function registerRoutes(router: express.Router) {
 
   // Endpoint para estadísticas financieras del dashboard
   router.get("/api/dashboard/financial-stats", async (req, res) => {
-    console.log("🎯 Financial stats endpoint called!");
     try {
       const companyId = getCurrentCompanyId();
       
@@ -3304,7 +3303,7 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      console.log(`GET /api/dashboard/financial-stats - Obteniendo estadísticas financieras para empresa ${companyId}`);
+      console.log(`FINANCIAL STATS - Company ${companyId}`);
       
       // Calcular el inicio y fin del mes actual
       const now = new Date();
@@ -3314,7 +3313,7 @@ export async function registerRoutes(router: express.Router) {
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       monthEnd.setHours(23, 59, 59, 999);
       
-      console.log(`Mes actual: ${monthStart.toISOString().split('T')[0]} a ${monthEnd.toISOString().split('T')[0]}`);
+      console.log(`Month range: ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
       
       // 1. Ventas del mes (total de facturas del mes actual)
       const monthlySales = await db
@@ -3330,6 +3329,8 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
+      console.log("Monthly sales query result:", monthlySales);
+      
       // 2. Cuentas por Cobrar (facturas pendientes de pago)
       const accountsReceivable = await db
         .select({
@@ -3342,6 +3343,8 @@ export async function registerRoutes(router: express.Router) {
             eq(invoices.status, 'pending')
           )
         );
+      
+      console.log("Accounts receivable query result:", accountsReceivable);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
       const donations = await db
@@ -3359,6 +3362,8 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
+      console.log("Donations query result:", donations);
+      
       const stats = {
         monthlySales: Number(monthlySales[0]?.total) || 0,
         accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
@@ -3368,10 +3373,10 @@ export async function registerRoutes(router: express.Router) {
         monthEndDate: monthEnd.toISOString(),
       };
       
-      console.log(`Estadísticas financieras:`, stats);
+      console.log("FINAL STATS TO RETURN:", stats);
       res.type("application/json").status(200).json(stats);
     } catch (error) {
-      console.error("Error al obtener estadísticas de comisiones:", error);
+      console.error("Error al obtener estadísticas financieras:", error);
       res.status(500).json({ error: String(error) });
     }
   });
