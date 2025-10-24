@@ -1,0 +1,98 @@
+
+  </div>
+</body>
+
+</html>
+
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async queryClient.ts:135:7
+(anonymous) @ queryClient.ts:154Understand this error
+favicon.ico:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+manifest.json:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+d1299512-b679-4553-b6bf-6043a19b76b9-00-1pl9yba3wloqe.spock.replit.dev/:1 Manifest fetch from https://d1299512-b679-4553-b6bf-6043a19b76b9-00-1pl9yba3wloqe.spock.replit.dev/manifest.json failed, code 502Understand this error
+favicon.ico:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+favicon.ico:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
+(anonymous) @ queryClient.ts:154Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
+(anonymous) @ queryClient.ts:154Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
+(anonymous) @ queryClient.ts:154Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=6dc992bb:840
+run @ @tanstack_react-query.js?v=6dc992bb:494
+start @ @tanstack_react-query.js?v=6dc992bb:536
+fetch @ @tanstack_react-query.js?v=6dc992bb:926
+executeFetch_fn @ @tanstack_react-query.js?v=6dc992bb:2211
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:2245Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
+(anonymous) @ queryClient.ts:154
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=6dc992bb:840
+run @ @tanstack_react-query.js?v=6dc992bb:494
+start @ @tanstack_react-query.js?v=6dc992bb:536
+fetch @ @tanstack_react-query.js?v=6dc992bb:926
+executeFetch_fn @ @tanstack_react-query.js?v=6dc992bb:2211
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:2245Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=6dc992bb:840
+run @ @tanstack_react-query.js?v=6dc992bb:494
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:519
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:515
+Promise.catch
+run @ @tanstack_react-query.js?v=6dc992bb:498
+start @ @tanstack_react-query.js?v=6dc992bb:536
+fetch @ @tanstack_react-query.js?v=6dc992bb:926
+executeFetch_fn @ @tanstack_react-query.js?v=6dc992bb:2211
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:2245Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
+(anonymous) @ queryClient.ts:154
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=6dc992bb:840
+run @ @tanstack_react-query.js?v=6dc992bb:494
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:519
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:515
+Promise.catch
+run @ @tanstack_react-query.js?v=6dc992bb:498
+start @ @tanstack_react-query.js?v=6dc992bb:536
+fetch @ @tanstack_react-query.js?v=6dc992bb:926
+executeFetch_fn @ @tanstack_react-query.js?v=6dc992bb:2211
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:2245Understand this error
+queryClient.ts:150 JSON parse error for /api/dashboard/financial-stats: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ queryClient.ts:150
+await in (anonymous)
+fetchFn @ @tanstack_react-query.js?v=6dc992bb:840
+run @ @tanstack_react-query.js?v=6dc992bb:494
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:519
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:515
+Promise.catch
+run @ @tanstack_react-query.js?v=6dc992bb:498
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:519
+Promise.then
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:515
+Promise.catch
+run @ @tanstack_react-query.js?v=6dc992bb:498
+start @ @tanstack_react-query.js?v=6dc992bb:536
+fetch @ @tanstack_react-query.js?v=6dc992bb:926
+executeFetch_fn @ @tanstack_react-query.js?v=6dc992bb:2211
+(anonymous) @ @tanstack_react-query.js?v=6dc992bb:2245Understand this error
+queryClient.ts:154 Query Error (/api/dashboard/financial-stats): Error: Invalid JSON from /api/dashboard/financial-stats: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at queryClient.ts:151:15
