@@ -3301,19 +3301,67 @@ export async function registerRoutes(router: express.Router) {
           message: "No se ha encontrado un contexto de compañía válido." 
         });
       }
-
-      // TEST: Return hardcoded data to verify code is running
-      const testStats = {
-        monthlySales: 9999,
-        accountsReceivable: 8888,
-        donations: 7777,
-        donationsCount: 5,
-        monthStartDate: new Date().toISOString(),
-        monthEndDate: new Date().toISOString(),
+      
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      monthStart.setHours(0, 0, 0, 0);
+      
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      monthEnd.setHours(23, 59, 59, 999);
+      
+      // 1. Ventas del mes (total de facturas del mes actual)
+      const monthlySales = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            gte(invoices.date, monthStart),
+            lte(invoices.date, monthEnd)
+          )
+        );
+      
+      // 2. Cuentas por Cobrar (facturas pendientes de pago)
+      const accountsReceivable = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            eq(invoices.status, 'pending')
+          )
+        );
+      
+      // 3. Donaciones del mes (pedidos con payment_method = 'donation')
+      const donations = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.companyId, companyId),
+            eq(orders.paymentMethod, 'donation'),
+            gte(orders.date, monthStart),
+            lte(orders.date, monthEnd)
+          )
+        );
+      
+      const stats = {
+        monthlySales: Number(monthlySales[0]?.total) || 0,
+        accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
+        donations: Number(donations[0]?.total) || 0,
+        donationsCount: Number(donations[0]?.count) || 0,
+        monthStartDate: monthStart.toISOString(),
+        monthEndDate: monthEnd.toISOString(),
       };
       
-      console.log("========== RETURNING TEST DATA ==========", testStats);
-      return res.json(testStats);
+      res.json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas financieras:", error);
       res.status(500).json({ error: String(error) });
