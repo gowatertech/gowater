@@ -3296,85 +3296,24 @@ export async function registerRoutes(router: express.Router) {
       const companyId = getCurrentCompanyId();
       
       if (!companyId) {
-        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
         return res.status(403).json({ 
           error: "Acceso denegado", 
-          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+          message: "No se ha encontrado un contexto de compañía válido." 
         });
       }
-      
-      console.log(`FINANCIAL STATS - Company ${companyId}`);
-      
-      // Calcular el inicio y fin del mes actual
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      monthStart.setHours(0, 0, 0, 0);
-      
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      monthEnd.setHours(23, 59, 59, 999);
-      
-      console.log(`Month range: ${monthStart.toISOString()} to ${monthEnd.toISOString()}`);
-      
-      // 1. Ventas del mes (total de facturas del mes actual)
-      const monthlySales = await db
-        .select({
-          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
-        })
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.companyId, companyId),
-            gte(invoices.date, monthStart),
-            lte(invoices.date, monthEnd)
-          )
-        );
-      
-      console.log("Monthly sales query result:", monthlySales);
-      
-      // 2. Cuentas por Cobrar (facturas pendientes de pago)
-      const accountsReceivable = await db
-        .select({
-          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
-        })
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.companyId, companyId),
-            eq(invoices.status, 'pending')
-          )
-        );
-      
-      console.log("Accounts receivable query result:", accountsReceivable);
-      
-      // 3. Donaciones del mes (pedidos con payment_method = 'donation')
-      const donations = await db
-        .select({
-          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
-          count: sql`COUNT(*)`.mapWith(Number),
-        })
-        .from(orders)
-        .where(
-          and(
-            eq(orders.companyId, companyId),
-            eq(orders.paymentMethod, 'donation'),
-            gte(orders.date, monthStart),
-            lte(orders.date, monthEnd)
-          )
-        );
-      
-      console.log("Donations query result:", donations);
-      
-      const stats = {
-        monthlySales: Number(monthlySales[0]?.total) || 0,
-        accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
-        donations: Number(donations[0]?.total) || 0,
-        donationsCount: Number(donations[0]?.count) || 0,
-        monthStartDate: monthStart.toISOString(),
-        monthEndDate: monthEnd.toISOString(),
+
+      // TEST: Return hardcoded data to verify code is running
+      const testStats = {
+        monthlySales: 9999,
+        accountsReceivable: 8888,
+        donations: 7777,
+        donationsCount: 5,
+        monthStartDate: new Date().toISOString(),
+        monthEndDate: new Date().toISOString(),
       };
       
-      console.log("FINAL STATS TO RETURN:", stats);
-      res.type("application/json").status(200).json(stats);
+      console.log("========== RETURNING TEST DATA ==========", testStats);
+      return res.json(testStats);
     } catch (error) {
       console.error("Error al obtener estadísticas financieras:", error);
       res.status(500).json({ error: String(error) });
