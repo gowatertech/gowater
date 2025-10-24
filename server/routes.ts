@@ -3314,7 +3314,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Rango de fechas: ${monthStart.toISOString()} - ${monthEnd.toISOString()}`);
       
       // 1. Ventas del mes (total de facturas del mes actual)
-      const monthlySales = await companyDb
+      const monthlySales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -3330,7 +3330,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Ventas del mes:`, monthlySales);
       
       // 2. Cuentas por Cobrar (facturas pendientes de pago)
-      const accountsReceivable = await companyDb
+      const accountsReceivable = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -3345,7 +3345,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Cuentas por cobrar:`, accountsReceivable);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
-      const donations = await companyDb
+      const donations = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
           count: sql`COUNT(*)`.mapWith(Number),
