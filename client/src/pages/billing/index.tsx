@@ -1601,16 +1601,9 @@ export default function Billing() {
                               const amountInput = document.getElementById("paymentAmount") as HTMLInputElement;
                               handlePayment(selectedInvoice, amountInput.value);
                             }}
-                            disabled={createPaymentMutation.isPending}
+                            disabled={true}
                           >
-                            {createPaymentMutation.isPending ? (
-                              <>
-                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                                Procesando...
-                              </>
-                            ) : (
-                              "Procesar Pago"
-                            )}
+                            Procesar Pago
                           </Button>
                         </div>
                       </div>
