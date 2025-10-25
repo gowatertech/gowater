@@ -550,7 +550,7 @@ export class PrinterService {
         const product = products.find((p) => p?.id === item?.productId);
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
-        const price = parseFloat(item?.price || 0);
+        const price = parseFloat(item?.unitPrice || item?.price || 0);
         const total = price * quantity;
         
         // Acortar nombre si es muy largo
@@ -734,7 +734,7 @@ export class PrinterService {
     yPos += 5;
     
     // Monto total
-    const amount = parseFloat(safePayment.amount || 0);
+    const amount = parseFloat(safePayment.amount || "0");
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -1256,7 +1256,7 @@ export class PrinterService {
           const product = products?.find((p: any) => p?.id === item?.productId);
           const productName = product?.name || "Producto";
           const quantity = item?.quantity || 0;
-          const price = parseFloat(item?.price || 0);
+          const price = parseFloat(item?.unitPrice || item?.price || 0);
           const total = price * quantity;
           
           printContent.innerHTML += `
