@@ -582,14 +582,21 @@ export class PrinterService {
     let total = 0;
     
     try {
-      subtotal = parseFloat(order.subtotal || "0");
-      if (isNaN(subtotal)) subtotal = 0;
+      // Calcular subtotal sumando los totales de todos los items
+      if (Array.isArray(items) && items.length > 0) {
+        subtotal = items.reduce((sum, item) => {
+          const itemTotal = parseFloat(item?.total || 0);
+          return sum + itemTotal;
+        }, 0);
+      }
       
-      itbis = parseFloat(order.tax || "0");
-      if (isNaN(itbis)) itbis = 0;
+      // Calcular ITBIS usando la tasa de impuesto de la configuración
+      const settings = extraData.settings || {};
+      const taxRate = parseFloat(settings?.tax || "0") / 100;
+      itbis = subtotal * taxRate;
       
-      total = parseFloat(order.total || "0");
-      if (isNaN(total)) total = 0;
+      // El total es subtotal + ITBIS
+      total = subtotal + itbis;
     } catch (e) {
       console.error("Error calculando totales:", e);
     }
@@ -1285,14 +1292,20 @@ export class PrinterService {
       let total = 0;
       
       try {
-        subtotal = parseFloat(order.subtotal || "0");
-        if (isNaN(subtotal)) subtotal = 0;
+        // Calcular subtotal sumando los totales de todos los items
+        if (Array.isArray(items) && items.length > 0) {
+          subtotal = items.reduce((sum, item) => {
+            const itemTotal = parseFloat(item?.total || 0);
+            return sum + itemTotal;
+          }, 0);
+        }
         
-        itbis = parseFloat(order.tax || "0");
-        if (isNaN(itbis)) itbis = 0;
+        // Calcular ITBIS usando la tasa de impuesto de la configuración
+        const taxRate = parseFloat(settings?.tax || "0") / 100;
+        itbis = subtotal * taxRate;
         
-        total = parseFloat(order.total || "0");
-        if (isNaN(total)) total = 0;
+        // El total es subtotal + ITBIS
+        total = subtotal + itbis;
       } catch (e) {
         console.error("Error calculando totales:", e);
       }
