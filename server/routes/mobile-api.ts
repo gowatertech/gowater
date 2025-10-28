@@ -431,7 +431,7 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // Obtener datos necesarios del body
-      const { paymentMethod, amountPaid, userId: userIdFromBody } = req.body;
+      let { paymentMethod, amountPaid, userId: userIdFromBody } = req.body;
       
       // Obtener userId: primero del body (app móvil lo envía), luego de la sesión como fallback
       const userId = userIdFromBody || req.session?.user?.id || null;
@@ -465,6 +465,22 @@ export function createMobileApiEndpoints(): Router {
       
       const { order, isCharity } = orderData[0];
       const isCharityCustomer = isCharity || false;
+      
+      // GUARD RAIL: Si el pago es en efectivo pero INSUFICIENTE, forzar a crédito
+      // Esto previene que pagos parciales se registren incorrectamente como pagos completos
+      // Usamos tolerancia de 1 centavo para evitar problemas de precisión flotante
+      const orderTotal = parseFloat(order.total);
+      const amountReceived = parseFloat(amountPaid.toString());
+      const TOLERANCE = 0.01; // 1 centavo de tolerancia para redondeos
+      
+      // Es pago parcial solo si: amountReceived < (orderTotal - TOLERANCE)
+      // Esto permite sobrepagos pequeños (ej: $20 para $19.99) sin forzar a crédito
+      const isInsufficientPayment = amountReceived < (orderTotal - TOLERANCE);
+      
+      if (paymentMethod === 'cash' && isInsufficientPayment) {
+        console.log(`⚠️ GUARD RAIL: Pago insuficiente en efectivo ($${amountReceived.toFixed(2)}) para total de ($${orderTotal.toFixed(2)}). Forzando paymentMethod a 'credit' para manejar pago parcial.`);
+        paymentMethod = 'credit';
+      }
       
       // 2. Actualizar el estado de la orden a "entregado"
       const [updatedOrder] = await companyDb
@@ -603,18 +619,24 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
-      // 5. Registrar el pago SOLO para efectivo (cash)
-      // Para crédito y transferencia: NO se crea pago, solo la factura queda pendiente
-      if (paymentMethod === 'cash') {
+      // 5. Registrar el pago si hay un monto pagado (parcial o total)
+      // - Para crédito: Si amountPaid > 0, se registra el pago parcial
+      // - Para cash completo: Se registra el pago total
+      if (amountPaid > 0) {
         const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
         const invoiceTotal = parseFloat(order.total).toFixed(2);
+        
+        // Determinar si es pago parcial
+        const isPartialPayment = parseFloat(formattedAmount) < parseFloat(invoiceTotal);
         
         const paymentData = {
           invoiceId: invoice.id,
           customerId: order.customerId,
-          amount: invoiceTotal,
-          paymentMethod: paymentMethod,
-          notes: `Pago automático en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
+          amount: formattedAmount, // Usar el monto realmente pagado, no el total
+          paymentMethod: paymentMethod === 'credit' ? 'cash' : paymentMethod, // Si es crédito, el pago fue en efectivo
+          notes: isPartialPayment 
+            ? `Pago parcial en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId} - Abono: $${formattedAmount} de $${invoiceTotal}`
+            : `Pago automático en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
           companyId: companyId
         };
         
@@ -629,9 +651,13 @@ export function createMobileApiEndpoints(): Router {
           })
           .returning();
         
-        console.log(`Pago automático registrado para la factura ${invoice.invoiceNumber} (efectivo)`);
+        if (isPartialPayment) {
+          console.log(`Pago parcial registrado para la factura ${invoice.invoiceNumber}: $${formattedAmount} de $${invoiceTotal} (Pendiente: $${(parseFloat(invoiceTotal) - parseFloat(formattedAmount)).toFixed(2)})`);
+        } else {
+          console.log(`Pago completo registrado para la factura ${invoice.invoiceNumber} (efectivo)`);
+        }
       } else {
-        console.log(`Factura ${invoice.invoiceNumber} creada con estado "pending" - Método de pago: ${paymentMethod} - No se creó pago automático`);
+        console.log(`Factura ${invoice.invoiceNumber} creada con estado "pending" - Método de pago: ${paymentMethod} - No se creó pago (monto recibido: $0)`);
       }
       
       

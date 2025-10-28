@@ -110,6 +110,7 @@ export default function DeliveryDetails() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [autoEnterEditMode, setAutoEnterEditMode] = useState(false);
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
+  const [showPartialPaymentConfirm, setShowPartialPaymentConfirm] = useState(false);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -444,18 +445,41 @@ export default function DeliveryDetails() {
       return;
     }
 
+    // Detectar pago parcial en efectivo (incluye $0)
+    const isPartialPayment = paymentMethod === "cash" && paymentReceived < delivery.total;
+    
+    if (isPartialPayment) {
+      // Mostrar confirmación de pago parcial
+      setShowPartialPaymentConfirm(true);
+      return;
+    }
+
+    // Si no es pago parcial, proceder normalmente
+    await executeDeliveryProcess();
+  };
+
+  // Función para ejecutar el proceso de entrega (separada para reutilización)
+  const executeDeliveryProcess = async () => {
+    if (!delivery) return;
+
     setIsLoading(true);
     
     try {
-      // Preparar datos para la actualización - usando el endpoint correcto
+      // Detectar pago parcial en efectivo para convertir a crédito (incluye $0)
+      const isPartialPayment = paymentMethod === "cash" && paymentReceived < delivery.total;
+      
+      // Preparar datos para la actualización
       const requestBody = {
-        paymentMethod: paymentMethod,
+        paymentMethod: isPartialPayment ? "credit" : paymentMethod, // Si es pago parcial, crear factura a crédito
         amountPaid: paymentReceived,
         userId: user?.id // Usuario que procesa la entrega
       };
 
       console.log("Procesando entrega con datos:", JSON.stringify(requestBody));
       console.log("Método de pago seleccionado:", paymentMethod);
+      if (isPartialPayment) {
+        console.log("PAGO PARCIAL DETECTADO - Creando factura a crédito con pago de:", paymentReceived);
+      }
       
       // Enviar datos al servidor usando el endpoint correcto que crea la factura
       const responseData = await apiRequest({
@@ -471,13 +495,19 @@ export default function DeliveryDetails() {
       });
       
       // Mostrar mensaje de éxito
+      const pendingAmount = delivery.total - paymentReceived;
+      const successMessage = isPartialPayment 
+        ? `Entrega procesada. Abono de $${paymentReceived.toFixed(2)}. Pendiente: $${pendingAmount.toFixed(2)}`
+        : `Entrega marcada como completada. ${responseData.invoiceCreated ? 'Factura #' + responseData.invoiceNumber + ' generada.' : ''}`;
+      
       toast({
         title: "Entrega procesada",
-        description: `Entrega marcada como completada. ${responseData.invoiceCreated ? 'Factura #' + responseData.invoiceNumber + ' generada.' : ''}`
+        description: successMessage
       });
       
-      // Cerrar diálogo
+      // Cerrar diálogos
       setShowDeliveryConfirm(false);
+      setShowPartialPaymentConfirm(false);
       
     } catch (error) {
       console.error("Error al procesar la entrega:", error);
@@ -1385,11 +1415,9 @@ export default function DeliveryDetails() {
             
             <Button 
               onClick={processDelivery}
-              disabled={
-                !paymentMethod || 
-                (paymentMethod === "cash" && paymentReceived < delivery.total)
-              }
+              disabled={!paymentMethod}
               className="flex-1"
+              data-testid="button-complete-delivery"
             >
               <Check className="h-5 w-5 mr-1" />
               Completar
@@ -1397,6 +1425,63 @@ export default function DeliveryDetails() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de confirmación de pago parcial */}
+      <AlertDialog open={showPartialPaymentConfirm} onOpenChange={setShowPartialPaymentConfirm}>
+        <AlertDialogContent className={darkMode ? 'dark bg-gray-800 text-white border-gray-700' : ''}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">Confirmar Pago Parcial</AlertDialogTitle>
+            <AlertDialogDescription className={darkMode ? 'text-gray-300' : ''}>
+              {delivery && (
+                <div className="space-y-3 mt-3">
+                  <p className="text-base">
+                    El monto recibido es <strong className="text-orange-600 dark:text-orange-400">menor</strong> al total del pedido.
+                  </p>
+                  <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Total del pedido:</span>
+                      <span className="text-lg font-bold">${delivery.total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Monto a abonar:</span>
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">${paymentReceived.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-orange-200 dark:border-orange-700 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Quedará pendiente:</span>
+                        <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                          ${(delivery.total - paymentReceived).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm">
+                    ¿Está seguro que solo quiere abonar <strong>${paymentReceived.toFixed(2)}</strong>?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Se creará una factura a crédito por el total y se registrará este pago parcial.
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => setShowPartialPaymentConfirm(false)}
+              data-testid="button-cancel-partial-payment"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={executeDeliveryProcess}
+              className="bg-primary hover:bg-primary/90"
+              data-testid="button-confirm-partial-payment"
+            >
+              Sí, abonar ${paymentReceived.toFixed(2)}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Diálogo de retorno de envases */}
       <BottleReturnDialog
