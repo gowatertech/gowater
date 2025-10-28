@@ -1227,7 +1227,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
     for (const item of orderItemsResult.rows) {
       const createInvoiceItemQuery = `
         INSERT INTO invoice_items (
-          company_id, invoice_id, product_id, quantity, unit_price, total
+          company_id, invoice_id, product_id, quantity, price, total
         )
         VALUES ($1, $2, $3, $4, $5, $6)
       `;
