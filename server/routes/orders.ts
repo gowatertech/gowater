@@ -1309,12 +1309,12 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
         paymentMethod: invoice.payment_method,
         date: invoice.date
       },
-      payment: {
+      payment: payment ? {
         id: payment.id,
         amount: payment.amount,
         paymentMethod: payment.payment_method,
         date: payment.date
-      },
+      } : null,
       order: {
         id: updateOrderResult.rows[0].id,
         invoiceId: updateOrderResult.rows[0].invoice_id
