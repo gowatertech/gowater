@@ -923,17 +923,10 @@ export default function DeliveryDetails() {
           <p className="text-muted-foreground mb-6">No se pudo encontrar la información de esta entrega</p>
           
           <div className="flex space-x-2 justify-center">
-            {routeId ? (
-              <Button onClick={() => setLocation(`/mobile-app/ruta?routeId=${routeId}`)}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver a ruta
-              </Button>
-            ) : (
-              <Button onClick={() => setLocation('/mobile-app/entregas')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver a entregas
-              </Button>
-            )}
+            <Button onClick={() => setLocation('/mobile-app/entregas')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver a entregas
+            </Button>
           </div>
         </div>
         <MobileFooter darkMode={darkMode} />
@@ -1232,25 +1225,14 @@ export default function DeliveryDetails() {
               {delivery.status === "delivered" ? "Entregado" : "Marcar como Entregado"}
             </Button>
             
-            {routeId ? (
-              <Button 
-                className="flex-1" 
-                variant="outline"
-                onClick={() => setLocation(`/mobile-app/ruta?routeId=${routeId}`)}
-                disabled={isEditing}
-              >
-                Volver a Ruta
-              </Button>
-            ) : (
-              <Button 
-                className="flex-1" 
-                variant="outline"
-                onClick={() => setLocation('/mobile-app/entregas')}
-                disabled={isEditing}
-              >
-                Volver a Entregas
-              </Button>
-            )}
+            <Button 
+              className="flex-1" 
+              variant="outline"
+              onClick={() => setLocation('/mobile-app/entregas')}
+              disabled={isEditing}
+            >
+              Volver a Entregas
+            </Button>
           </div>
         </div>
       </main>
