@@ -1335,31 +1335,75 @@ export default function DeliveryDetails() {
                   className={`text-lg ${darkMode ? 'bg-gray-700 border-gray-600' : ''}`}
                 />
                 
-                {/* Botones de acceso rápido para montos comunes */}
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                {/* Botones de denominaciones de billetes */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Denominaciones:</Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPaymentReceived(0)}
+                      className="text-xs h-7 text-red-600 dark:text-red-400"
+                      data-testid="button-reset-amount"
+                    >
+                      Limpiar
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPaymentReceived(prev => prev + 100)}
+                      className="text-xs h-10 font-semibold"
+                      data-testid="button-add-100"
+                    >
+                      +$100
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPaymentReceived(prev => prev + 200)}
+                      className="text-xs h-10 font-semibold"
+                      data-testid="button-add-200"
+                    >
+                      +$200
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPaymentReceived(prev => prev + 500)}
+                      className="text-xs h-10 font-semibold"
+                      data-testid="button-add-500"
+                    >
+                      +$500
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPaymentReceived(prev => prev + 1000)}
+                      className="text-xs h-10 font-semibold"
+                      data-testid="button-add-1000"
+                    >
+                      +$1000
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setPaymentReceived(prev => prev + 2000)}
+                      className="text-xs h-10 font-semibold"
+                      data-testid="button-add-2000"
+                    >
+                      +$2000
+                    </Button>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setPaymentReceived(delivery.total)}
-                    className="text-xs h-8"
+                    className="w-full text-xs h-8"
+                    data-testid="button-exact-amount"
                   >
-                    Exacto
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setPaymentReceived(Math.ceil(delivery.total / 100) * 100)}
-                    className="text-xs h-8"
-                  >
-                    ${Math.ceil(delivery.total / 100) * 100}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setPaymentReceived(Math.ceil(delivery.total / 500) * 500)}
-                    className="text-xs h-8"
-                  >
-                    ${Math.ceil(delivery.total / 500) * 500}
+                    Monto Exacto (${delivery.total.toFixed(2)})
                   </Button>
                 </div>
 
