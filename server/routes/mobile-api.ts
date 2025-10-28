@@ -619,7 +619,25 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
-      // 5. Registrar el pago si hay un monto pagado (parcial o total)
+      // 5. Vincular la factura al pedido y guardar el método de pago
+      await companyDb
+        .update(orders)
+        .set({ 
+          invoiceId: invoice.id,
+          paymentMethod: paymentMethod
+        })
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ));
+      
+      console.log(`Pedido ${orderId} vinculado a factura ${invoice.id} con método de pago: ${paymentMethod}`);
+      
+      // Actualizar el objeto updatedOrder con los valores recién guardados
+      updatedOrder.invoiceId = invoice.id;
+      updatedOrder.paymentMethod = paymentMethod;
+      
+      // 6. Registrar el pago si hay un monto pagado (parcial o total)
       // - Para crédito: Si amountPaid > 0, se registra el pago parcial
       // - Para cash completo: Se registra el pago total
       if (amountPaid > 0) {
@@ -661,7 +679,7 @@ export function createMobileApiEndpoints(): Router {
       }
       
       
-      // 6. Devolver respuesta exitosa
+      // 7. Devolver respuesta exitosa
       res.json({
         success: true,
         order: updatedOrder,

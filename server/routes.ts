@@ -2792,7 +2792,8 @@ export async function registerRoutes(router: express.Router) {
 
       // Determinar el status inicial de la factura
       // Si es efectivo, marcarla como pagada automáticamente
-      const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : result.data.status;
+      // Si es crédito, marcarla como pendiente de pago
+      const initialStatus = result.data.paymentMethod === 'cash' ? 'paid' : 'pending';
 
       // Usar SQL directo como en pedidos para evitar problemas con Drizzle y decimales
       const { pool } = await import('./db');
