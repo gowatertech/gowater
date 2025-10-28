@@ -509,6 +509,15 @@ export default function DeliveryDetails() {
       setShowDeliveryConfirm(false);
       setShowPartialPaymentConfirm(false);
       
+      // Navegar de regreso a la lista de entregas después de un breve delay
+      setTimeout(() => {
+        if (routeId) {
+          setLocation(`/mobile-app/ruta/${routeId}`);
+        } else {
+          setLocation('/mobile-app/entregas');
+        }
+      }, 1500);
+      
     } catch (error) {
       console.error("Error al procesar la entrega:", error);
       toast({
