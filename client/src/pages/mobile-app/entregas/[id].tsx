@@ -1336,64 +1336,58 @@ export default function DeliveryDetails() {
                 />
                 
                 {/* Botones de denominaciones de billetes */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Denominaciones:</Label>
-                  <div className="grid grid-cols-5 gap-2">
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Denominaciones de billetes:</Label>
+                  <div className="grid grid-cols-3 gap-3">
                     <Button 
                       variant="outline" 
-                      size="sm" 
                       onClick={() => setPaymentReceived(100)}
-                      className="text-xs h-10 font-semibold"
+                      className="h-14 text-base font-bold"
                       data-testid="button-set-100"
                     >
                       $100
                     </Button>
                     <Button 
                       variant="outline" 
-                      size="sm" 
                       onClick={() => setPaymentReceived(200)}
-                      className="text-xs h-10 font-semibold"
+                      className="h-14 text-base font-bold"
                       data-testid="button-set-200"
                     >
                       $200
                     </Button>
                     <Button 
                       variant="outline" 
-                      size="sm" 
                       onClick={() => setPaymentReceived(500)}
-                      className="text-xs h-10 font-semibold"
+                      className="h-14 text-base font-bold"
                       data-testid="button-set-500"
                     >
                       $500
                     </Button>
                     <Button 
                       variant="outline" 
-                      size="sm" 
                       onClick={() => setPaymentReceived(1000)}
-                      className="text-xs h-10 font-semibold"
+                      className="h-14 text-base font-bold"
                       data-testid="button-set-1000"
                     >
-                      $1000
+                      $1,000
                     </Button>
                     <Button 
                       variant="outline" 
-                      size="sm" 
                       onClick={() => setPaymentReceived(2000)}
-                      className="text-xs h-10 font-semibold"
+                      className="h-14 text-base font-bold"
                       data-testid="button-set-2000"
                     >
-                      $2000
+                      $2,000
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setPaymentReceived(delivery.total)}
+                      className="h-14 text-sm font-semibold"
+                      data-testid="button-exact-amount"
+                    >
+                      Exacto<br/>${delivery.total.toFixed(2)}
                     </Button>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPaymentReceived(delivery.total)}
-                    className="w-full text-xs h-8"
-                    data-testid="button-exact-amount"
-                  >
-                    Monto Exacto (${delivery.total.toFixed(2)})
-                  </Button>
                 </div>
 
                 {/* Mostrar cambio si aplica */}
