@@ -765,6 +765,7 @@ export default function OrdersList() {
                   <SelectItem value="cash">Efectivo</SelectItem>
                   <SelectItem value="card">Tarjeta</SelectItem>
                   <SelectItem value="credit">Crédito</SelectItem>
+                  <SelectItem value="transfer">Transferencia</SelectItem>
                 </SelectContent>
               </Select>
             </div>

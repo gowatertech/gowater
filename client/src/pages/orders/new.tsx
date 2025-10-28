@@ -456,6 +456,15 @@ export default function NewOrder() {
                 >
                   Tarjeta
                 </Button>
+                <Button
+                  type="button"
+                  variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setPaymentMethod('transfer')}
+                  className="flex-1"
+                >
+                  Transferencia
+                </Button>
               </div>
             )}
           </div>

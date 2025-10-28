@@ -137,7 +137,7 @@ export default function DriverRoute() {
   const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
   const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation" | "transfer">("cash");
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
@@ -988,7 +988,7 @@ export default function DriverRoute() {
                   !currentStopForPayment.invoiceId && (
                     <div className="mb-2 sm:mb-3">
                       <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
                         <Button 
                           type="button" 
                           variant={paymentMethod === "cash" ? "default" : "outline"} 
@@ -1006,6 +1006,15 @@ export default function DriverRoute() {
                         >
                           <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                           Crédito
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={paymentMethod === "transfer" ? "default" : "outline"} 
+                          className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
+                          onClick={() => setPaymentMethod("transfer")}
+                        >
+                          <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                          Transferencia
                         </Button>
                       </div>
                     </div>
