@@ -494,6 +494,9 @@ export default function DeliveryDetails() {
         status: "delivered"
       });
       
+      // Resetear estado de edición
+      setIsEditing(false);
+      
       // Mostrar mensaje de éxito
       const pendingAmount = delivery.total - paymentReceived;
       const successMessage = isPartialPayment 
