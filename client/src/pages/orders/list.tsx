@@ -599,7 +599,7 @@ export default function OrdersList() {
                             <Tag className="h-3.5 w-3.5 mr-1" />
                             Estado
                           </Button>
-                          {order.status === "pending" && !order.invoiceId && (
+                          {order.status === "pending" && !order.invoiceId && !customers?.find((c: any) => c.id === order.customerId)?.isCharity && (
                             <Button
                               variant="default"
                               size="sm"
@@ -692,7 +692,7 @@ export default function OrdersList() {
                               <Tag className="h-3.5 w-3.5 mr-1" />
                               Estado
                             </Button>
-                            {order.status === "pending" && !order.invoiceId && (
+                            {order.status === "pending" && !order.invoiceId && !customers?.find((c: any) => c.id === order.customerId)?.isCharity && (
                               <Button
                                 variant="default"
                                 size="sm"
