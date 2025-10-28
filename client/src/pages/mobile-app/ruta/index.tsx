@@ -338,6 +338,7 @@ export default function DriverRoute() {
             customerName: order.customerName || "Cliente",
             customerIsCharity: order.customerIsCharity,
             paymentMethod: order.paymentMethod,
+            invoiceId: order.invoiceId, // ID de factura prepagada si existe
             address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
             latitude: lat,
             longitude: lng,
@@ -906,11 +907,23 @@ export default function DriverRoute() {
         <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              Procesar Pago
+              {currentStopForPayment?.invoiceId ? (
+                <>
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                  Confirmar Entrega
+                </>
+              ) : (
+                <>
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  Procesar Pago
+                </>
+              )}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-              Complete los datos para procesar el pago y registrar la entrega
+              {currentStopForPayment?.invoiceId 
+                ? "Confirme la entrega de este pedido prepagado"
+                : "Complete los datos para procesar el pago y registrar la entrega"
+              }
             </DialogDescription>
           </DialogHeader>
           
@@ -921,15 +934,42 @@ export default function DriverRoute() {
                 <div className="bg-primary/10 rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-1">
                     <h3 className="font-bold text-sm sm:text-base">{currentStopForPayment.customerName}</h3>
-                    <Badge variant="outline" className="ml-0 sm:ml-2 text-xs">
-                      {currentStopForPayment.products.reduce((acc, item) => acc + item.quantity, 0)} productos
-                    </Badge>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="outline" className="ml-0 sm:ml-2 text-xs">
+                        {currentStopForPayment.products.reduce((acc, item) => acc + item.quantity, 0)} productos
+                      </Badge>
+                      {currentStopForPayment.invoiceId && (
+                        <Badge 
+                          className="bg-green-600 hover:bg-green-700 text-white border-green-700 text-xs"
+                          data-testid="badge-pagado-ruta"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" /> PAGADO
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">{currentStopForPayment.address}</p>
                 </div>
                 
-                {/* Opciones de método de pago */}
-                {currentStopForPayment && currentStopForPayment.customerIsCharity && currentStopForPayment.paymentMethod === 'donation' ? (
+                {/* Mensaje informativo para pedidos prepagados */}
+                {currentStopForPayment.invoiceId ? (
+                  <div 
+                    className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm mb-3"
+                    data-testid="text-prepaid-notice-ruta"
+                  >
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                      <div className="text-blue-800 dark:text-blue-200">
+                        <span className="font-medium">Este pedido ya está pagado.</span>
+                        <br />
+                        Solo necesitas confirmar la entrega. No se generará una factura adicional.
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                
+                {/* Opciones de método de pago - Solo mostrar si NO está prepagado */}
+                {!currentStopForPayment.invoiceId && currentStopForPayment && currentStopForPayment.customerIsCharity && currentStopForPayment.paymentMethod === 'donation' ? (
                   /* Si es una donación, mostrar SOLO opción de Donación */
                   <div className="mb-2 sm:mb-3">
                     <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
@@ -944,34 +984,36 @@ export default function DriverRoute() {
                     </div>
                   </div>
                 ) : (
-                  /* Si NO es donación, mostrar opciones normales */
-                  <div className="mb-2 sm:mb-3">
-                    <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      <Button 
-                        type="button" 
-                        variant={paymentMethod === "cash" ? "default" : "outline"} 
-                        className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
-                        onClick={() => setPaymentMethod("cash")}
-                      >
-                        <DollarSign className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                        Efectivo
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant={paymentMethod === "credit" ? "default" : "outline"} 
-                        className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
-                        onClick={() => setPaymentMethod("credit")}
-                      >
-                        <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                        Crédito
-                      </Button>
+                  /* Si NO es donación y NO está prepagado, mostrar opciones normales */
+                  !currentStopForPayment.invoiceId && (
+                    <div className="mb-2 sm:mb-3">
+                      <Label className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">Método de pago</Label>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                        <Button 
+                          type="button" 
+                          variant={paymentMethod === "cash" ? "default" : "outline"} 
+                          className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
+                          onClick={() => setPaymentMethod("cash")}
+                        >
+                          <DollarSign className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                          Efectivo
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={paymentMethod === "credit" ? "default" : "outline"} 
+                          className="justify-start py-1.5 sm:py-2 h-8 sm:h-9 text-xs sm:text-sm"
+                          onClick={() => setPaymentMethod("credit")}
+                        >
+                          <CreditCard className="mr-1.5 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                          Crédito
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
                 
-                {/* Calculadora de pago en efectivo */}
-                {paymentMethod === "cash" && !(currentStopForPayment?.customerIsCharity && currentStopForPayment?.paymentMethod === 'donation') && (
+                {/* Calculadora de pago en efectivo - Solo mostrar si NO está prepagado */}
+                {!currentStopForPayment.invoiceId && paymentMethod === "cash" && !(currentStopForPayment?.customerIsCharity && currentStopForPayment?.paymentMethod === 'donation') && (
                   <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3">
                     <div>
                       <Label htmlFor="amount" className="text-xs sm:text-sm font-medium mb-1 block">
@@ -1066,8 +1108,9 @@ export default function DriverRoute() {
             <Button
               onClick={completePaymentAndDelivery}
               className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
+              data-testid="button-confirmar-entrega-ruta"
             >
-              Confirmar pago
+              {currentStopForPayment?.invoiceId ? "Confirmar entrega" : "Confirmar pago"}
             </Button>
           </DialogFooter>
         </DialogContent>

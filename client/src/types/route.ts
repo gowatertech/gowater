@@ -5,6 +5,7 @@ export interface RouteStop {
   customerName: string;
   customerIsCharity?: boolean;
   paymentMethod?: string;
+  invoiceId?: number; // ID de factura prepagada si existe
   address: string;
   latitude: number;
   longitude: number;

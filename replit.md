@@ -53,9 +53,10 @@ The mobile delivery app implements a robust partial payment system allowing driv
 ### Prepaid Invoice System
 The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It features:
 - **Office Workflow**: Staff can create prepaid invoices via "Pagar" button in orders list
-- **Mobile App Detection**: Detects prepaid orders via `invoice_id` field, displays green "✓ PAGADO" badge, simplifies delivery confirmation (no payment fields)
+- **Mobile Delivery App Detection** (/mobile-app/entregas): Detects prepaid orders via `invoice_id` field, displays green "✓ PAGADO" badge, simplifies delivery confirmation (no payment fields)
+- **Mobile Route App Detection** (/mobile-app/ruta): Shows green "PAGADO" badge in route deliveries, displays informational message, hides payment fields, changes dialog title to "Confirmar Entrega"
 - **Web Interface Detection**: Order details page shows green "PAGADO" badge and informational message when order is prepaid
-- **Status Update Protection**: Both mobile and web interfaces update order status without creating duplicate invoices
+- **Status Update Protection**: Mobile delivery, mobile route, and web interfaces update order status without creating duplicate invoices
 - **Backend Guards**: POST /api/update-order-status and PATCH /api/orders/:id/status prevent duplicate invoice creation for prepaid orders and donations
 - **Database Integration**: Uses `orders.invoice_id` foreign key to link prepaid invoices, ensuring referential integrity
 
