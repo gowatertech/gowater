@@ -551,8 +551,16 @@ export default function OrderDetails() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Estado</div>
-                <div>
+                <div className="flex flex-wrap gap-2 items-center">
                   {getStatusBadge(order.status)}
+                  {order.invoiceId && (
+                    <Badge 
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-700 flex items-center gap-1"
+                      data-testid="badge-pagado"
+                    >
+                      <CheckCircle className="h-3 w-3" /> PAGADO
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div>
@@ -724,6 +732,24 @@ export default function OrderDetails() {
           {/* Cambiar Estado */}
           <div className="space-y-2 border rounded-lg p-3 sm:p-4 mt-4">
             <h3 className="font-medium">Actualizar Estado</h3>
+            
+            {/* Mensaje informativo para pedidos prepagados */}
+            {order.invoiceId && (
+              <div 
+                className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm"
+                data-testid="text-prepaid-notice"
+              >
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-blue-800 dark:text-blue-200">
+                    <span className="font-medium">Este pedido ya está pagado.</span>
+                    <br />
+                    Al actualizar el estado solo se modificará el estado del pedido, no se generará una factura adicional.
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="flex flex-col sm:flex-row gap-2">
               <Select 
                 value={newStatus} 
@@ -763,6 +789,7 @@ export default function OrderDetails() {
                 className="w-full sm:w-auto"
                 onClick={handleUpdateStatus}
                 disabled={updateStatusMutation.isPending || newStatus === order.status}
+                data-testid="button-actualizar-estado"
               >
                 {updateStatusMutation.isPending ? (
                   <>

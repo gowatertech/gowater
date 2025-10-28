@@ -51,7 +51,13 @@ The system automatically creates invoices when orders are marked as delivered, i
 The mobile delivery app implements a robust partial payment system allowing drivers to accept partial cash payments. It features frontend detection of partial payments, a confirmation dialog, automatic conversion of payment method from "cash" to "credit" for outstanding balances, and backend guard rails with a 1-cent tolerance for float precision to prevent misclassification. Only actual cash amounts received are recorded as partial payments.
 
 ### Prepaid Invoice System
-The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It features a workflow for office staff to create prepaid invoices, mobile app detection of prepaid orders via `invoice_id`, UI indicators for drivers, simplified delivery confirmation for prepaid orders, and backend guards to prevent duplicate invoice creation.
+The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It features:
+- **Office Workflow**: Staff can create prepaid invoices via "Pagar" button in orders list
+- **Mobile App Detection**: Detects prepaid orders via `invoice_id` field, displays green "✓ PAGADO" badge, simplifies delivery confirmation (no payment fields)
+- **Web Interface Detection**: Order details page shows green "PAGADO" badge and informational message when order is prepaid
+- **Status Update Protection**: Both mobile and web interfaces update order status without creating duplicate invoices
+- **Backend Guards**: POST /api/update-order-status and PATCH /api/orders/:id/status prevent duplicate invoice creation for prepaid orders and donations
+- **Database Integration**: Uses `orders.invoice_id` foreign key to link prepaid invoices, ensuring referential integrity
 
 ## External Dependencies
 
