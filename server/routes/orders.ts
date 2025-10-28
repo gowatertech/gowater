@@ -1195,8 +1195,10 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
     const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
     const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
     
-    // Para facturas prepagadas, el status es "paid" (ya que se está pagando ahora)
-    const invoiceStatus = 'paid';
+    // Determinar el status basado en el método de pago:
+    // - cash/card: se paga ahora en oficina → 'paid'
+    // - credit: es a cuenta → 'pending'
+    const invoiceStatus = paymentMethod === 'credit' ? 'pending' : 'paid';
     
     // Crear la factura con subtotal, tax y total
     const createInvoiceQuery = `
@@ -1246,30 +1248,37 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
     
     console.log(`✅ Items de factura copiados (${orderItemsResult.rows.length} items)`);
     
-    // Crear el registro de pago (siempre, ya que es prepagado)
-    console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
-    
-    const createPaymentQuery = `
-      INSERT INTO payments (
-        company_id, invoice_id, customer_id, amount, payment_method, date, notes
-      )
-      VALUES ($1, $2, $3, $4, $5, NOW(), $6)
-      RETURNING *
-    `;
-    
-    const paymentNotes = `Pago prepagado - Factura #${invoice.invoice_number} - Pedido #${orderId}`;
-    
-    const paymentResult = await pool.query(createPaymentQuery, [
-      companyId,
-      invoice.id,
-      order.customer_id,
-      total.toFixed(2),
-      paymentMethod,
-      paymentNotes
-    ]);
-    
-    const payment = paymentResult.rows[0];
-    console.log(`✅ Pago prepagado #${payment.id} creado para factura #${invoice.id}`);
+    // Crear el registro de pago solo si NO es crédito
+    // - cash/card: se recibe pago ahora → crear registro de pago
+    // - credit: no se recibe pago ahora → NO crear registro de pago
+    let payment = null;
+    if (paymentMethod !== 'credit') {
+      console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
+      
+      const createPaymentQuery = `
+        INSERT INTO payments (
+          company_id, invoice_id, customer_id, amount, payment_method, date, notes
+        )
+        VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+        RETURNING *
+      `;
+      
+      const paymentNotes = `Pago prepagado - Factura #${invoice.invoice_number} - Pedido #${orderId}`;
+      
+      const paymentResult = await pool.query(createPaymentQuery, [
+        companyId,
+        invoice.id,
+        order.customer_id,
+        total.toFixed(2),
+        paymentMethod,
+        paymentNotes
+      ]);
+      
+      payment = paymentResult.rows[0];
+      console.log(`✅ Pago prepagado #${payment.id} creado para factura #${invoice.id}`);
+    } else {
+      console.log(`📝 Factura a crédito - NO se crea registro de pago (pendiente de cobro)`);
+    }
     
     // Actualizar la orden con el invoice_id y payment_method
     const updateOrderQuery = `
