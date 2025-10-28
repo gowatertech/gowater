@@ -80,6 +80,7 @@ interface Delivery {
   status: "pending" | "in_progress" | "delivered" | "cancelled";
   scheduledTime: string;
   paymentMethod?: string;
+  invoiceId?: number | null; // ID de factura prepagada
   products: { 
     id: number; 
     name: string; 
@@ -211,6 +212,7 @@ export default function DeliveryDetails() {
         customerName: orderData.customerName,
         customerIsCharity: orderData.customerIsCharity,
         paymentMethod: orderData.paymentMethod,
+        invoiceId: orderData.invoiceId,
         address: orderData.customerStreet || orderData.customerAddress || 'Dirección no disponible',
         status: orderData.status as "pending" | "in_progress" | "delivered" | "cancelled",
         scheduledTime: new Date(orderData.date).toLocaleTimeString('es-DO', {
@@ -435,6 +437,12 @@ export default function DeliveryDetails() {
   const processDelivery = async () => {
     if (!delivery) return;
     
+    // Si el pedido ya tiene factura prepagada, solo marcar como entregado
+    if (delivery.invoiceId) {
+      await executeDeliveryProcessPrepaid();
+      return;
+    }
+    
     // Validar que se haya seleccionado un método de pago
     if (!paymentMethod || !["cash", "credit", "donation"].includes(paymentMethod)) {
       toast({
@@ -456,6 +464,56 @@ export default function DeliveryDetails() {
 
     // Si no es pago parcial, proceder normalmente
     await executeDeliveryProcess();
+  };
+
+  // Función para procesar entrega de pedidos prepagados
+  const executeDeliveryProcessPrepaid = async () => {
+    if (!delivery) return;
+
+    setIsLoading(true);
+    
+    try {
+      console.log("Procesando entrega de pedido prepagado");
+      
+      // Actualizar estado del pedido a entregado
+      await apiRequest({
+        url: `/api/orders/${delivery.orderId}/status`,
+        method: 'PATCH',
+        data: { status: 'delivered' }
+      });
+      
+      // Actualizar datos locales
+      setDelivery({
+        ...delivery,
+        status: "delivered"
+      });
+      
+      // Resetear estado de edición
+      setIsEditing(false);
+      
+      toast({
+        title: "Entrega completada",
+        description: "El pedido prepagado ha sido entregado exitosamente."
+      });
+      
+      // Cerrar diálogos
+      setShowDeliveryConfirm(false);
+      
+      // Navegar de regreso a la lista de entregas después de un breve delay
+      setTimeout(() => {
+        setLocation('/mobile-app/entregas');
+      }, 1500);
+      
+    } catch (error) {
+      console.error("Error al procesar la entrega prepagada:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la entrega",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Función para ejecutar el proceso de entrega (separada para reutilización)
@@ -966,19 +1024,26 @@ export default function DeliveryDetails() {
             <CardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <h2 className="font-medium text-lg">{delivery.customerName}</h2>
-                <Badge 
-                  variant={
-                    delivery.status === "delivered" ? "secondary" :
-                    delivery.status === "in_progress" ? "outline" :
-                    delivery.status === "cancelled" ? "destructive" :
-                    "default"
-                  }
-                >
-                  {delivery.status === "pending" && "Pendiente"}
-                  {delivery.status === "in_progress" && "En camino"}
-                  {delivery.status === "delivered" && "Entregado"}
-                  {delivery.status === "cancelled" && "Cancelado"}
-                </Badge>
+                <div className="flex flex-col gap-2 items-end">
+                  <Badge 
+                    variant={
+                      delivery.status === "delivered" ? "secondary" :
+                      delivery.status === "in_progress" ? "outline" :
+                      delivery.status === "cancelled" ? "destructive" :
+                      "default"
+                    }
+                  >
+                    {delivery.status === "pending" && "Pendiente"}
+                    {delivery.status === "in_progress" && "En camino"}
+                    {delivery.status === "delivered" && "Entregado"}
+                    {delivery.status === "cancelled" && "Cancelado"}
+                  </Badge>
+                  {delivery.invoiceId && (
+                    <Badge className="bg-green-600 hover:bg-green-700">
+                      ✓ PAGADO
+                    </Badge>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-2 text-sm">
@@ -1249,13 +1314,26 @@ export default function DeliveryDetails() {
             {/* Sección de total */}
             <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 mb-4">
               <div className="flex justify-between items-center">
-                <span className="text-lg">Total a cobrar:</span>
+                <span className="text-lg">{delivery.invoiceId ? "Total del pedido:" : "Total a cobrar:"}</span>
                 <span className="text-xl font-bold">${delivery.total.toFixed(2)}</span>
               </div>
+              {delivery.invoiceId && (
+                <div className="mt-3 flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900 p-3 rounded-md">
+                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <span className="font-semibold text-green-600 dark:text-green-400">Este pedido ya está pagado</span>
+                </div>
+              )}
             </div>
 
             {/* Opciones de pago con iconos más grandes y mejor visualización */}
-            {delivery && delivery.customerIsCharity && delivery.paymentMethod === 'donation' ? (
+            {delivery.invoiceId ? (
+              /* Si tiene factura prepagada, solo mostrar mensaje */
+              <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-4">
+                <p className="text-sm text-blue-700 dark:text-blue-300 text-center">
+                  Este pedido ya fue facturado y pagado anticipadamente. Solo necesitas confirmar la entrega.
+                </p>
+              </div>
+            ) : delivery && delivery.customerIsCharity && delivery.paymentMethod === 'donation' ? (
               /* Si es una donación, mostrar SOLO opción de Donación */
               <div>
                 <Label className="text-md font-medium mb-3 block">Método de pago:</Label>
@@ -1311,7 +1389,7 @@ export default function DeliveryDetails() {
             )}
             
             {/* Sección de pago en efectivo */}
-            {paymentMethod === "cash" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
+            {!delivery.invoiceId && paymentMethod === "cash" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
               <div className="border rounded-lg p-3 space-y-3">
                 <Label htmlFor="payment-amount" className="font-medium block">
                   Monto recibido:
@@ -1395,7 +1473,7 @@ export default function DeliveryDetails() {
             )}
 
             {/* Sección de crédito */}
-            {paymentMethod === "credit" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
+            {!delivery.invoiceId && paymentMethod === "credit" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
               <div className="border rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Monto a crédito:</span>

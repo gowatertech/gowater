@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 // Importamos nuestro servicio de impresión centralizado
 import { PrinterService } from "@/services/PrinterService";
@@ -24,7 +24,8 @@ import {
   Calendar,
   SearchX,
   Printer,
-  Download
+  Download,
+  DollarSign
 } from "lucide-react";
 
 // Componentes UI
@@ -55,6 +56,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function OrdersList() {
   const { t } = useTranslation();
@@ -63,6 +72,12 @@ export default function OrdersList() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // Estado para el diálogo de pago prepagado
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // Obtener los pedidos
   const { data: orders = [] } = useQuery<any[]>({
@@ -357,6 +372,50 @@ export default function OrdersList() {
     await handleGeneratePdf(orderId);
   };
 
+  // Abrir diálogo de pago prepagado
+  const handleOpenPaymentDialog = (order: any) => {
+    setSelectedOrder(order);
+    setPaymentMethod("cash");
+    setShowPaymentDialog(true);
+  };
+
+  // Procesar pago prepagado
+  const handleCreatePrepaidInvoice = async () => {
+    if (!selectedOrder) return;
+    
+    setIsProcessingPayment(true);
+    
+    try {
+      const response = await apiRequest({
+        url: `/api/orders/${selectedOrder.id}/create-prepaid-invoice`,
+        method: 'POST',
+        data: { paymentMethod }
+      });
+      
+      toast({
+        title: "Factura creada",
+        description: response.message || `Factura #${response.invoice.invoiceNumber} creada exitosamente`,
+      });
+      
+      // Cerrar diálogo
+      setShowPaymentDialog(false);
+      setSelectedOrder(null);
+      
+      // Invalidar cache para refrescar la lista
+      await queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      
+    } catch (error: any) {
+      console.error('Error al crear factura prepagada:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al crear la factura prepagada",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
@@ -540,6 +599,17 @@ export default function OrdersList() {
                             <Tag className="h-3.5 w-3.5 mr-1" />
                             Estado
                           </Button>
+                          {order.status === "pending" && !order.invoiceId && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="h-8 text-xs bg-green-600 hover:bg-green-700"
+                              onClick={() => handleOpenPaymentDialog(order)}
+                            >
+                              <DollarSign className="h-3.5 w-3.5 mr-1" />
+                              Pagar
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -622,6 +692,17 @@ export default function OrdersList() {
                               <Tag className="h-3.5 w-3.5 mr-1" />
                               Estado
                             </Button>
+                            {order.status === "pending" && !order.invoiceId && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8 bg-green-600 hover:bg-green-700"
+                                onClick={() => handleOpenPaymentDialog(order)}
+                              >
+                                <DollarSign className="h-3.5 w-3.5 mr-1" />
+                                Pagar
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
@@ -651,6 +732,62 @@ export default function OrdersList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo de pago prepagado */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crear Factura Prepagada</DialogTitle>
+            <DialogDescription>
+              {selectedOrder && (
+                <>
+                  Pedido #{selectedOrder.id} - Cliente: {customers?.find((c: any) => c.id === selectedOrder.customerId)?.businessname || "Cliente"}
+                  <br />
+                  Total: RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="paymentMethod" className="text-sm font-medium">
+                Método de pago
+              </label>
+              <Select 
+                value={paymentMethod} 
+                onValueChange={setPaymentMethod}
+              >
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue placeholder="Seleccionar método" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Efectivo</SelectItem>
+                  <SelectItem value="card">Tarjeta</SelectItem>
+                  <SelectItem value="credit">Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentDialog(false)}
+              disabled={isProcessingPayment}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreatePrepaidInvoice}
+              disabled={isProcessingPayment}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingPayment ? "Procesando..." : "Crear Factura"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

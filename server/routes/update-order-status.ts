@@ -126,12 +126,16 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         console.log(`✅ Pedido actualizado - Status anterior: ${previousStatus}, Nuevo: ${updatedOrder.status}`);
         
         // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
-        // EXCEPTO si es una donación (payment_method = 'donation')
+        // EXCEPTO si es una donación (payment_method = 'donation') O si ya tiene factura prepagada (invoice_id)
         if (status === "delivered" && previousStatus !== "delivered") {
           // Verificar si es una donación - las donaciones NO generan factura
           if (updatedOrder.payment_method === 'donation') {
             console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
             console.log(`   Cliente: ${updatedOrder.customer_id}, Total donado: ${updatedOrder.total}`);
+            // Continuar sin crear factura
+          } else if (updatedOrder.invoice_id) {
+            console.log(`💳 Este pedido ya tiene factura prepagada (invoice_id: ${updatedOrder.invoice_id}) - NO se creará factura duplicada`);
+            console.log(`   Solo se está marcando como entregado`);
             // Continuar sin crear factura
           } else {
             console.log(`📄 Creando factura automáticamente para pedido ${orderIdNum}...`);

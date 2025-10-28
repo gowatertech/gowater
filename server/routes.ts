@@ -4619,6 +4619,7 @@ export async function registerRoutes(router: express.Router) {
           o.notes, o.cash_collected as "cashCollected",
           o.driver_commission as "driverCommission", 
           o.assistant_commission as "assistantCommission",
+          o.invoice_id as "invoiceId",
           c.businessname as "customerName", 
           c.email as "customerEmail", 
           c.phone as "customerPhone",

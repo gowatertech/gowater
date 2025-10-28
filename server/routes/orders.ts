@@ -56,7 +56,7 @@ ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Respon
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN order_items oi ON o.id = oi.order_id
       WHERE o.company_id = $1
-      GROUP BY o.id, c.businessname, c.phone
+      GROUP BY o.id, c.businessname, c.phone, o.invoice_id
       ORDER BY o.id DESC
     `;
     
@@ -76,7 +76,8 @@ ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Respon
       paymentMethod: order.payment_method,
       date: order.date,
       notes: order.notes,
-      itemsCount: safeParseInt(order.items_count, 0)
+      itemsCount: safeParseInt(order.items_count, 0),
+      invoiceId: order.invoice_id
     }));
     
     res.json(orders);
@@ -110,7 +111,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     
     // Query para obtener la orden
     const orderQuery = `
-      SELECT o.*, c.businessname as customer_name, c.phone as customer_phone, c.is_charity
+      SELECT o.*, o.invoice_id as "invoiceId", c.businessname as customer_name, c.phone as customer_phone, c.is_charity
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = $1 AND o.company_id = $2
@@ -184,6 +185,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       cashCollected: order.cash_collected || '0.00',
       driverCommission: order.driver_commission || '0.00',
       assistantCommission: order.assistant_commission || '0.00',
+      invoiceId: order.invoiceId ?? order.invoice_id,
       items: items
     };
     
@@ -910,8 +912,15 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
     console.log(`✅ Estado actualizado exitosamente para orden ${orderId}`);
     
     // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
+    // EXCEPTO si es una donación O si ya tiene factura prepagada
     if (status === "delivered" && currentStatus !== "delivered") {
-      console.log(`📄 Creando factura automáticamente para pedido ${orderId}...`);
+      // Verificar si ya tiene factura prepagada o si es donación
+      if (updatedOrder.payment_method === 'donation') {
+        console.log(`🎁 Este pedido es una DONACIÓN - NO se creará factura`);
+      } else if (updatedOrder.invoice_id) {
+        console.log(`💳 Este pedido ya tiene factura prepagada (invoice_id: ${updatedOrder.invoice_id}) - NO se creará factura duplicada`);
+      } else {
+        console.log(`📄 Creando factura automáticamente para pedido ${orderId}...`);
       
       try {
         // Obtener la configuración de impuestos de la compañía
@@ -1063,6 +1072,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         // No fallar la actualización del pedido por un error en la factura
         // Solo registrar el error
       }
+      }
     }
     
     // Convertir nombres de propiedades de snake_case a camelCase
@@ -1082,6 +1092,229 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
     
   } catch (error) {
     console.error(`❌ Error al actualizar estado de orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Endpoint para crear factura prepagada (antes de entregar)
+ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  const { paymentMethod } = req.body;
+  
+  if (!paymentMethod || !["cash", "credit", "card"].includes(paymentMethod)) {
+    return res.status(400).json({ error: "Método de pago inválido" });
+  }
+  
+  console.log(`POST /api/orders/${orderId}/create-prepaid-invoice - Creando factura prepagada con método: ${paymentMethod}`);
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para crear facturas"
+      });
+    }
+    
+    // Verificar que la orden existe y pertenece a la compañía
+    const orderCheckQuery = `
+      SELECT id, invoice_id, customer_id, status, payment_method 
+      FROM orders 
+      WHERE id = $1 AND company_id = $2
+    `;
+    
+    const orderCheck = await pool.query(orderCheckQuery, [orderId, companyId]);
+    
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
+    }
+    
+    const order = orderCheck.rows[0];
+    
+    // Verificar que la orden no tiene ya una factura
+    if (order.invoice_id) {
+      return res.status(400).json({ 
+        error: "Esta orden ya tiene una factura asociada",
+        invoiceId: order.invoice_id 
+      });
+    }
+    
+    // Verificar que la orden no esté ya entregada
+    if (order.status === "delivered") {
+      return res.status(400).json({ error: "No se puede crear factura prepagada para una orden ya entregada" });
+    }
+    
+    // Obtener los items del pedido para calcular subtotal
+    const orderItemsQuery = `
+      SELECT product_id, quantity, price 
+      FROM order_items 
+      WHERE order_id = $1 AND company_id = $2
+    `;
+    const orderItemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
+    
+    if (orderItemsResult.rows.length === 0) {
+      return res.status(400).json({ error: "La orden no tiene items" });
+    }
+    
+    // Calcular subtotal
+    let subtotal = 0;
+    for (const item of orderItemsResult.rows) {
+      subtotal += parseFloat(item.price) * item.quantity;
+    }
+    
+    // Obtener tasa de impuesto de la configuración de la compañía
+    const companySettingsQuery = `
+      SELECT tax FROM company_settings WHERE company_id = $1
+    `;
+    const companySettingsResult = await pool.query(companySettingsQuery, [companyId]);
+    
+    let taxRate = 0;
+    if (companySettingsResult.rows.length > 0 && companySettingsResult.rows[0].tax) {
+      taxRate = parseFloat(companySettingsResult.rows[0].tax);
+    }
+    
+    // Calcular impuesto y total
+    const tax = subtotal * taxRate;
+    const total = subtotal + tax;
+    
+    console.log(`💰 Cálculos: Subtotal=${subtotal.toFixed(2)}, Impuesto=${tax.toFixed(2)} (${(taxRate * 100)}%), Total=${total.toFixed(2)}`);
+    
+    // Obtener el siguiente número de factura para esta compañía
+    const maxInvoiceQuery = `
+      SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
+      FROM invoices 
+      WHERE company_id = $1
+    `;
+    const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
+    const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
+    
+    // Para facturas prepagadas, el status es "paid" (ya que se está pagando ahora)
+    const invoiceStatus = 'paid';
+    
+    // Crear la factura con subtotal, tax y total
+    const createInvoiceQuery = `
+      INSERT INTO invoices (
+        company_id, customer_id, subtotal, tax, total, status, payment_method, 
+        date, invoice_number, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
+      RETURNING *
+    `;
+    
+    const invoiceResult = await pool.query(createInvoiceQuery, [
+      companyId,
+      order.customer_id,
+      subtotal.toFixed(2),
+      tax.toFixed(2),
+      total.toFixed(2),
+      invoiceStatus,
+      paymentMethod,
+      nextInvoiceNumber,
+      `Factura prepagada - Pedido #${orderId}`
+    ]);
+    
+    const invoice = invoiceResult.rows[0];
+    console.log(`✅ Factura prepagada #${invoice.id} (número ${invoice.invoice_number}) creada con status: ${invoiceStatus}`);
+    
+    // Copiar los items del pedido a la factura
+    for (const item of orderItemsResult.rows) {
+      const createInvoiceItemQuery = `
+        INSERT INTO invoice_items (
+          company_id, invoice_id, product_id, quantity, unit_price, total
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `;
+      
+      const itemTotal = parseFloat(item.price) * item.quantity;
+      
+      await pool.query(createInvoiceItemQuery, [
+        companyId,
+        invoice.id,
+        item.product_id,
+        item.quantity,
+        item.price,
+        itemTotal.toFixed(2)
+      ]);
+    }
+    
+    console.log(`✅ Items de factura copiados (${orderItemsResult.rows.length} items)`);
+    
+    // Crear el registro de pago (siempre, ya que es prepagado)
+    console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
+    
+    const createPaymentQuery = `
+      INSERT INTO payments (
+        company_id, invoice_id, customer_id, amount, payment_method, date, notes
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+      RETURNING *
+    `;
+    
+    const paymentNotes = `Pago prepagado - Factura #${invoice.invoice_number} - Pedido #${orderId}`;
+    
+    const paymentResult = await pool.query(createPaymentQuery, [
+      companyId,
+      invoice.id,
+      order.customer_id,
+      total.toFixed(2),
+      paymentMethod,
+      paymentNotes
+    ]);
+    
+    const payment = paymentResult.rows[0];
+    console.log(`✅ Pago prepagado #${payment.id} creado para factura #${invoice.id}`);
+    
+    // Actualizar la orden con el invoice_id y payment_method
+    const updateOrderQuery = `
+      UPDATE orders 
+      SET invoice_id = $1, payment_method = $2
+      WHERE id = $3 AND company_id = $4
+      RETURNING *
+    `;
+    
+    const updateOrderResult = await pool.query(updateOrderQuery, [
+      invoice.id,
+      paymentMethod,
+      orderId,
+      companyId
+    ]);
+    
+    console.log(`✅ Orden #${orderId} actualizada con invoice_id: ${invoice.id}`);
+    
+    res.json({
+      success: true,
+      invoice: {
+        id: invoice.id,
+        invoiceNumber: invoice.invoice_number,
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
+        total: invoice.total,
+        status: invoice.status,
+        paymentMethod: invoice.payment_method,
+        date: invoice.date
+      },
+      payment: {
+        id: payment.id,
+        amount: payment.amount,
+        paymentMethod: payment.payment_method,
+        date: payment.date
+      },
+      order: {
+        id: updateOrderResult.rows[0].id,
+        invoiceId: updateOrderResult.rows[0].invoice_id
+      },
+      message: `Factura prepagada #${invoice.invoice_number} creada exitosamente`
+    });
+    
+  } catch (error) {
+    console.error(`❌ Error al crear factura prepagada para orden ${orderId}:`, error);
     res.status(500).json({ error: String(error) });
   }
 });
