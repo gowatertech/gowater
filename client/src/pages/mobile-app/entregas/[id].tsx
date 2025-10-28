@@ -1337,63 +1337,52 @@ export default function DeliveryDetails() {
                 
                 {/* Botones de denominaciones de billetes */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Denominaciones:</Label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPaymentReceived(0)}
-                      className="text-xs h-7 text-red-600 dark:text-red-400"
-                      data-testid="button-reset-amount"
-                    >
-                      Limpiar
-                    </Button>
-                  </div>
+                  <Label className="text-sm font-medium">Denominaciones:</Label>
                   <div className="grid grid-cols-5 gap-2">
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setPaymentReceived(prev => prev + 100)}
+                      onClick={() => setPaymentReceived(100)}
                       className="text-xs h-10 font-semibold"
-                      data-testid="button-add-100"
+                      data-testid="button-set-100"
                     >
-                      +$100
+                      $100
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setPaymentReceived(prev => prev + 200)}
+                      onClick={() => setPaymentReceived(200)}
                       className="text-xs h-10 font-semibold"
-                      data-testid="button-add-200"
+                      data-testid="button-set-200"
                     >
-                      +$200
+                      $200
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setPaymentReceived(prev => prev + 500)}
+                      onClick={() => setPaymentReceived(500)}
                       className="text-xs h-10 font-semibold"
-                      data-testid="button-add-500"
+                      data-testid="button-set-500"
                     >
-                      +$500
+                      $500
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setPaymentReceived(prev => prev + 1000)}
+                      onClick={() => setPaymentReceived(1000)}
                       className="text-xs h-10 font-semibold"
-                      data-testid="button-add-1000"
+                      data-testid="button-set-1000"
                     >
-                      +$1000
+                      $1000
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => setPaymentReceived(prev => prev + 2000)}
+                      onClick={() => setPaymentReceived(2000)}
                       className="text-xs h-10 font-semibold"
-                      data-testid="button-add-2000"
+                      data-testid="button-set-2000"
                     >
-                      +$2000
+                      $2000
                     </Button>
                   </div>
                   <Button
