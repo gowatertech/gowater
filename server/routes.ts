@@ -4272,7 +4272,7 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
         .where(eq(payments.companyId, companyId)) // Filtramos por companyId
-        .orderBy(desc(payments.id));
+        .orderBy(desc(payments.date));
 
       console.log(`GET /api/payments - Retornando: ${allPayments.length} pagos para empresa ${companyId}`);
       res.json(allPayments);
@@ -4304,7 +4304,7 @@ export async function registerRoutes(router: express.Router) {
         ...req.body,
         companyId: companyId, // Añadir el companyId del contexto
         amount: amount,
-        date: new Date()
+        date: req.body.date ? new Date(req.body.date) : new Date()
       };
 
       console.log("POST /api/payments - Datos del pago preparados:", JSON.stringify(paymentData, null, 2));
