@@ -1511,6 +1511,7 @@ export async function registerRoutes(router: express.Router) {
             total: order.total,
             status: order.status,
             paymentMethod: order.paymentMethod,
+            invoiceId: order.invoiceId,
             date: order.date,
             notes: order.notes,
             estimatedDeliveryTime: order.estimatedDeliveryTime,
