@@ -312,6 +312,7 @@ export const orders = pgTable("orders", {
   companyId: integer("company_id").notNull(), // Añadido companyId
   customerId: integer("customer_id").notNull(),
   routeId: integer("route_id"),
+  invoiceId: integer("invoice_id"), // Vincula con factura prepagada (nullable)
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "in_transit", "delivered", "cancelled"] }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "donation"] }).notNull(),
