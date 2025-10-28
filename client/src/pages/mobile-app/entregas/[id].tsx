@@ -511,11 +511,7 @@ export default function DeliveryDetails() {
       
       // Navegar de regreso a la lista de entregas después de un breve delay
       setTimeout(() => {
-        if (routeId) {
-          setLocation(`/mobile-app/ruta/${routeId}`);
-        } else {
-          setLocation('/mobile-app/entregas');
-        }
+        setLocation('/mobile-app/entregas');
       }, 1500);
       
     } catch (error) {
