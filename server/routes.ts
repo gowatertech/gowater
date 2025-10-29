@@ -1765,10 +1765,23 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
-      // Obtener las órdenes completas basadas en los IDs recibidos, filtrando por companyId
+      // Obtener las órdenes completas basadas en los IDs recibidos, con JOIN a customers para coordenadas
       const ordersToOptimize = await db
-        .select()
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          routeId: orders.routeId,
+          total: orders.total,
+          status: orders.status,
+          paymentMethod: orders.paymentMethod,
+          date: orders.date,
+          deliveryCoordinates: orders.deliveryCoordinates,
+          notes: orders.notes,
+          companyId: orders.companyId,
+          coordinates: customers.coordinates, // Coordenadas del cliente
+        })
         .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(
           and(
             inArray(orders.id, orderIds),
@@ -1779,6 +1792,12 @@ export async function registerRoutes(router: express.Router) {
       if (ordersToOptimize.length === 0) {
         return res.status(404).json({ error: "No se encontraron pedidos con los IDs proporcionados" });
       }
+      
+      console.log("Pedidos obtenidos con coordenadas:", ordersToOptimize.map(o => ({ 
+        id: o.id, 
+        deliveryCoordinates: o.deliveryCoordinates,
+        customerCoordinates: o.coordinates 
+      })));
       
       // Calcular la ruta óptima usando el servicio de optimización con coordenadas del almacén
       const optimizedRoute = calculateOptimalRoute(ordersToOptimize, depotCoordinates);
