@@ -972,7 +972,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       // Incluir la distancia total calculada
       totalDistance: totalDistanceKm > 0 ? totalDistanceKm : null,
       // Incluir la duración estimada en minutos
-      estimatedDuration: routeEstimation.durationMinutes > 0 ? routeEstimation.durationMinutes : null,
+      estimatedDuration: (routeEstimation?.durationMinutes && routeEstimation.durationMinutes > 0) ? routeEstimation.durationMinutes : null,
       // Incluir los IDs de las órdenes para que el servidor las asigne a la ruta
       orderIds: orderIds,
     };
