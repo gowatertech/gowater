@@ -137,9 +137,10 @@ export default function DriverRoute() {
   const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
   const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
+  const [returnableProductsForDialog, setReturnableProductsForDialog] = useState<Array<{id: number, name: string, quantity: number, bottleDeposit: string, isReturnable: boolean}>>([]);
+  const [existingReturnsForDialog, setExistingReturnsForDialog] = useState<Array<{productId: number, returnedQuantity: number}>>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation" | "transfer">("cash");
   const [amountPaid, setAmountPaid] = useState<string>("");
-  const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
   // Estados para manejo de pagos multi-orden
   const [currentOrderIdForPayment, setCurrentOrderIdForPayment] = useState<number | null>(null);
@@ -606,9 +607,60 @@ export default function DriverRoute() {
   };
   
   // Abrir diálogo para registrar devolución de envases
-  const handleBottleReturn = (orderId: number) => {
-    setCurrentOrderIdForBottleReturn(orderId);
-    setReturnedBottlesCount(0);
+  const handleBottleReturn = async (stopId: number) => {
+    // Encontrar la parada
+    const stop = routeStops.find(s => s.id === stopId);
+    
+    if (!stop) {
+      toast({
+        title: "Error",
+        description: "No se pudo encontrar la parada",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Verificar si la parada tiene múltiples órdenes
+    if (stop.orders && stop.orders.length > 1) {
+      toast({
+        title: "Función no disponible",
+        description: "Para paradas con múltiples órdenes, registra la devolución desde cada orden individual en la sección de Entregas.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Preparar productos retornables para el diálogo
+    const returnableProducts = stop.products
+      .filter(p => p.isReturnable)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        quantity: p.quantity,
+        bottleDeposit: "0.00", // Por ahora no tenemos este campo en RouteStop
+        isReturnable: true
+      }));
+    
+    // Obtener devoluciones existentes si las hay
+    let existingReturns: Array<{productId: number, returnedQuantity: number}> = [];
+    try {
+      const returns = await fetch(`/api/orders/${stopId}/bottle-returns`, {
+        credentials: 'include'
+      });
+      if (returns.ok) {
+        const data = await returns.json();
+        existingReturns = data.map((r: any) => ({
+          productId: r.productId,
+          returnedQuantity: r.returnedQuantity
+        }));
+      }
+    } catch (error) {
+      console.log("No se pudieron cargar devoluciones existentes:", error);
+    }
+    
+    setCurrentOrderIdForBottleReturn(stopId);
+    setReturnableProductsForDialog(returnableProducts);
+    setExistingReturnsForDialog(existingReturns);
     setShowBottleReturnDialog(true);
   };
   
@@ -1386,88 +1438,21 @@ export default function DriverRoute() {
         </DialogContent>
       </Dialog>
       
-      {/* Diálogo para devolución de envases (botellas) */}
-      <Dialog open={showBottleReturnDialog} onOpenChange={setShowBottleReturnDialog}>
-        <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Recycle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Registrar devolución de envases
-            </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-              Ingrese la cantidad de envases retornados por el cliente
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-1">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="bg-green-500/10 rounded-lg p-2 sm:p-3 border border-green-500/20">
-                <p className="text-xs sm:text-sm text-green-600 dark:text-green-400">
-                  Registra la cantidad de envases que el cliente está devolviendo en este momento.
-                </p>
-              </div>
-              
-              <div>
-                <Label htmlFor="returnedBottles" className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 block">
-                  Cantidad de envases devueltos
-                </Label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setReturnedBottlesCount(Math.max(0, returnedBottlesCount - 1))}
-                    disabled={returnedBottlesCount <= 0}
-                    className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-                  >
-                    <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                  
-                  <Input
-                    id="returnedBottles"
-                    type="number"
-                    className="text-center h-8 sm:h-10 text-sm"
-                    value={returnedBottlesCount}
-                    min="0"
-                    onChange={(e) => setReturnedBottlesCount(parseInt(e.target.value) || 0)}
-                  />
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setReturnedBottlesCount(returnedBottlesCount + 1)}
-                    className="h-8 w-8 sm:h-10 sm:w-10 p-0"
-                  >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowBottleReturnDialog(false)}
-              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                setShowBottleReturnDialog(false);
-                toast({
-                  title: "Devolución registrada",
-                  description: `Se han registrado ${returnedBottlesCount} envases devueltos.`,
-                });
-              }}
-              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
-              disabled={returnedBottlesCount <= 0}
-            >
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Diálogo para devolución de envases */}
+      <BottleReturnDialog
+        open={showBottleReturnDialog}
+        orderId={currentOrderIdForBottleReturn}
+        returnableProducts={returnableProductsForDialog}
+        existingReturns={existingReturnsForDialog}
+        onOpenChange={setShowBottleReturnDialog}
+        darkMode={darkMode}
+        onComplete={() => {
+          // Recargar datos de la ruta después de registrar la devolución
+          if (activeRouteId) {
+            fetchRouteStops(activeRouteId);
+          }
+        }}
+      />
     </div>
   );
 }
