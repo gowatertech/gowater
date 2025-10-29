@@ -1339,7 +1339,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           <MapIcon className="mr-1 h-3 w-3" />
-                          <span>Distancia: {routeEstimation.distance} km</span>
+                          <span>Distancia: {totalDistanceKm > 0 ? totalDistanceKm.toFixed(2) : routeEstimation.distance} km</span>
                         </Badge>
                       </div>
                     )}
