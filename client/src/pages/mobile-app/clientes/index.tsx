@@ -22,7 +22,7 @@ export default function MobileAppClientesPage() {
   const queryClient = useQueryClient();
 
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
+    queryKey: ["/api/mobile/customers"],
   });
 
   const filteredCustomers = useMemo(() => {
@@ -65,7 +65,7 @@ export default function MobileAppClientesPage() {
 
           try {
             // Actualizar las coordenadas del cliente en el backend
-            await apiRequest(`/api/customers/${selectedCustomer.id}`, {
+            await apiRequest(`/api/mobile/customers/${selectedCustomer.id}`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
@@ -76,7 +76,7 @@ export default function MobileAppClientesPage() {
             });
 
             // Actualizar el caché de clientes
-            queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/mobile/customers"] });
 
             toast({
               title: "Ubicación capturada",
