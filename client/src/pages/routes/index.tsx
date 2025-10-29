@@ -44,9 +44,8 @@ import StepRouteForm from "@/components/routes/StepRouteForm";
 import StepRouteFormOptimized from "@/components/routes/StepRouteFormOptimized";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
-// Placeholders para componentes que necesitamos crear
-const DriverView = () => <div>Vista de conductor</div>;
-const DeliveryTracking = () => <div>Seguimiento de entrega</div>;
+// Componentes importados para vistas especializadas
+import DriverViewComponent from "@/pages/drivers/DriverView";
 
 // Types
 import { Route, RouteWithOrders } from "@shared/schema";
@@ -128,18 +127,8 @@ export default function RoutesPage() {
     fetchRoutes();
   }, []);
 
-  const isDriver = user?.role === "driver";
-  const isAssistant = user?.role === "assistant";
-
-  // The driver interface shows current status and upcoming deliveries
-  if (isDriver) {
-    return <DriverView />;
-  }
-
-  // Delivery assistants see order tracking
-  if (isAssistant) {
-    return <DeliveryTracking />;
-  }
+  // Los conductores y asistentes pueden ver la interfaz completa de rutas
+  // ya que necesitan acceso a todas las funcionalidades
 
   // Click handler for the create route button
   const handleCreateRoute = () => {
