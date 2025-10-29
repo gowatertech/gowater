@@ -141,6 +141,10 @@ export default function DriverRoute() {
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
+  // Estados para manejo de pagos multi-orden
+  const [currentOrderIdForPayment, setCurrentOrderIdForPayment] = useState<number | null>(null);
+  const [pendingOrdersInStop, setPendingOrdersInStop] = useState<Array<{id: number, customerName: string, totalValue: number | string, invoiceId?: number | null}>>([]);
+  
   // Función para navegar a una ubicación
   const handleNavigateToLocation = (latitude: number, longitude: number, address: string) => {
     // Usamos la API de Google Maps para navegación
@@ -359,7 +363,7 @@ export default function DriverRoute() {
           const anyDelivered = ordersInStop.some(o => o.status === "delivered" || o.status === "completed");
           const allReturned = ordersInStop.every(o => o.status === "returned" || o.status === "cancelled");
           
-          let stopStatus = "pending";
+          let stopStatus: "completed" | "pending" | "in_progress" | "cancelled" | "delivered" | "returned" | "in_transit" = "pending";
           if (allDelivered) {
             stopStatus = "delivered";
           } else if (anyDelivered) {
@@ -532,7 +536,35 @@ export default function DriverRoute() {
   // Abrir diálogo de pago
   const openPaymentDialog = (stop: RouteStop) => {
     setCurrentStopForPayment(stop);
-    setAmountPaid(toNumber(stop.totalValue).toFixed(2)); // Iniciar con el monto exacto
+    
+    // Verificar si hay múltiples órdenes en esta parada
+    if (stop.orders && stop.orders.length > 1) {
+      // Filtrar órdenes que NO estén pagadas (no tienen invoiceId)
+      const unpaidOrders = stop.orders.filter(order => !order.invoiceId);
+      
+      if (unpaidOrders.length === 0) {
+        toast({
+          title: "Todas las órdenes están pagadas",
+          description: "No hay órdenes pendientes de pago en esta parada.",
+        });
+        return;
+      }
+      
+      // Configurar lista de órdenes pendientes
+      setPendingOrdersInStop(unpaidOrders);
+      
+      // Procesar la primera orden sin pagar
+      const firstUnpaidOrder = unpaidOrders[0];
+      setCurrentOrderIdForPayment(firstUnpaidOrder.id);
+      setAmountPaid(toNumber(firstUnpaidOrder.totalValue).toFixed(2));
+      
+      console.log(`Parada con ${stop.orders.length} órdenes. Procesando orden #${firstUnpaidOrder.id} (${unpaidOrders.length} pendientes)`);
+    } else {
+      // Orden única - usar lógica tradicional
+      setPendingOrdersInStop([]);
+      setCurrentOrderIdForPayment(stop.id);
+      setAmountPaid(toNumber(stop.totalValue).toFixed(2));
+    }
     
     // Detectar si es una donación y setear método de pago apropiado
     const isDonation = stop.customerIsCharity && stop.paymentMethod === 'donation';
@@ -671,7 +703,7 @@ export default function DriverRoute() {
   
   // Completar pago y entrega
   const completePaymentAndDelivery = async () => {
-    if (!currentStopForPayment) return;
+    if (!currentStopForPayment || !currentOrderIdForPayment) return;
     
     try {
       setShowPaymentDialog(false);
@@ -682,13 +714,13 @@ export default function DriverRoute() {
         description: "Registrando la entrega y pago...",
       });
       
-      console.log("Procesando entrega y pago para:", currentStopForPayment);
+      console.log("Procesando entrega y pago para orden:", currentOrderIdForPayment);
       
       // Preparar los datos para el endpoint combinado
       const amountPaidValue = parseFloat(amountPaid);
       const userId = user?.id;
       
-      console.log(`Llamando al nuevo endpoint con: ID ${currentStopForPayment.id}, método ${paymentMethod}, monto ${amountPaidValue}`);
+      console.log(`Llamando al nuevo endpoint con: ID ${currentOrderIdForPayment}, método ${paymentMethod}, monto ${amountPaidValue}`);
       
       // Utilizar la nueva función de API que usa el endpoint combinado
       const { processOrderDeliveryAndPayment } = await import('@/lib/api');
@@ -696,11 +728,11 @@ export default function DriverRoute() {
       // Agregar información de debug más detallada
       console.log(`Estado actual de la parada antes de procesarla: ${currentStopForPayment.status}`);
       // Verificar si la parada tiene información del pedido con ID
-      console.log(`ID del pedido a procesar: ${currentStopForPayment.id}`);
+      console.log(`ID del pedido a procesar: ${currentOrderIdForPayment}`);
       
-      // Llamar al nuevo endpoint combinado
+      // Llamar al nuevo endpoint combinado - usar currentOrderIdForPayment en lugar de stop.id
       const result = await processOrderDeliveryAndPayment(
-        currentStopForPayment.id,
+        currentOrderIdForPayment,
         paymentMethod,
         amountPaidValue,
         userId
@@ -709,25 +741,62 @@ export default function DriverRoute() {
       console.log("Respuesta del servidor (nuevo endpoint):", result);
       
       if (result && result.success) {
+        // Variable para guardar la parada actualizada
+        let updatedStop: RouteStop | null = null;
+        
         // Actualizar estado local con la información de la orden actualizada
         setRouteStops(prevStops => 
-          prevStops.map(stop => 
-            stop.id === currentStopForPayment.id 
-              ? { 
-                  ...stop, 
-                  status: "delivered",
-                  // No usar actualStatus ya que no está en la interfaz de RouteStop
-                } 
-              : stop
-          )
+          prevStops.map(stop => {
+            // Si esta parada tiene múltiples órdenes, actualizar solo la orden específica
+            if (stop.id === currentStopForPayment.id && stop.orders && stop.orders.length > 1) {
+              // Actualizar el array de órdenes
+              const updatedOrders = stop.orders.map(order => 
+                order.id === currentOrderIdForPayment
+                  ? { ...order, invoiceId: result.invoice?.invoiceId || null }
+                  : order
+              );
+              
+              // Verificar si TODAS las órdenes están pagadas DESPUÉS de la actualización
+              const allOrdersPaid = updatedOrders.every(order => order.invoiceId);
+              
+              console.log("=== DEBUG: Actualización de parada multi-orden ===");
+              console.log("Stop ID:", stop.id);
+              console.log("Updated Orders:", updatedOrders);
+              console.log("All Orders Paid:", allOrdersPaid);
+              console.log("New Status:", allOrdersPaid ? "delivered" : stop.status);
+              console.log("===============================================");
+              
+              const newStop = {
+                ...stop,
+                orders: updatedOrders,
+                // Marcar la parada como delivered solo si todas las órdenes están pagadas
+                status: allOrdersPaid ? "delivered" : stop.status
+              };
+              
+              // Guardar la parada actualizada para usarla después
+              updatedStop = newStop;
+              
+              return newStop;
+            }
+            // Orden única - actualizar como siempre
+            else if (stop.id === currentOrderIdForPayment) {
+              return { ...stop, status: "delivered" };
+            }
+            return stop;
+          })
         );
         
-        console.log("Estado de la parada actualizado a 'delivered' después de procesar el pago");
+        // Actualizar currentStopForPayment con los datos más recientes
+        if (updatedStop) {
+          setCurrentStopForPayment(updatedStop);
+        }
+        
+        console.log(`Orden #${currentOrderIdForPayment} actualizada a 'delivered' después de procesar el pago`);
         
         // Mostrar mensaje de éxito para la entrega
         toast({
           title: "¡Entrega completada!",
-          description: `Pedido #${currentStopForPayment.id} entregado y cobrado correctamente.`,
+          description: `Pedido #${currentOrderIdForPayment} entregado y cobrado correctamente.`,
           variant: "default",
         });
         
@@ -747,6 +816,29 @@ export default function DriverRoute() {
             description: `Factura #${result.invoice.invoiceId} generada correctamente.`,
             variant: "default",
           });
+        }
+        
+        // Verificar si hay más órdenes pendientes en esta parada
+        if (pendingOrdersInStop.length > 0) {
+          // Remover la orden que acabamos de pagar
+          const remainingOrders = pendingOrdersInStop.filter(order => order.id !== currentOrderIdForPayment);
+          
+          if (remainingOrders.length > 0) {
+            // Hay más órdenes pendientes - abrir automáticamente el diálogo para la siguiente
+            setTimeout(() => {
+              const nextOrder = remainingOrders[0];
+              setPendingOrdersInStop(remainingOrders);
+              setCurrentOrderIdForPayment(nextOrder.id);
+              setAmountPaid(toNumber(nextOrder.totalValue).toFixed(2));
+              setPaymentMethod("cash"); // Reset a cash por defecto
+              setShowPaymentDialog(true);
+              
+              toast({
+                title: "Siguiente orden en la parada",
+                description: `Procesando orden #${nextOrder.id} (${remainingOrders.length} pendientes)`,
+              });
+            }, 800); // Pequeño delay para que el usuario vea los toasts de éxito
+          }
         }
       } else {
         // Fallback: actualizar solo en el front-end si falla la API
@@ -980,41 +1072,63 @@ export default function DriverRoute() {
               ) : (
                 <>
                   <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                  Procesar Pago
+                  {pendingOrdersInStop.length > 0 ? (
+                    <>Procesar Pago - Orden {(currentStopForPayment?.orders?.length || 0) - pendingOrdersInStop.length + 1} de {currentStopForPayment?.orders?.length || 1}</>
+                  ) : (
+                    <>Procesar Pago</>
+                  )}
                 </>
               )}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
               {currentStopForPayment?.invoiceId 
                 ? "Confirme la entrega de este pedido prepagado"
-                : "Complete los datos para procesar el pago y registrar la entrega"
+                : pendingOrdersInStop.length > 1 
+                  ? `Procesando orden #${currentOrderIdForPayment}. Después de esta, se procesarán ${pendingOrdersInStop.length - 1} orden(es) más.`
+                  : "Complete los datos para procesar el pago y registrar la entrega"
               }
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-1 space-y-3 sm:space-y-4">
-            {currentStopForPayment && (
-              <>
-                {/* Información del cliente */}
-                <div className="bg-primary/10 rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-1">
-                    <h3 className="font-bold text-sm sm:text-base">{currentStopForPayment.customerName}</h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="outline" className="ml-0 sm:ml-2 text-xs">
-                        {currentStopForPayment.products.reduce((acc, item) => acc + item.quantity, 0)} productos
-                      </Badge>
-                      {currentStopForPayment.invoiceId && (
-                        <Badge 
-                          className="bg-green-600 hover:bg-green-700 text-white border-green-700 text-xs"
-                          data-testid="badge-pagado-ruta"
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" /> PAGADO
+            {currentStopForPayment && (() => {
+              // Si hay múltiples órdenes, encontrar la orden actual
+              const currentOrder = currentStopForPayment.orders && currentStopForPayment.orders.length > 1
+                ? currentStopForPayment.orders.find(order => order.id === currentOrderIdForPayment)
+                : null;
+              
+              // Usar datos de la orden específica si existe, sino usar datos de la parada
+              const displayName = currentOrder?.customerName || currentStopForPayment.customerName;
+              const displayProducts = currentOrder?.products || currentStopForPayment.products;
+              const displayInvoiceId = currentOrder?.invoiceId || currentStopForPayment.invoiceId;
+              
+              return (
+                <>
+                  {/* Información del cliente */}
+                  <div className="bg-primary/10 rounded-lg p-2 sm:p-3 mb-2 sm:mb-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-1">
+                      <div>
+                        <h3 className="font-bold text-sm sm:text-base">{displayName}</h3>
+                        {currentOrder && (
+                          <p className="text-xs text-muted-foreground">Orden #{currentOrder.id}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className="ml-0 sm:ml-2 text-xs">
+                          {displayProducts.reduce((acc, item) => acc + item.quantity, 0)} productos
                         </Badge>
-                      )}
+                        {displayInvoiceId && (
+                          <Badge 
+                            className="bg-green-600 hover:bg-green-700 text-white border-green-700 text-xs"
+                            data-testid="badge-pagado-ruta"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" /> PAGADO
+                          </Badge>
+                        )}
+                      </div>
                     </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{currentStopForPayment.address}</p>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{currentStopForPayment.address}</p>
-                </div>
                 
                 {/* Mensaje informativo para pedidos prepagados */}
                 {currentStopForPayment.invoiceId ? (
@@ -1124,12 +1238,12 @@ export default function DriverRoute() {
                     <div className="bg-muted p-2 sm:p-3 rounded-md">
                       <div className="flex justify-between items-center">
                         <span className="text-xs sm:text-sm font-medium">Total a cobrar:</span>
-                        <span className="font-bold text-sm sm:text-base">${toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
+                        <span className="font-bold text-sm sm:text-base">${toNumber(currentOrder?.totalValue || currentStopForPayment.totalValue).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between items-center mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-border">
                         <span className="text-xs sm:text-sm font-medium">Cambio a devolver:</span>
                         <span className="font-bold text-sm sm:text-base text-primary">
-                          ${Math.max(0, parseFloat(amountPaid) - toNumber(currentStopForPayment.totalValue)).toFixed(2)}
+                          ${Math.max(0, parseFloat(amountPaid) - toNumber(currentOrder?.totalValue || currentStopForPayment.totalValue)).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -1149,7 +1263,7 @@ export default function DriverRoute() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentStopForPayment.products.map((product, index) => (
+                        {displayProducts.map((product, index) => (
                           <tr key={index} className="border-b border-border last:border-0">
                             <td className="py-1 pr-1">
                               <div className="flex items-center">
@@ -1168,7 +1282,8 @@ export default function DriverRoute() {
                   </div>
                 </div>
               </>
-            )}
+              );
+            })()}
           </div>
           
           <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">

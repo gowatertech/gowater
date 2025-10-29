@@ -185,7 +185,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                              isCompleted ? "Completada" : 
                              stop.status === "cancelled" || stop.status === "returned" ? "Devuelto" :
                              isCurrent ? "En progreso" : 
-                             stop.status === "in_progress" || stop.status === "in_transit" || stop.status === "delivered" ? "En progreso" : 
+                             stop.status === "in_progress" || stop.status === "in_transit" ? "En progreso" : 
                              "Pendiente"}
                           </Badge>
                         </div>
