@@ -62,8 +62,8 @@ import { DatePicker } from "@/components/ui/date-picker";
 // Tipo para los pagos con detalles adicionales
 interface PaymentWithDetails {
   id: number;
-  invoiceId: number;
-  invoiceNumber: string;
+  invoiceId: number | null;
+  invoiceNumber: string | null;
   customerId: number;
   customerName: string;
   amount: string;
@@ -71,6 +71,8 @@ interface PaymentWithDetails {
   date: string;
   reference?: string;
   notes?: string;
+  isAdvance?: boolean;
+  documentNumber?: string | null;
 }
 
 // Tipo para las estadísticas de pago
@@ -103,6 +105,7 @@ export default function PaymentsHistory() {
   const [filters, setFilters] = useState({
     method: "all" as "all" | "cash" | "credit" | "card" | "transfer",
     customer: "",
+    type: "all" as "all" | "advance" | "regular", // Filtro para anticipos vs pagos regulares
   });
 
   // Cargar pagos
@@ -120,6 +123,15 @@ export default function PaymentsHistory() {
     // Filtrar por método de pago
     if (filters.method && filters.method !== 'all') {
       result = result.filter(payment => payment.method === filters.method);
+    }
+    
+    // Filtrar por tipo de pago (anticipo vs regular)
+    if (filters.type && filters.type !== 'all') {
+      if (filters.type === 'advance') {
+        result = result.filter(payment => payment.isAdvance === true);
+      } else if (filters.type === 'regular') {
+        result = result.filter(payment => !payment.isAdvance);
+      }
     }
     
     // Filtrar por rango de fecha
@@ -149,7 +161,8 @@ export default function PaymentsHistory() {
       result = result.filter(
         payment =>
           payment.customerName.toLowerCase().includes(term) ||
-          payment.invoiceNumber.includes(term) ||
+          (payment.invoiceNumber && payment.invoiceNumber.includes(term)) ||
+          (payment.documentNumber && payment.documentNumber.toLowerCase().includes(term)) ||
           (payment.notes && payment.notes.toLowerCase().includes(term))
       );
     }
@@ -393,7 +406,8 @@ export default function PaymentsHistory() {
               <tr style={{backgroundColor: "#f3f4f6"}}>
                 <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Fecha</th>
                 <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Cliente</th>
-                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Factura</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Documento</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Tipo</th>
                 <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Método</th>
                 <th style={{textAlign: "right", padding: "8px", borderBottom: "1px solid #ddd"}}>Monto</th>
               </tr>
@@ -403,7 +417,14 @@ export default function PaymentsHistory() {
                 <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
                   <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy')}</td>
                   <td style={{padding: "8px"}}>{payment.customerName}</td>
-                  <td style={{padding: "8px"}}>{payment.invoiceNumber}</td>
+                  <td style={{padding: "8px"}}>
+                    {payment.isAdvance 
+                      ? payment.documentNumber || '-'
+                      : `#${payment.invoiceNumber}`}
+                  </td>
+                  <td style={{padding: "8px"}}>
+                    {payment.isAdvance ? 'Anticipo' : 'Pago Regular'}
+                  </td>
                   <td style={{padding: "8px"}}>
                     {payment.method === 'cash' ? 'Efectivo' :
                     payment.method === 'card' ? 'Tarjeta' :
@@ -617,6 +638,23 @@ export default function PaymentsHistory() {
               </SelectContent>
             </Select>
             
+            <Select
+              value={filters.type}
+              onValueChange={(value) => setFilters({...filters, type: value as any})}
+            >
+              <SelectTrigger className="w-full h-9 text-sm">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span>{filters.type === 'all' ? "Tipo de Pago" : filters.type === 'advance' ? 'Anticipos' : 'Pagos Regulares'}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="advance">Anticipos</SelectItem>
+                <SelectItem value="regular">Pagos Regulares</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <div className="grid grid-cols-2 gap-1">
               <DatePicker
                 selected={dateRange.from}
@@ -685,7 +723,20 @@ export default function PaymentsHistory() {
                         <TableCell className="py-1.5">
                           {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
                         </TableCell>
-                        <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
+                        <TableCell className="py-1.5">
+                          <div className="flex flex-col gap-1">
+                            <span>
+                              {payment.isAdvance 
+                                ? payment.documentNumber || '-' 
+                                : `#${payment.invoiceNumber}`}
+                            </span>
+                            {payment.isAdvance && (
+                              <Badge variant="outline" className="w-fit text-[10px] px-1 py-0 bg-green-50 text-green-700 border-green-300">
+                                ANTICIPO
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="py-1.5">
                           <PaymentMethodBadge method={payment.method} />
                         </TableCell>
@@ -749,9 +800,19 @@ export default function PaymentsHistory() {
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <FileText className="h-3 w-3" />
-                        Factura #{payment.invoiceNumber}
+                        {payment.isAdvance 
+                          ? payment.documentNumber || '-'
+                          : `Factura #${payment.invoiceNumber}`}
                       </div>
                     </div>
+                    
+                    {payment.isAdvance && (
+                      <div className="mb-2">
+                        <Badge variant="outline" className="w-fit text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 border-green-300">
+                          ANTICIPO
+                        </Badge>
+                      </div>
+                    )}
                     
                     {payment.notes && (
                       <div className="text-xs text-muted-foreground mb-2 truncate border-t pt-2 border-muted/10">
@@ -800,8 +861,21 @@ export default function PaymentsHistory() {
                   <p className="font-medium">{selectedPayment.customerName}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs">Factura:</p>
-                  <p className="font-medium">#{selectedPayment.invoiceNumber}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {selectedPayment.isAdvance ? 'Documento:' : 'Factura:'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">
+                      {selectedPayment.isAdvance 
+                        ? selectedPayment.documentNumber || '-'
+                        : `#${selectedPayment.invoiceNumber}`}
+                    </p>
+                    {selectedPayment.isAdvance && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-700 border-green-300">
+                        ANTICIPO
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Fecha:</p>

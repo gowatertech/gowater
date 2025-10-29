@@ -4431,13 +4431,17 @@ export async function registerRoutes(router: express.Router) {
         .select({
           id: payments.id,
           invoiceId: payments.invoiceId,
+          customerId: payments.customerId,
           amount: payments.amount,          
           date: payments.date,
           notes: payments.notes,
           method: payments.paymentMethod,
-          customerName: customers.businessname,
+          reference: payments.reference,
+          customerName: sql<string>`COALESCE(${customers.businessname}, (SELECT businessname FROM customers WHERE id = ${payments.customerId}))`,
           invoiceNumber: invoices.invoiceNumber,
-          companyId: payments.companyId
+          companyId: payments.companyId,
+          isAdvance: payments.isAdvance,
+          documentNumber: payments.documentNumber
         })
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
