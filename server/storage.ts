@@ -975,6 +975,112 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  // Aplicar automáticamente anticipos disponibles a una factura
+  async applyAdvancePaymentsToInvoice(invoiceId: number): Promise<{
+    appliedAmount: string;
+    remainingBalance: string;
+    appliedPayments: Payment[];
+  }> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para aplicar anticipos");
+    }
+    
+    // Obtener la factura
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        )
+      );
+    
+    if (!invoice) {
+      throw new Error("Factura no encontrada");
+    }
+    
+    // Solo aplicar anticipos a facturas pendientes
+    if (invoice.status !== "pending") {
+      console.log(`⚠️ No se aplicarán anticipos a factura #${invoiceId} porque no está pendiente (status: ${invoice.status})`);
+      return {
+        appliedAmount: "0.00",
+        remainingBalance: invoice.total,
+        appliedPayments: []
+      };
+    }
+    
+    // Obtener anticipos disponibles del cliente (ordenados por fecha para aplicar los más antiguos primero)
+    const availableAdvances = await this.getCustomerAvailableAdvances(invoice.customerId);
+    
+    if (availableAdvances.length === 0) {
+      console.log(`ℹ️ No hay anticipos disponibles para aplicar a factura #${invoiceId}`);
+      return {
+        appliedAmount: "0.00",
+        remainingBalance: invoice.total,
+        appliedPayments: []
+      };
+    }
+    
+    let remainingBalance = parseFloat(invoice.total);
+    const appliedPayments: Payment[] = [];
+    let totalApplied = 0;
+    
+    // Aplicar anticipos hasta cubrir el total de la factura
+    for (const advance of availableAdvances) {
+      if (remainingBalance <= 0) break;
+      
+      const advanceAmount = parseFloat(advance.amount);
+      
+      // Si el anticipo cubre todo o parte del balance restante
+      if (advanceAmount <= remainingBalance) {
+        // Aplicar todo el anticipo
+        await db
+          .update(payments)
+          .set({ invoiceId: invoiceId })
+          .where(eq(payments.id, advance.id));
+        
+        remainingBalance -= advanceAmount;
+        totalApplied += advanceAmount;
+        appliedPayments.push(advance);
+        
+        console.log(`✅ Anticipo #${advance.id} ($${advanceAmount}) aplicado completamente a factura #${invoiceId}`);
+      } else {
+        // El anticipo es mayor que el balance restante
+        // En este caso, aplicamos todo el anticipo y la factura queda completamente pagada
+        await db
+          .update(payments)
+          .set({ invoiceId: invoiceId })
+          .where(eq(payments.id, advance.id));
+        
+        totalApplied += remainingBalance;
+        appliedPayments.push(advance);
+        
+        console.log(`✅ Anticipo #${advance.id} ($${advanceAmount}) aplicado parcialmente ($${remainingBalance}) a factura #${invoiceId}`);
+        remainingBalance = 0;
+        break;
+      }
+    }
+    
+    // Si la factura quedó completamente pagada con los anticipos, actualizar su estado
+    if (remainingBalance <= 0.01) { // Tolerancia de 1 centavo por redondeo
+      await db
+        .update(invoices)
+        .set({ status: "paid" })
+        .where(eq(invoices.id, invoiceId));
+      
+      console.log(`✅ Factura #${invoiceId} marcada como pagada después de aplicar anticipos`);
+    }
+    
+    return {
+      appliedAmount: totalApplied.toFixed(2),
+      remainingBalance: Math.max(0, remainingBalance).toFixed(2),
+      appliedPayments
+    };
+  }
 
   // Implementación de métodos para pedidos recurrentes a través del servicio
   async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {

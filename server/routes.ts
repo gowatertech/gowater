@@ -3001,6 +3001,27 @@ export async function registerRoutes(router: express.Router) {
           console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
           // No fallar la creación de la factura si falla el pago
         }
+      } 
+      // Si es crédito o tarjeta/transferencia, aplicar automáticamente anticipos disponibles
+      else if (initialStatus === 'pending') {
+        console.log(`💰 Aplicando anticipos disponibles a factura #${invoice.id}`);
+        
+        try {
+          const advanceResult = await storage.applyAdvancePaymentsToInvoice(invoice.id);
+          
+          if (advanceResult.appliedPayments.length > 0) {
+            console.log(`✅ ${advanceResult.appliedPayments.length} anticipo(s) aplicados por un total de $${advanceResult.appliedAmount}`);
+            console.log(`💵 Balance restante: $${advanceResult.remainingBalance}`);
+            
+            // Actualizar el objeto invoice con el status correcto si fue pagado completamente
+            if (parseFloat(advanceResult.remainingBalance) <= 0.01) {
+              invoice.status = 'paid';
+            }
+          }
+        } catch (advanceError) {
+          console.error(`❌ Error al aplicar anticipos a factura #${invoice.id}:`, advanceError);
+          // No fallar la creación de la factura si falla la aplicación de anticipos
+        }
       }
 
       res.json(invoice);
