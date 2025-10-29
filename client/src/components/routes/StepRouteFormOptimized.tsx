@@ -836,12 +836,13 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   }, [optimizedSequence]);
   
   // Efecto para actualizar totalDistanceKm cuando cambie routeEstimation
-  useEffect(() => {
-    if (routeEstimation.distance > 0) {
-      setTotalDistanceKm(routeEstimation.distance);
-      console.log(`Distancia total actualizada: ${routeEstimation.distance} km`);
-    }
-  }, [routeEstimation]);
+  // DESACTIVADO: Ya usamos la distancia del backend que incluye el regreso al almacén
+  // useEffect(() => {
+  //   if (routeEstimation.distance > 0) {
+  //     setTotalDistanceKm(routeEstimation.distance);
+  //     console.log(`Distancia total actualizada: ${routeEstimation.distance} km`);
+  //   }
+  // }, [routeEstimation]);
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
   const filteredOrders = React.useMemo(() => {
