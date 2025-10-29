@@ -112,11 +112,11 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
       {/* Vista para móviles (tarjetas) */}
       <div className="block md:hidden space-y-3">
         {filteredRoutes.map(route => (
-          <Card 
-            key={route.id} 
-            className="border-l-4 border-l-primary hover:shadow-md transition-shadow"
-            data-testid={`route-card-${route.id}`}
-          >
+          <Link href={`/routes/${route.id}`} key={route.id}>
+            <Card 
+              className="border-l-4 border-l-primary hover:shadow-md transition-shadow cursor-pointer"
+              data-testid={`route-card-${route.id}`}
+            >
             <div className="p-4 space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between">
@@ -201,6 +201,7 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
               </div>
             </div>
           </Card>
+          </Link>
         ))}
       </div>
       
