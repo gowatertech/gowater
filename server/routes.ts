@@ -2437,6 +2437,101 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para registrar un anticipo (pago adelantado)
+  router.post("/customers/:id/advance-payment", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const companyId = getCurrentCompanyId();
+
+      if (!companyId) {
+        return res.status(403).json({ error: "No se encontró contexto de compañía" });
+      }
+
+      // Verificar que el cliente existe y pertenece a esta compañía
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        ));
+
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      const { amount, paymentMethod, reference, notes } = req.body;
+
+      // Validar los datos
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: "El monto debe ser un número positivo" });
+      }
+
+      if (!["cash", "card", "transfer"].includes(paymentMethod)) {
+        return res.status(400).json({ error: "Método de pago inválido" });
+      }
+
+      // Registrar el anticipo
+      const advancePayment = await storage.registerAdvancePayment(
+        customerId,
+        parseFloat(amount).toFixed(2),
+        paymentMethod,
+        reference,
+        notes
+      );
+
+      console.log(`✅ Anticipo #${advancePayment.id} registrado para cliente #${customerId} por ${amount}`);
+
+      res.json({
+        success: true,
+        payment: advancePayment,
+        message: "Anticipo registrado exitosamente"
+      });
+    } catch (error) {
+      console.error("Error al registrar anticipo:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener el balance de un cliente
+  router.get("/customers/:id/balance", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const companyId = getCurrentCompanyId();
+
+      if (!companyId) {
+        return res.status(403).json({ error: "No se encontró contexto de compañía" });
+      }
+
+      // Verificar que el cliente existe y pertenece a esta compañía
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        ));
+
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      // Obtener balance y anticipos disponibles
+      const balance = await storage.getCustomerBalance(customerId);
+      const availableAdvances = await storage.getCustomerAvailableAdvances(customerId);
+
+      res.json({
+        customerId,
+        customerName: customer.businessname,
+        balance,
+        availableAdvances
+      });
+    } catch (error) {
+      console.error("Error al obtener balance del cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Endpoint para generar token de captura de ubicación (WhatsApp)
   router.post("/customers/:id/request-location", async (req, res) => {
     try {
