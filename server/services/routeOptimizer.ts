@@ -31,8 +31,6 @@ export function calculateOptimalRoute(
   orders: Order[], 
   depotCoordinates?: { latitude: number; longitude: number }
 ): OptimizedRoute {
-  console.log("Optimizando ruta para pedidos:", orders.map(o => ({ id: o.id, coords: o.deliveryCoordinates })));
-
   // Usar coordenadas del almacén proporcionadas o coordenadas por defecto
   const DEPOT_COORDINATES: [number, number] = depotCoordinates 
     ? [depotCoordinates.longitude, depotCoordinates.latitude] 
@@ -42,13 +40,18 @@ export function calculateOptimalRoute(
 
   // Convertir órdenes a puntos para el cálculo
   const points: Point[] = orders.map(order => {
-    if (!order.deliveryCoordinates) {
-      throw new Error(`Pedido ${order.id} no tiene coordenadas de entrega`);
+    // Intentar usar deliveryCoordinates primero, si no existe usar coordinates del cliente
+    const coordString = order.deliveryCoordinates || (order as any).coordinates;
+    
+    if (!coordString) {
+      throw new Error(`Pedido ${order.id} no tiene coordenadas de entrega ni coordenadas del cliente`);
     }
 
-    const [lat, lng] = order.deliveryCoordinates.split(",").map(Number);
+    console.log(`Pedido ${order.id}: usando coordenadas ${coordString}`);
+
+    const [lat, lng] = coordString.split(",").map(Number);
     if (isNaN(lat) || isNaN(lng)) {
-      throw new Error(`Coordenadas inválidas para pedido ${order.id}: ${order.deliveryCoordinates}`);
+      throw new Error(`Coordenadas inválidas para pedido ${order.id}: ${coordString}`);
     }
 
     return {
