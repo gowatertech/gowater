@@ -19,7 +19,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, sql, isNotNull, desc } from "drizzle-orm";
 
 export interface DriverLocation {
   latitude: number;
