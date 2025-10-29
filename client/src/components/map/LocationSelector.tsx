@@ -9,11 +9,13 @@ interface LocationSelectorProps {
   value?: string;
   onChange: (coordinates: string) => void;
   initialCenter?: [number, number];
+  readOnly?: boolean;
 }
 
 interface MapControlProps {
   position: LatLngExpression;
   onChange: (lat: number, lng: number) => void;
+  readOnly?: boolean;
 }
 
 // Icono personalizado más grande y visible para arrastrar
@@ -27,7 +29,7 @@ const draggableIcon = new Icon({
 });
 
 // Componente para manejar el cambio de posición del marcador
-function DraggableMarker({ position, onChange }: MapControlProps) {
+function DraggableMarker({ position, onChange, readOnly }: MapControlProps) {
   const map = useMap();
   
   useEffect(() => {
@@ -38,7 +40,7 @@ function DraggableMarker({ position, onChange }: MapControlProps) {
   return (
     <Marker
       position={position}
-      draggable={true}
+      draggable={!readOnly}
       icon={draggableIcon}
       eventHandlers={{
         dragstart() {
@@ -60,7 +62,7 @@ function DraggableMarker({ position, onChange }: MapControlProps) {
   );
 }
 
-export function LocationSelector({ value, onChange, initialCenter }: LocationSelectorProps) {
+export function LocationSelector({ value, onChange, initialCenter, readOnly = false }: LocationSelectorProps) {
   // Use useCompanySettings hook to get configured coordinates
   const { settings } = useCompanySettings();
   
@@ -101,36 +103,48 @@ export function LocationSelector({ value, onChange, initialCenter }: LocationSel
   }, [value]);
 
   const handlePositionChange = (lat: number, lng: number) => {
+    if (readOnly) return; // No permitir cambios en modo solo lectura
     setPosition([lat, lng]);
     onChange(`${lat},${lng}`);
   };
 
   const handleSearchLocationSelected = (lat: number, lng: number) => {
+    if (readOnly) return; // No permitir búsqueda en modo solo lectura
     setPosition([lat, lng]);
     onChange(`${lat},${lng}`);
   };
 
   return (
     <div className="space-y-2">
-      <AddressSearchBox onLocationSelected={(lat, lng, address) => handleSearchLocationSelected(lat, lng)} />
+      {!readOnly && (
+        <AddressSearchBox onLocationSelected={(lat, lng, address) => handleSearchLocationSelected(lat, lng)} />
+      )}
       
       <ResponsiveMapContainer fixedHeight aspectRatio="square">
         <MapContainer
           center={position}
           zoom={13}
           style={{ height: "100%", width: "100%" }}
+          dragging={!readOnly}
+          touchZoom={!readOnly}
+          doubleClickZoom={!readOnly}
+          scrollWheelZoom={!readOnly}
+          boxZoom={!readOnly}
+          keyboard={!readOnly}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          <DraggableMarker position={position} onChange={handlePositionChange} />
+          <DraggableMarker position={position} onChange={handlePositionChange} readOnly={readOnly} />
         </MapContainer>
       </ResponsiveMapContainer>
       
-      <div className="text-xs text-muted-foreground">
-        Coordenadas: {Array.isArray(position) ? `${position[0].toFixed(6)}, ${position[1].toFixed(6)}` : 'No disponible'}
-      </div>
+      {!readOnly && (
+        <div className="text-xs text-muted-foreground">
+          Coordenadas: {Array.isArray(position) ? `${position[0].toFixed(6)}, ${position[1].toFixed(6)}` : 'No disponible'}
+        </div>
+      )}
     </div>
   );
 }

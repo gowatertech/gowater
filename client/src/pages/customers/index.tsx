@@ -1645,12 +1645,12 @@ export default function Customers() {
                               </div>
 
                               {/* Sección: Ubicación en Mapa */}
-                              {isEditing && (
-                                <div className="space-y-4">
-                                  <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                    <Map className="h-5 w-5 text-primary" />
-                                    Ubicación en Mapa
-                                  </h3>
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Map className="h-5 w-5 text-primary" />
+                                  Ubicación en Mapa
+                                </h3>
+                                {isEditing ? (
                                   <FormField
                                     control={form.control}
                                     name="coordinates"
@@ -1672,8 +1672,34 @@ export default function Customers() {
                                       </FormItem>
                                     )}
                                   />
-                                </div>
-                              )}
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div className="h-[300px] w-full border rounded-lg overflow-hidden bg-muted/30">
+                                      {selectedCustomer?.coordinates ? (
+                                        <LocationSelector 
+                                          value={selectedCustomer.coordinates} 
+                                          onChange={() => {}} 
+                                          initialCenter={[19.075380, -70.128822]}
+                                          readOnly
+                                        />
+                                      ) : (
+                                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                                          <div className="text-center space-y-2">
+                                            <MapPin className="h-12 w-12 mx-auto opacity-50" />
+                                            <p className="text-sm">Sin coordenadas registradas</p>
+                                            <p className="text-xs">Edita el cliente para agregar ubicación</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {selectedCustomer?.coordinates && (
+                                      <p className="text-xs text-muted-foreground">
+                                        📍 Coordenadas: {selectedCustomer.coordinates}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
 
                               {/* Logo Update */}
                               {isEditing && (
