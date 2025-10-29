@@ -297,7 +297,7 @@ export default function RouteDetails() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {route.totalDistance ? `${(route.totalDistance / 1000).toFixed(2)} km` : '0.00 km'}
+                  {route.totalDistance ? `${Number(route.totalDistance).toFixed(2)} km` : '0.00 km'}
                 </div>
               </CardContent>
             </Card>
