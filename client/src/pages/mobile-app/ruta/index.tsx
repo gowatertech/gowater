@@ -838,6 +838,22 @@ export default function DriverRoute() {
                 description: `Procesando orden #${nextOrder.id} (${remainingOrders.length} pendientes)`,
               });
             }, 800); // Pequeño delay para que el usuario vea los toasts de éxito
+          } else {
+            // No hay más órdenes pendientes - parada completada
+            setShowPaymentDialog(false);
+            setPendingOrdersInStop([]);
+            
+            // Refrescar los datos de la ruta para mostrar el estado actualizado
+            if (activeRouteId) {
+              setTimeout(() => {
+                fetchRouteStops(activeRouteId);
+                toast({
+                  title: "¡Parada completada!",
+                  description: "Todas las órdenes de esta parada han sido entregadas y pagadas.",
+                  variant: "default",
+                });
+              }, 1000);
+            }
           }
         }
       } else {
