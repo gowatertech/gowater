@@ -672,15 +672,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log("✅ Tipo de respuesta:", typeof response);
       console.log("✅ Propiedades de respuesta:", Object.keys(response || {}));
       
-      // El backend devuelve una secuencia optimizada de IDs y distancia total
-      if (response && response.sequence) {
+      // El backend devuelve una secuencia optimizada de IDs, distancia total y puntos agrupados
+      if (response && response.sequence && response.points) {
         console.log("✅ Secuencia recibida:", response.sequence);
         console.log("✅ Distancia recibida:", response.totalDistance);
-        
-        // Reorganizar los pedidos según la secuencia optimizada
-        const optimizedOrders = response.sequence.map((orderId: number) => 
-          selectedOrders.find(order => order.id === orderId)
-        ).filter(Boolean);
+        console.log("✅ Puntos agrupados:", response.points);
         
         // Añadir el punto de la empresa como primer punto
         const companyCoordinates = settings?.latitude && settings?.longitude 
@@ -694,6 +690,30 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           coordinates: companyCoordinates,
           isCompany: true
         };
+        
+        // Usar los puntos agrupados del backend para construir la secuencia visual
+        const optimizedOrders = response.points.map((point: any) => {
+          const orderIds = point.properties.orderIds || [point.properties.id];
+          const deliveryCount = point.properties.deliveryCount || 1;
+          
+          // Si hay múltiples pedidos en esta parada, buscar el primero como referencia
+          const firstOrder = selectedOrders.find(order => order.id === orderIds[0]);
+          
+          if (!firstOrder) return null;
+          
+          // Crear un punto que representa esta parada
+          return {
+            id: orderIds[0], // Usar el primer ID como referencia
+            orderIds: orderIds, // Guardar todos los IDs de pedidos en esta parada
+            deliveryCount: deliveryCount, // Cuántas entregas en esta parada
+            customerName: deliveryCount > 1 
+              ? `${firstOrder.customerName} (${deliveryCount} entregas)` 
+              : firstOrder.customerName,
+            customerAddress: firstOrder.customerAddress,
+            coordinates: `${point.geometry.coordinates[1]},${point.geometry.coordinates[0]}`, // lat,lng
+            isCompany: false
+          };
+        }).filter(Boolean);
         
         // Actualizar la secuencia optimizada
         setOptimizedSequence([companyPoint, ...optimizedOrders]);
@@ -748,9 +768,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         const currentPoint = optimizedSequence[i];
         const nextPoint = optimizedSequence[i + 1];
         
-        // Añadir 5 minutos por cada parada (excepto la empresa que es punto de partida)
+        // Añadir tiempo por entregas (excepto la empresa que es punto de partida)
+        // Si hay múltiples entregas en una parada, sumar el tiempo de cada una
         if (!currentPoint.isCompany) {
-          estimatedTime += 5; // 5 minutos por parada para entrega
+          const deliveryCount = currentPoint.deliveryCount || 1;
+          estimatedTime += 5 * deliveryCount; // 5 minutos por entrega
         }
         
         // Calcular distancia entre puntos para estimar tiempo de viaje
@@ -809,10 +831,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         }
       }
       
-      // Añadir 5 minutos a la última parada si no es la empresa
+      // Añadir tiempo de la última parada si no es la empresa
       const lastPoint = optimizedSequence[optimizedSequence.length - 1];
       if (lastPoint && !lastPoint.isCompany) {
-        estimatedTime += 5;
+        const deliveryCount = lastPoint.deliveryCount || 1;
+        estimatedTime += 5 * deliveryCount; // 5 minutos por entrega
       }
       
       // Calcular distancia redondeada
