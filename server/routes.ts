@@ -2223,6 +2223,7 @@ export async function registerRoutes(router: express.Router) {
           street: customers.street,
           streetnumber: customers.streetnumber,
           creditlimit: customers.creditlimit,
+          balance: customers.balance,
           provinceid: customers.provinceid,
           municipalityid: customers.municipalityid,
           reference: customers.reference,

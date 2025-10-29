@@ -154,24 +154,22 @@ export default function MobileAppClientesPage() {
                     </div>
                   )}
 
-                  {customer.creditlimit && (
-                    <div className="flex items-center gap-2 text-sm pt-2 border-t">
-                      <DollarSign className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">
-                        Balance: RD$ {parseFloat(customer.creditlimit).toFixed(2)}
-                      </span>
-                      {parseFloat(customer.creditlimit) < 0 && (
-                        <Badge variant="destructive" className="ml-auto">
-                          Debe
-                        </Badge>
-                      )}
-                      {parseFloat(customer.creditlimit) > 0 && (
-                        <Badge variant="default" className="ml-auto bg-green-500">
-                          Favor
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
+                    <DollarSign className="h-4 w-4 text-yellow-500" />
+                    <span className="font-medium">
+                      Balance: RD$ {parseFloat(customer.balance || "0").toFixed(2)}
+                    </span>
+                    {parseFloat(customer.balance || "0") > 0 && (
+                      <Badge variant="destructive" className="ml-auto">
+                        Debe
+                      </Badge>
+                    )}
+                    {parseFloat(customer.balance || "0") < 0 && (
+                      <Badge variant="default" className="ml-auto bg-green-500">
+                        Favor
+                      </Badge>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
