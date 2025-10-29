@@ -263,6 +263,78 @@ export function createMobileApiEndpoints(): Router {
   });
 
   /**
+   * PATCH /api/mobile/customers/:id
+   * Actualiza las coordenadas de un cliente
+   */
+  router.patch('/customers/:id', async (req, res) => {
+    try {
+      const customerId = safeParseInt(req.params.id, -1);
+      
+      if (!isPositiveInteger(customerId)) {
+        return res.status(400).json({ error: "ID de cliente inválido" });
+      }
+      
+      // Obtener el companyId adecuado de diferentes fuentes
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`MobileAPI - No se encontró companyId para la petición.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      console.log(`MobileAPI - Actualizando cliente #${customerId} para compañía #${companyId}`);
+      
+      // Validar que el cliente pertenezca a la compañía
+      const existingCustomer = await db.select()
+        .from(customers)
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        ))
+        .limit(1);
+      
+      if (existingCustomer.length === 0) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      // Extraer solo las coordenadas del body
+      const { coordinates } = req.body;
+      
+      if (!coordinates) {
+        return res.status(400).json({ error: "Coordenadas son requeridas" });
+      }
+      
+      // Validar formato de coordenadas (lat,lng)
+      const coordsRegex = /^-?\d+\.?\d*,-?\d+\.?\d*$/;
+      if (!coordsRegex.test(coordinates)) {
+        return res.status(400).json({ error: "Formato de coordenadas inválido. Debe ser 'lat,lng'" });
+      }
+      
+      // Actualizar solo las coordenadas
+      const [updatedCustomer] = await db
+        .update(customers)
+        .set({ coordinates })
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        ))
+        .returning();
+      
+      console.log(`MobileAPI - Cliente #${customerId} actualizado con coordenadas: ${coordinates}`);
+      res.json(updatedCustomer);
+    } catch (error) {
+      console.error("Error al actualizar cliente:", error);
+      res.status(500).json({ error: "Error al actualizar cliente", details: String(error) });
+    }
+  });
+
+  /**
    * Endpoint para completar una ruta cuando todas las paradas están completadas
    * POST /api/mobile/routes/:id/complete
    */

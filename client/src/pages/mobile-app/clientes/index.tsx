@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Users, MapPin, Phone, Mail, DollarSign } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Search, Users, MapPin, Phone, Mail, DollarSign, Navigation, MapPinned, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,16 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CustomerBalance } from "@/components/customers/CustomerBalance";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";
 import type { Customer } from "@shared/schema";
 
 export default function MobileAppClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -33,6 +38,103 @@ export default function MobileAppClientesPage() {
   }, [customers, searchTerm]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  // Función para capturar coordenadas GPS del cliente
+  const handleCaptureLocation = async () => {
+    if (!selectedCustomer) return;
+
+    setIsCapturingLocation(true);
+
+    try {
+      // Verificar si el navegador soporta geolocalización
+      if (!navigator.geolocation) {
+        toast({
+          title: "GPS no disponible",
+          description: "Tu dispositivo no soporta geolocalización",
+          variant: "destructive"
+        });
+        setIsCapturingLocation(false);
+        return;
+      }
+
+      // Obtener la ubicación actual
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          const coordinates = `${latitude},${longitude}`;
+
+          try {
+            // Actualizar las coordenadas del cliente en el backend
+            await apiRequest(`/api/customers/${selectedCustomer.id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                coordinates: coordinates
+              })
+            });
+
+            // Actualizar el caché de clientes
+            queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+
+            toast({
+              title: "Ubicación capturada",
+              description: `Coordenadas actualizadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+            });
+
+            setIsCapturingLocation(false);
+          } catch (error) {
+            console.error("Error al actualizar coordenadas:", error);
+            toast({
+              title: "Error",
+              description: "No se pudieron guardar las coordenadas",
+              variant: "destructive"
+            });
+            setIsCapturingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Error al obtener ubicación:", error);
+          
+          let errorMessage = "No se pudo obtener la ubicación";
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Permiso de ubicación denegado. Por favor, habilita el acceso a la ubicación en la configuración de tu navegador.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Ubicación no disponible. Asegúrate de tener GPS activado.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Tiempo de espera agotado. Intenta nuevamente.";
+              break;
+          }
+
+          toast({
+            title: "Error de GPS",
+            description: errorMessage,
+            variant: "destructive"
+          });
+
+          setIsCapturingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } catch (error) {
+      console.error("Error al capturar ubicación:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al capturar la ubicación",
+        variant: "destructive"
+      });
+      setIsCapturingLocation(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pb-20">
@@ -195,6 +297,90 @@ export default function MobileAppClientesPage() {
                   Cerrar
                 </Button>
               </div>
+
+              {/* Sección de Ubicación GPS */}
+              <Card className="mb-6 border-2 border-blue-200 bg-blue-50/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MapPinned className="h-5 w-5 text-blue-600" />
+                    Ubicación del Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {selectedCustomer.coordinates ? (
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2 text-sm bg-white p-3 rounded-lg border">
+                        <MapPin className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-700">Coordenadas GPS registradas:</p>
+                          <p className="text-gray-600 font-mono text-xs mt-1">
+                            {selectedCustomer.coordinates}
+                          </p>
+                          <a
+                            href={`https://www.google.com/maps?q=${selectedCustomer.coordinates}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline text-xs mt-1 inline-block"
+                          >
+                            Ver en Google Maps →
+                          </a>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleCaptureLocation}
+                        disabled={isCapturingLocation}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                        data-testid="button-update-location"
+                      >
+                        {isCapturingLocation ? (
+                          <>
+                            <Navigation className="h-4 w-4 mr-2 animate-spin" />
+                            Capturando ubicación...
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="h-4 w-4 mr-2" />
+                            Actualizar Ubicación GPS
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 text-sm bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                        <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-yellow-800">Sin ubicación GPS registrada</p>
+                          <p className="text-yellow-700 text-xs mt-1">
+                            Captura la ubicación GPS del cliente para facilitar futuras entregas
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleCaptureLocation}
+                        disabled={isCapturingLocation}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        size="default"
+                        data-testid="button-capture-location"
+                      >
+                        {isCapturingLocation ? (
+                          <>
+                            <Navigation className="h-5 w-5 mr-2 animate-spin" />
+                            Obteniendo ubicación GPS...
+                          </>
+                        ) : (
+                          <>
+                            <MapPinned className="h-5 w-5 mr-2" />
+                            Capturar Ubicación GPS
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <CustomerBalance 
                 customerId={selectedCustomer.id}
                 customerName={selectedCustomer.businessname || ""}
