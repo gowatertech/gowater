@@ -43,11 +43,13 @@ export default function MobileAppClientesPage() {
   const handleCaptureLocation = async () => {
     if (!selectedCustomer) return;
 
+    console.log("Iniciando captura de ubicación GPS...");
     setIsCapturingLocation(true);
 
     try {
       // Verificar si el navegador soporta geolocalización
       if (!navigator.geolocation) {
+        console.error("Geolocalización no soportada");
         toast({
           title: "GPS no disponible",
           description: "Tu dispositivo no soporta geolocalización",
@@ -57,13 +59,23 @@ export default function MobileAppClientesPage() {
         return;
       }
 
+      console.log("Solicitando permiso de ubicación...");
+      
+      // Mostrar toast de que estamos esperando permisos
+      toast({
+        title: "Esperando GPS...",
+        description: "Permite el acceso a tu ubicación cuando se solicite",
+      });
+
       // Obtener la ubicación actual
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          console.log("Ubicación obtenida:", position.coords);
           const { latitude, longitude } = position.coords;
           const coordinates = `${latitude},${longitude}`;
 
           try {
+            console.log("Guardando coordenadas en el servidor...");
             // Actualizar las coordenadas del cliente en el backend
             await apiRequest(`/api/mobile/customers/${selectedCustomer.id}`, {
               method: "PATCH",
@@ -75,39 +87,41 @@ export default function MobileAppClientesPage() {
               })
             });
 
+            console.log("Coordenadas guardadas exitosamente");
+
             // Actualizar el caché de clientes
             queryClient.invalidateQueries({ queryKey: ["/api/mobile/customers"] });
 
             toast({
-              title: "Ubicación capturada",
-              description: `Coordenadas actualizadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+              title: "✓ Ubicación capturada",
+              description: `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
             });
 
             setIsCapturingLocation(false);
           } catch (error) {
-            console.error("Error al actualizar coordenadas:", error);
+            console.error("Error al actualizar coordenadas en servidor:", error);
             toast({
-              title: "Error",
-              description: "No se pudieron guardar las coordenadas",
+              title: "Error al guardar",
+              description: "No se pudieron guardar las coordenadas en el servidor",
               variant: "destructive"
             });
             setIsCapturingLocation(false);
           }
         },
         (error) => {
-          console.error("Error al obtener ubicación:", error);
+          console.error("Error de geolocalización:", error.code, error.message);
           
           let errorMessage = "No se pudo obtener la ubicación";
           
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = "Permiso de ubicación denegado. Por favor, habilita el acceso a la ubicación en la configuración de tu navegador.";
+              errorMessage = "Permiso denegado. Habilita el acceso a ubicación en tu navegador.";
               break;
             case error.POSITION_UNAVAILABLE:
-              errorMessage = "Ubicación no disponible. Asegúrate de tener GPS activado.";
+              errorMessage = "Ubicación no disponible. Verifica que el GPS esté activado.";
               break;
             case error.TIMEOUT:
-              errorMessage = "Tiempo de espera agotado. Intenta nuevamente.";
+              errorMessage = "Tiempo agotado. Verifica tu señal GPS e intenta nuevamente.";
               break;
           }
 
@@ -121,15 +135,15 @@ export default function MobileAppClientesPage() {
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 15000, // Aumentado a 15 segundos
           maximumAge: 0
         }
       );
     } catch (error) {
-      console.error("Error al capturar ubicación:", error);
+      console.error("Error inesperado al capturar ubicación:", error);
       toast({
         title: "Error",
-        description: "Ocurrió un error al capturar la ubicación",
+        description: "Ocurrió un error inesperado",
         variant: "destructive"
       });
       setIsCapturingLocation(false);
