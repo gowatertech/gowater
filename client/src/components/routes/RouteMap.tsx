@@ -50,29 +50,47 @@ export default function RouteMap({ route, className }: RouteMapProps) {
 
   // Parsear coordenadas de los pedidos
   const ordersArray = Array.isArray(orders) ? orders : [];
-  const stopCoordinates = ordersArray
-    .map((order: any) => {
-      try {
-        if (!order.coordinates) return null;
-        
-        if (typeof order.coordinates === 'string') {
-          const parts = order.coordinates.split(',');
-          if (parts.length !== 2) return null;
-          
-          const lat = parseFloat(parts[0]);
-          const lng = parseFloat(parts[1]);
-          
-          if (isNaN(lat) || isNaN(lng)) return null;
-          
-          return { position: [lat, lng] as [number, number], order };
-        }
-        return null;
-      } catch (error) {
-        console.error('Error parsing order coordinates:', error, order);
-        return null;
+  // Agrupar pedidos por ubicación (coordenadas) para evitar marcadores duplicados
+  const stopsByLocation = new Map<string, { position: [number, number]; orders: any[] }>();
+  
+  ordersArray.forEach((order: any) => {
+    try {
+      // Usar deliveryCoordinates si existe, sino usar coordinates del cliente
+      const coordString = order.deliveryCoordinates || order.coordinates;
+      if (!coordString || typeof coordString !== 'string') return;
+      
+      const parts = coordString.split(',');
+      if (parts.length !== 2) return;
+      
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+      
+      if (isNaN(lat) || isNaN(lng)) return;
+      
+      // Usar coordenadas como clave para agrupar
+      const key = `${lat},${lng}`;
+      
+      if (!stopsByLocation.has(key)) {
+        stopsByLocation.set(key, {
+          position: [lat, lng] as [number, number],
+          orders: []
+        });
       }
-    })
-    .filter((item): item is { position: [number, number]; order: any } => item !== null);
+      
+      stopsByLocation.get(key)?.orders.push(order);
+    } catch (error) {
+      console.error('Error parsing order coordinates:', error, order);
+    }
+  });
+  
+  // Ordenar paradas por deliverySequence del primer pedido de cada parada
+  const stopCoordinates = Array.from(stopsByLocation.values())
+    .map(stop => ({
+      ...stop,
+      firstSequence: Math.min(...stop.orders.map((o: any) => o.deliverySequence || Infinity))
+    }))
+    .sort((a, b) => a.firstSequence - b.firstSequence)
+    .map(({ position, orders }) => ({ position, orders }));
 
   if (stopCoordinates.length === 0) {
     return (
@@ -151,7 +169,7 @@ export default function RouteMap({ route, className }: RouteMapProps) {
           )}
           
           {/* Mostrar marcadores para cada parada */}
-          {stopCoordinates.map(({ position, order }, index: number) => {
+          {stopCoordinates.map(({ position, orders }, index: number) => {
             // Crear un icono personalizado con el número de parada
             const customIcon = new L.DivIcon({
               html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-8 h-8 text-sm font-semibold shadow-md">${index + 1}</div>`,
@@ -160,18 +178,41 @@ export default function RouteMap({ route, className }: RouteMapProps) {
               iconAnchor: [16, 16]
             });
             
+            // Obtener datos del primer pedido para mostrar información básica
+            const firstOrder = orders[0];
+            const deliveryCount = orders.length;
+            const totalAmount = orders.reduce((sum: number, o: any) => sum + parseFloat(o.total || '0'), 0);
+            
             return (
               <Marker
-                key={order.id}
+                key={`stop-${index}`}
                 position={position}
                 icon={customIcon}
               >
                 <Popup>
-                  <div>
-                    <strong>Parada #{index + 1}</strong>
-                    <div><strong>Cliente:</strong> {order.customerName}</div>
-                    <div><strong>Dirección:</strong> {order.customerAddress}</div>
-                    <div><strong>Total:</strong> ${order.total}</div>
+                  <div className="min-w-[200px]">
+                    <strong className="text-base">Parada #{index + 1}</strong>
+                    <div className="mt-2">
+                      <strong>Cliente:</strong> {firstOrder.customerName}
+                    </div>
+                    <div>
+                      <strong>Dirección:</strong> {firstOrder.street} {firstOrder.streetnumber}
+                    </div>
+                    <div className="mt-2 pt-2 border-t">
+                      <strong>Entregas:</strong> {deliveryCount}
+                    </div>
+                    <div>
+                      <strong>Total:</strong> RD${totalAmount.toFixed(2)}
+                    </div>
+                    {deliveryCount > 1 && (
+                      <div className="mt-2 pt-2 border-t text-xs text-gray-600">
+                        {orders.map((o: any, i: number) => (
+                          <div key={o.id}>
+                            Pedido #{o.id}: RD${parseFloat(o.total).toFixed(2)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </Popup>
               </Marker>
