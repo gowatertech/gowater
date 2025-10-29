@@ -947,7 +947,18 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     const stops = Object.values(stopsObj);
     
     // Crear la secuencia de entrega, asegurando que incluimos la empresa como punto 0
-    const sequence = optimizedSequence.map(order => order.id);
+    // y expandiendo los orderIds cuando hay múltiples pedidos en una parada
+    const sequence = optimizedSequence.flatMap(order => {
+      if (order.isCompany) {
+        return [order.id]; // "company"
+      }
+      // Si hay múltiples pedidos en esta parada, expandirlos en orden
+      if (order.orderIds && order.orderIds.length > 0) {
+        return order.orderIds;
+      }
+      // Fallback: usar el ID simple
+      return [order.id];
+    });
     
     // Obtener el tiempo estimado de la ruta
     console.log(`Tiempo estimado de la ruta: ${routeEstimation.time}, Distancia: ${routeEstimation.distance} km`);
