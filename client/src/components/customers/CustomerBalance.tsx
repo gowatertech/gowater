@@ -86,7 +86,7 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
   // Mutation para registrar anticipo
   const registerAdvanceMutation = useMutation({
     mutationFn: async (data: AdvancePaymentFormData) => {
-      return await apiRequest<any>(`/api/customers/${customerId}/advance-payment`, {
+      return await apiRequest(`/api/customers/${customerId}/advance-payment`, {
         method: "POST",
         body: JSON.stringify({
           amount: parseFloat(data.amount).toFixed(2),
