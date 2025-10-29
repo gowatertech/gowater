@@ -564,23 +564,25 @@ export const insertInvoiceItemSchema = z.object({
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(), // Añadido companyId
-  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  invoiceId: integer("invoice_id").references(() => invoices.id), // Ahora es opcional para permitir anticipos
   customerId: integer("customer_id").notNull().references(() => customers.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "transfer"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
   reference: text("reference"), // Para pagos con tarjeta/crédito/transferencia
   notes: text("notes"),
+  isAdvance: boolean("is_advance").notNull().default(false), // Indica si es un anticipo
 });
 
 export const insertPaymentSchema = z.object({
-  invoiceId: z.number(),
+  invoiceId: z.number().optional().nullable(), // Opcional para anticipos
   customerId: z.number(),
   companyId: z.number(),
   amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
   paymentMethod: z.enum(["cash", "credit", "card", "transfer"]),
   reference: z.string().optional(),
   notes: z.string().optional(),
+  isAdvance: z.boolean().optional().default(false), // Indica si es un anticipo
 });
 
 // Customer Orders
