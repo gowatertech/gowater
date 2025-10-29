@@ -265,13 +265,12 @@ export default function DriverRoute() {
           return seqA - seqB;
         });
         
-        // AGRUPAR PEDIDOS POR CLIENTE (customerId + deliverySequence)
-        // Esto es similar a como funciona en la app web
-        const groupedStops = new Map<string, any>();
+        // AGRUPAR ÓRDENES POR deliverySequence SOLAMENTE
+        // Mantener cada orden separada dentro del grupo
+        const ordersBySequence = new Map<number, any[]>();
         
         sortedOrders.forEach((order: any) => {
-          // Crear una clave única por cliente y secuencia de entrega
-          const groupKey = `${order.customerId}-${order.deliverySequence || 0}`;
+          const sequence = order.deliverySequence || 0;
           
           // Obtener coordenadas
           let lat = null, lng = null;
@@ -294,7 +293,6 @@ export default function DriverRoute() {
           const orderProducts = order.products && Array.isArray(order.products) 
             ? order.products.map((p: any) => ({
                 id: p.productId,
-                orderId: order.id, // Guardar el ID de la orden
                 name: p.name,
                 quantity: p.quantity || 1,
                 price: typeof p.price === 'string' ? parseFloat(p.price) : p.price || 0,
@@ -320,55 +318,104 @@ export default function DriverRoute() {
             console.log(`Pedido ${order.id}: Está marcado como entregado en la base de datos`);
           }
           
-          // Si ya existe un grupo para este cliente en esta parada, agregar productos
-          if (groupedStops.has(groupKey)) {
-            const existing = groupedStops.get(groupKey);
-            // Combinar productos
-            existing.products.push(...orderProducts);
-            // Sumar el total
-            existing.totalValue += typeof order.total === 'string' ? parseFloat(order.total) : (order.total || 0);
-            // Agregar ID de la orden al array
-            existing.orderIds.push(order.id);
-            // Si hay factura prepagada, guardarla
-            if (order.invoiceId) {
-              existing.invoiceIds.push(order.invoiceId);
-            }
-            // Actualizar estado: si alguna orden está completada/entregada, mantener ese estado
-            if (displayStatus === "delivered" || displayStatus === "completed") {
-              existing.status = displayStatus;
-              existing.actualStatus = actualStatus;
-            }
-          } else {
-            // Crear nueva parada agrupada
-            groupedStops.set(groupKey, {
-              id: order.id, // Usar el ID de la primera orden del grupo
-              orderIds: [order.id], // Array de IDs de pedidos en esta parada
-              invoiceIds: order.invoiceId ? [order.invoiceId] : [],
-              customerId: order.customerId,
-              customerName: order.customerName || "Cliente",
-              customerIsCharity: order.customerIsCharity,
-              paymentMethod: order.paymentMethod,
-              invoiceId: order.invoiceId,
-              address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
-              latitude: lat,
-              longitude: lng,
-              actualStatus: actualStatus,
-              status: displayStatus,
-              deliverySequence: order.deliverySequence,
+          // Crear objeto de orden individual
+          const routeOrder = {
+            id: order.id,
+            customerId: order.customerId,
+            customerName: order.customerName || "Cliente",
+            customerIsCharity: order.customerIsCharity,
+            paymentMethod: order.paymentMethod,
+            invoiceId: order.invoiceId,
+            address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
+            status: displayStatus,
+            actualStatus: actualStatus,
+            products: orderProducts,
+            totalValue: typeof order.total === 'string' ? parseFloat(order.total) : (order.total || 0),
+            latitude: lat,
+            longitude: lng,
+          };
+          
+          // Agregar esta orden al array de su secuencia
+          if (!ordersBySequence.has(sequence)) {
+            ordersBySequence.set(sequence, []);
+          }
+          ordersBySequence.get(sequence)!.push(routeOrder);
+        });
+        
+        // Convertir las secuencias agrupadas en paradas
+        const customerStops: RouteStop[] = [];
+        
+        // Ordenar las secuencias
+        const sortedSequences = Array.from(ordersBySequence.keys()).sort((a, b) => a - b);
+        
+        sortedSequences.forEach((sequence, index) => {
+          const ordersInStop = ordersBySequence.get(sequence)!;
+          
+          // Usar datos del primer pedido para la ubicación de la parada
+          const firstOrder = ordersInStop[0];
+          
+          // Determinar el estado de la parada: si todas las órdenes están entregadas, la parada está entregada
+          const allDelivered = ordersInStop.every(o => o.status === "delivered" || o.status === "completed");
+          const anyDelivered = ordersInStop.some(o => o.status === "delivered" || o.status === "completed");
+          const allReturned = ordersInStop.every(o => o.status === "returned" || o.status === "cancelled");
+          
+          let stopStatus = "pending";
+          if (allDelivered) {
+            stopStatus = "delivered";
+          } else if (anyDelivered) {
+            stopStatus = "in_progress";
+          } else if (allReturned) {
+            stopStatus = "returned";
+          }
+          
+          // Calcular total combinado
+          const totalValue = ordersInStop.reduce((sum, o) => sum + (typeof o.totalValue === 'string' ? parseFloat(o.totalValue) : o.totalValue), 0);
+          
+          // Si hay UNA SOLA orden, usar el formato tradicional (sin array orders)
+          if (ordersInStop.length === 1) {
+            customerStops.push({
+              id: firstOrder.id,
+              order: index + 1,
+              customerId: firstOrder.customerId,
+              customerName: firstOrder.customerName,
+              customerIsCharity: firstOrder.customerIsCharity,
+              paymentMethod: firstOrder.paymentMethod,
+              invoiceId: firstOrder.invoiceId,
+              address: firstOrder.address,
+              latitude: firstOrder.latitude,
+              longitude: firstOrder.longitude,
+              status: firstOrder.status,
+              actualStatus: firstOrder.actualStatus,
               estimatedArrival: "Programado",
               estimatedDuration: 15,
               distanceFromPrevious: 0,
-              products: orderProducts,
-              totalValue: typeof order.total === 'string' ? parseFloat(order.total) : (order.total || 0),
+              products: firstOrder.products,
+              totalValue: firstOrder.totalValue,
+            });
+          } else {
+            // Si hay MÚLTIPLES órdenes, crear una parada con el array orders
+            // Combinar todos los productos para el encabezado (countTotalProducts, hasReturnableItems)
+            const allProducts = ordersInStop.flatMap(o => o.products);
+            
+            customerStops.push({
+              id: firstOrder.id, // ID de la primera orden como ID de la parada
+              order: index + 1,
+              customerId: firstOrder.customerId, // Cliente de la primera orden
+              customerName: `Parada #${sequence}`, // Nombre genérico para la parada
+              address: firstOrder.address, // Dirección de la primera orden
+              latitude: firstOrder.latitude,
+              longitude: firstOrder.longitude,
+              status: stopStatus,
+              actualStatus: firstOrder.actualStatus,
+              estimatedArrival: "Programado",
+              estimatedDuration: 15,
+              distanceFromPrevious: 0,
+              products: allProducts, // Lista combinada de productos para funciones del encabezado
+              totalValue: totalValue,
+              orders: ordersInStop, // Array de órdenes individuales
             });
           }
         });
-        
-        // Convertir el mapa a array y asignar orden
-        const customerStops = Array.from(groupedStops.values()).map((stop, index) => ({
-          ...stop,
-          order: index + 1, // Almacén es 0, las paradas empiezan en 1
-        }));
         
         // Ordenar las paradas según la secuencia de entrega especificada en la ruta
         if (routeDetails && routeDetails.deliverySequence && routeDetails.deliverySequence.length > 0) {

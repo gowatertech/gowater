@@ -249,51 +249,116 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                     {/* Contenido expandido */}
                     {isExpanded && !stop.isWarehouse && (
                       <CardContent className="p-3 pt-1 border-t">
-                        {/* Productos */}
-                        <div className="mb-3">
-                          <h4 className="text-xs font-medium text-muted-foreground mb-2">
-                            Productos ({stop.products.length})
-                          </h4>
-                          <div className="bg-muted/40 rounded-md p-2 text-sm max-h-40 overflow-y-auto">
-                            <div className="min-w-full overflow-x-auto">
-                              <table className="w-full text-xs">
-                                <thead className="text-muted-foreground">
-                                  <tr>
-                                    <th className="text-left font-medium py-1 sticky left-0 bg-muted/40">Producto</th>
-                                    <th className="text-center font-medium py-1 px-2 whitespace-nowrap">Cant.</th>
-                                    <th className="text-right font-medium py-1 whitespace-nowrap">Subtotal</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {stop.products.map((product, i) => (
-                                    <tr key={i} className="border-b last:border-0 border-border/40">
-                                      <td className="py-1.5 sticky left-0 bg-muted/40">
-                                        <div className="flex items-center">
-                                          {product.isReturnable && (
-                                            <Recycle className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
-                                          )}
-                                          <span className="truncate max-w-[120px] sm:max-w-none">
-                                            {product.name}
-                                          </span>
-                                        </div>
-                                      </td>
-                                      <td className="py-1 text-center px-2 whitespace-nowrap">{product.quantity}</td>
-                                      <td className="py-1 text-right whitespace-nowrap">
-                                        {formatCurrency(product.price * product.quantity)}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                                <tfoot>
-                                  <tr className="font-medium border-t border-border">
-                                    <td colSpan={2} className="pt-2 text-right sticky left-0 bg-muted/40">Total:</td>
-                                    <td className="pt-2 text-right whitespace-nowrap">{formatCurrency(stop.totalValue)}</td>
-                                  </tr>
-                                </tfoot>
-                              </table>
+                        {/* Si hay múltiples órdenes, mostrarlas separadamente */}
+                        {stop.orders && stop.orders.length > 1 ? (
+                          <div className="space-y-3">
+                            <h4 className="text-xs font-medium text-muted-foreground">
+                              {stop.orders.length} órdenes en esta parada
+                            </h4>
+                            {stop.orders.map((order, orderIndex) => (
+                              <div key={order.id} className="border border-border/40 rounded-md p-2">
+                                {/* Encabezado de la orden */}
+                                <div className="flex items-center justify-between mb-2">
+                                  <div>
+                                    <div className="font-medium text-sm">{order.customerName}</div>
+                                    <div className="text-xs text-muted-foreground">Orden #{order.id}</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-medium text-sm">{formatCurrency(order.totalValue)}</div>
+                                    {order.invoiceId && (
+                                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
+                                        ✓ PAGADO
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Productos de esta orden */}
+                                <div className="bg-muted/40 rounded-md p-2 text-sm">
+                                  <table className="w-full text-xs">
+                                    <thead className="text-muted-foreground">
+                                      <tr>
+                                        <th className="text-left font-medium py-1">Producto</th>
+                                        <th className="text-center font-medium py-1 px-2">Cant.</th>
+                                        <th className="text-right font-medium py-1">Subtotal</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {order.products.map((product, i) => (
+                                        <tr key={i} className="border-b last:border-0 border-border/40">
+                                          <td className="py-1.5">
+                                            <div className="flex items-center">
+                                              {product.isReturnable && (
+                                                <Recycle className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                                              )}
+                                              <span className="truncate">{product.name}</span>
+                                            </div>
+                                          </td>
+                                          <td className="py-1 text-center px-2">{product.quantity}</td>
+                                          <td className="py-1 text-right">
+                                            {formatCurrency(product.price * product.quantity)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ))}
+                            
+                            {/* Total combinado */}
+                            <div className="pt-2 border-t flex justify-between items-center font-medium">
+                              <span>Total de la parada:</span>
+                              <span>{formatCurrency(stop.totalValue)}</span>
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          /* Orden única - mostrar productos como siempre */
+                          <div className="mb-3">
+                            <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                              Productos ({stop.products.length})
+                            </h4>
+                            <div className="bg-muted/40 rounded-md p-2 text-sm max-h-40 overflow-y-auto">
+                              <div className="min-w-full overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead className="text-muted-foreground">
+                                    <tr>
+                                      <th className="text-left font-medium py-1 sticky left-0 bg-muted/40">Producto</th>
+                                      <th className="text-center font-medium py-1 px-2 whitespace-nowrap">Cant.</th>
+                                      <th className="text-right font-medium py-1 whitespace-nowrap">Subtotal</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {stop.products.map((product, i) => (
+                                      <tr key={i} className="border-b last:border-0 border-border/40">
+                                        <td className="py-1.5 sticky left-0 bg-muted/40">
+                                          <div className="flex items-center">
+                                            {product.isReturnable && (
+                                              <Recycle className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                                            )}
+                                            <span className="truncate max-w-[120px] sm:max-w-none">
+                                              {product.name}
+                                            </span>
+                                          </div>
+                                        </td>
+                                        <td className="py-1 text-center px-2 whitespace-nowrap">{product.quantity}</td>
+                                        <td className="py-1 text-right whitespace-nowrap">
+                                          {formatCurrency(product.price * product.quantity)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot>
+                                    <tr className="font-medium border-t border-border">
+                                      <td colSpan={2} className="pt-2 text-right sticky left-0 bg-muted/40">Total:</td>
+                                      <td className="pt-2 text-right whitespace-nowrap">{formatCurrency(stop.totalValue)}</td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Acciones */}
                         <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap gap-2 justify-end mt-3">
