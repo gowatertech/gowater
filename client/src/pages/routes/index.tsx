@@ -182,69 +182,60 @@ export default function RoutesPage() {
               />
             </div>
             
-            {/* Resumen de rutas */}
+            {/* Lista de rutas */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg font-medium">Rutas Recientes</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={() => setSelectedTab("routes")}>
-                    Ver todas
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
+                  <CardTitle className="text-lg font-medium">Lista de Rutas</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Tabs 
+                      defaultValue={routeStatusTab} 
+                      className="w-auto"
+                      onValueChange={(value) => setRouteStatusTab(value as "active" | "completed")}
+                    >
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="active">Activas</TabsTrigger>
+                        <TabsTrigger value="completed">Completadas</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
                 </div>
-                <CardDescription>Últimas rutas creadas o actualizadas</CardDescription>
               </CardHeader>
               <CardContent>
-                {routes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <Truck className="h-10 w-10 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground mb-4">No hay rutas definidas</p>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center justify-center text-center py-6">
+                    <Info className="h-10 w-10 text-destructive mb-2" />
+                    <h3 className="font-semibold mb-1">Error al cargar las rutas</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No se pudieron cargar los datos de rutas. Intente nuevamente.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+                        window.location.reload();
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reintentar
+                    </Button>
                   </div>
                 ) : (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
-                      {routes.slice(0, 6).map((route) => (
-                        <div
-                          key={route.id}
-                          className="flex items-center justify-between p-2 border rounded-md"
-                        >
-                          <div className="space-y-1">
-                            <span className="font-medium text-sm">
-                              {route.name || `Ruta #${route.id}`}
-                            </span>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {format(new Date(route.date), 'dd/MM/yyyy')}
-                              
-                              {route.driverId && (
-                                <>
-                                  <span className="mx-1">•</span>
-                                  <User className="h-3 w-3 mr-1" />
-                                  Conductor ID: {route.driverId}
-                                </>
-                              )}
-
-                              {route.stops && route.stops.length > 0 && (
-                                <>
-                                  <span className="mx-1">•</span>
-                                  <MapPin className="h-3 w-3 mr-1" />
-                                  {route.stops.length} paradas
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <Badge
-                            className={`text-xs ${getStatusColor(route.status)}`}
-                          >
-                            {getStatusLabel(route.status)}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                  <ResponsiveRoutesList 
+                    routes={routes.filter(route => 
+                      routeStatusTab === "completed" 
+                        ? route.isCompleted 
+                        : !route.isCompleted
+                    )} 
+                    isActive={routeStatusTab === "active"}
+                  />
                 )}
               </CardContent>
-              {/* Pie de card eliminado para evitar duplicidad de botones */}
             </Card>
           </div>
         );
