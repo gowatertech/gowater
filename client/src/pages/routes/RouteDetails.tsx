@@ -353,10 +353,9 @@ export default function RouteDetails() {
                 <CardHeader>
                   <CardTitle>{t("deliveryTimeline")}</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="max-h-[60vh] overflow-y-auto">
                   <RouteTimeline 
                     route={adaptRouteForComponent(route)} 
-                    className="h-[50vh]" 
                   />
                 </CardContent>
               </Card>
