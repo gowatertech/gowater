@@ -61,6 +61,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import LocationCaptureDialog from "@/components/customers/LocationCaptureDialog";
+import { CustomerBalance } from "@/components/customers/CustomerBalance";
 import { 
   PlusCircle, 
   Eye, 
@@ -1723,6 +1724,16 @@ export default function Customers() {
                     </FormItem>
                   )}
                 />
+
+                {/* Balance y Anticipos */}
+                {selectedCustomer && (
+                  <div className="md:col-span-3">
+                    <CustomerBalance
+                      customerId={selectedCustomer.id}
+                      customerName={selectedCustomer.businessname}
+                    />
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
