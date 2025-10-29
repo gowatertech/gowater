@@ -76,6 +76,12 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
     }
   });
 
+  // Obtener secuencias únicas y ordenadas
+  const uniqueSequences = Array.from(ordersBySequence.keys()).sort((a, b) => a - b);
+
+  // Si no hay secuencias, usar el array de stops como fallback
+  const shouldUseFallback = uniqueSequences.length === 0;
+
   return (
     <div className={className}>
       <h3 className="font-medium mb-4">{t("timeline")}</h3>
@@ -95,53 +101,71 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
           </div>
         </div>
 
-        {/* Paradas de entrega */}
-        {route.stops.map((stop, index) => {
-          // route.stops[0] corresponde a deliverySequence=1, stops[1] a deliverySequence=2, etc.
-          const deliverySequence = index + 1;
-          const stopName = `Parada #${deliverySequence}`;
-          const stopOrders = ordersBySequence.get(deliverySequence) || [];
-          const deliveryCount = stopOrders.length;
-          
-          // Obtener datos del primer pedido de la parada para mostrar cliente y dirección
-          const firstOrder = stopOrders[0];
-
-          return (
+        {/* Paradas de entrega - iterar sobre secuencias únicas o fallback a route.stops */}
+        {shouldUseFallback ? (
+          // Fallback: mostrar paradas basadas en route.stops cuando no hay órdenes con deliverySequence
+          route.stops.map((stop, index) => (
             <div key={index} className="flex items-start gap-3">
               <div className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-xs font-medium">
-                {deliverySequence}
+                {index + 1}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex-1">
-                    <p className="font-medium">{stopName}</p>
-                    {firstOrder && (
-                      <>
-                        <p className="text-sm font-medium text-foreground mt-1">
-                          {firstOrder.customerName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {firstOrder.street} {firstOrder.streetnumber}
-                        </p>
-                      </>
-                    )}
+                    <p className="font-medium">Parada #{index + 1}</p>
+                    <p className="text-xs text-muted-foreground">{stop}</p>
                   </div>
-                  {deliveryCount > 0 && (
-                    <button
-                      onClick={() => handleDeliveryClick(stopOrders)}
-                      className="flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                      data-testid={`button-view-deliveries-${deliverySequence}`}
-                    >
-                      <Package className="h-4 w-4" />
-                      <span>{deliveryCount} {deliveryCount === 1 ? 'entrega' : 'entregas'}</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          // Versión normal: agrupar por deliverySequence
+          uniqueSequences.map((deliverySequence, index) => {
+            const stopName = `Parada #${deliverySequence}`;
+            const stopOrders = ordersBySequence.get(deliverySequence) || [];
+            const deliveryCount = stopOrders.length;
+            
+            // Obtener datos del primer pedido de la parada para mostrar cliente y dirección
+            const firstOrder = stopOrders[0];
+
+            return (
+              <div key={index} className="flex items-start gap-3">
+                <div className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-xs font-medium">
+                  {deliverySequence}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium">{stopName}</p>
+                      {firstOrder && (
+                        <>
+                          <p className="text-sm font-medium text-foreground mt-1">
+                            {firstOrder.customerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {firstOrder.street} {firstOrder.streetnumber}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    {deliveryCount > 0 && (
+                      <button
+                        onClick={() => handleDeliveryClick(stopOrders)}
+                        className="flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                        data-testid={`button-view-deliveries-${deliverySequence}`}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>{deliveryCount} {deliveryCount === 1 ? 'entrega' : 'entregas'}</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Diálogo para mostrar productos de las entregas */}
