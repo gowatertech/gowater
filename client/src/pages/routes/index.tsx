@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -86,9 +86,6 @@ function StatsCard({ title, value, icon, description, trend, trendUp }: StatsCar
 export default function RoutesPage() {
   const { t } = useTranslation();
   const { user } = useCurrentUser();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [routes, setRoutes] = useState<RouteWithOrders[]>([]);
   const [selectedTab, setSelectedTab] = useState<"dashboard" | "routes" | "create">("dashboard");
   const [routeStatusTab, setRouteStatusTab] = useState<"active" | "completed">("active");
   
@@ -101,31 +98,23 @@ export default function RoutesPage() {
   // Ya no necesitamos el modo de creación de ruta porque solo usamos un método
   // const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("orders");
   
-  // Obtener rutas
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      setLoading(true);
-      setError(false);
-      
-      try {
-        const response = await fetch('/api/routes');
-        if (!response.ok) {
-          throw new Error('Error al cargar rutas');
-        }
-        
-        const data = await response.json();
-        setRoutes(data);
-        console.log("Routes loaded:", data);
-      } catch (err) {
-        console.error('Error fetching routes:', err);
-        setError(true);
-      } finally {
-        setLoading(false);
+  // Obtener rutas usando React Query
+  const { 
+    data: routes = [], 
+    isLoading: loading, 
+    isError: error 
+  } = useQuery<RouteWithOrders[]>({
+    queryKey: ["/api/routes"],
+    queryFn: async () => {
+      const response = await fetch('/api/routes');
+      if (!response.ok) {
+        throw new Error('Error al cargar rutas');
       }
-    };
-    
-    fetchRoutes();
-  }, []);
+      const data = await response.json();
+      console.log("Routes loaded:", data);
+      return data;
+    }
+  });
 
   // Los conductores y asistentes pueden ver la interfaz completa de rutas
   // ya que necesitan acceso a todas las funcionalidades
