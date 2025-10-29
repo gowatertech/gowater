@@ -828,10 +828,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       const minutes = estimatedTime % 60;
       const timeFormatted = `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
       
-      return { time: timeFormatted, distance: distanceKm };
+      return { time: timeFormatted, distance: distanceKm, durationMinutes: estimatedTime };
     } catch (error) {
       console.error("Error general al calcular tiempo estimado:", error);
-      return { time: "0min", distance: 0 };
+      return { time: "0min", distance: 0, durationMinutes: 0 };
     }
   }, [optimizedSequence]);
   
@@ -971,6 +971,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       companyCoordinates: companyInfo?.coordinates || null,
       // Incluir la distancia total calculada
       totalDistance: totalDistanceKm > 0 ? totalDistanceKm : null,
+      // Incluir la duración estimada en minutos
+      estimatedDuration: routeEstimation.durationMinutes > 0 ? routeEstimation.durationMinutes : null,
       // Incluir los IDs de las órdenes para que el servidor las asigne a la ruta
       orderIds: orderIds,
     };
