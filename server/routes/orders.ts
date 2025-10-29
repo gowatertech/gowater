@@ -122,7 +122,7 @@ ordersRouter.get("/api/orders/pending", authMiddleware, async (req: Request, res
     
     // Agregar filtro por zona si se especificó
     if (zoneId) {
-      pendingOrdersIdsQuery += ` AND c.zone_id = $2`;
+      pendingOrdersIdsQuery += ` AND c.zoneid = $2`;
       queryParams.push(zoneId);
     }
     
