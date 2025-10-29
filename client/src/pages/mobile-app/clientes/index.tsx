@@ -295,11 +295,12 @@ export default function MobileAppClientesPage() {
 
       {/* Customer Balance Dialog */}
       <Dialog open={!!selectedCustomerId} onOpenChange={(open) => !open && setSelectedCustomerId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0">
           {selectedCustomer && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-primary">
+            <div className="p-4 sm:p-6">
+              {/* Header - Responsive */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-primary break-words">
                   {selectedCustomer.businessname}
                 </h2>
                 <Button 
@@ -307,86 +308,94 @@ export default function MobileAppClientesPage() {
                   size="sm"
                   onClick={() => setSelectedCustomerId(null)}
                   data-testid="button-close-customer-balance"
+                  className="w-full sm:w-auto"
                 >
                   Cerrar
                 </Button>
               </div>
 
-              {/* Sección de Ubicación GPS */}
+              {/* Sección de Ubicación GPS - Responsive */}
               <Card className="mb-6 border-2 border-blue-200 bg-blue-50/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MapPinned className="h-5 w-5 text-blue-600" />
-                    Ubicación del Cliente
+                <CardHeader className="pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <MapPinned className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+                    <span className="truncate">Ubicación del Cliente</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 px-3 sm:px-6">
                   {selectedCustomer.coordinates ? (
                     <div className="space-y-2">
-                      <div className="flex items-start gap-2 text-sm bg-white p-3 rounded-lg border">
+                      {/* Info de coordenadas - Responsive */}
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm bg-white p-3 rounded-lg border">
                         <MapPin className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-700">Coordenadas GPS registradas:</p>
-                          <p className="text-gray-600 font-mono text-xs mt-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-700 text-xs sm:text-sm">Coordenadas GPS registradas:</p>
+                          <p className="text-gray-600 font-mono text-xs break-all mt-1">
                             {selectedCustomer.coordinates}
                           </p>
                           <a
                             href={`https://www.google.com/maps?q=${selectedCustomer.coordinates}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-xs mt-1 inline-block"
+                            className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
                           >
+                            <MapPin className="h-3 w-3" />
                             Ver en Google Maps →
                           </a>
                         </div>
                       </div>
+                      
+                      {/* Botón actualizar - Full width en móvil */}
                       <Button
                         onClick={handleCaptureLocation}
                         disabled={isCapturingLocation}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
                         size="sm"
                         data-testid="button-update-location"
                       >
                         {isCapturingLocation ? (
                           <>
                             <Navigation className="h-4 w-4 mr-2 animate-spin" />
-                            Capturando ubicación...
+                            <span className="truncate">Capturando ubicación...</span>
                           </>
                         ) : (
                           <>
                             <Navigation className="h-4 w-4 mr-2" />
-                            Actualizar Ubicación GPS
+                            <span className="truncate">Actualizar Ubicación GPS</span>
                           </>
                         )}
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
+                      {/* Alerta - Responsive */}
                       <div className="flex items-start gap-2 text-sm bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium text-yellow-800">Sin ubicación GPS registrada</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-yellow-800 text-xs sm:text-sm">Sin ubicación GPS registrada</p>
                           <p className="text-yellow-700 text-xs mt-1">
                             Captura la ubicación GPS del cliente para facilitar futuras entregas
                           </p>
                         </div>
                       </div>
+                      
+                      {/* Botón capturar - Full width en móvil */}
                       <Button
                         onClick={handleCaptureLocation}
                         disabled={isCapturingLocation}
-                        className="w-full bg-green-600 hover:bg-green-700"
+                        className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                         size="default"
                         data-testid="button-capture-location"
                       >
                         {isCapturingLocation ? (
                           <>
                             <Navigation className="h-5 w-5 mr-2 animate-spin" />
-                            Obteniendo ubicación GPS...
+                            <span className="truncate">Obteniendo ubicación GPS...</span>
                           </>
                         ) : (
                           <>
                             <MapPinned className="h-5 w-5 mr-2" />
-                            Capturar Ubicación GPS
+                            <span className="truncate">Capturar Ubicación GPS</span>
                           </>
                         )}
                       </Button>
