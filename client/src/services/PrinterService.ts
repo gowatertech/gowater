@@ -785,12 +785,26 @@ export class PrinterService {
     }, 
     startY: number
   ): number {
+    // Detectar si es un anticipo
+    const isAdvance = payment.isAdvance || (payment.documentNumber && payment.documentNumber.startsWith('ANT-'));
+    
     // Título
     let yPos = startY;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`RECIBO DE PAGO`, 40, yPos, { align: 'center' });
+    doc.text(isAdvance ? `RECIBO DE ANTICIPO` : `RECIBO DE PAGO`, 40, yPos, { align: 'center' });
     yPos += 5;
+    
+    // Badge de anticipo
+    if (isAdvance) {
+      doc.setFillColor(220, 252, 231); // Verde claro
+      doc.rect(25, yPos, 30, 5, 'F');
+      doc.setTextColor(22, 163, 74); // Verde oscuro
+      doc.setFontSize(8);
+      doc.text('PAGO ANTICIPADO', 40, yPos + 3.5, { align: 'center' });
+      doc.setTextColor(0, 0, 0); // Resetear a negro
+      yPos += 8;
+    }
     
     // Datos del pago
     doc.setFontSize(8);
@@ -806,10 +820,11 @@ export class PrinterService {
     
     // Método de pago
     const paymentMethod = 
-      payment.paymentMethod === 'cash' ? 'Efectivo' : 
-      payment.paymentMethod === 'transfer' ? 'Transferencia' : 
-      payment.paymentMethod === 'check' ? 'Cheque' : 
-      payment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
+      payment.paymentMethod === 'cash' || payment.method === 'cash' ? 'Efectivo' : 
+      payment.paymentMethod === 'transfer' || payment.method === 'transfer' ? 'Transferencia' : 
+      payment.paymentMethod === 'check' || payment.method === 'check' ? 'Cheque' : 
+      payment.paymentMethod === 'card' || payment.method === 'card' ? 'Tarjeta' : 
+      payment.paymentMethod === 'credit' || payment.method === 'credit' ? 'Crédito' : 'No especificado';
     
     // Información básica del pago
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
@@ -819,13 +834,23 @@ export class PrinterService {
       yPos += 4;
     }
     
-    if (payment.invoiceNumber) {
+    // Mostrar documentNumber para anticipos o invoiceNumber para pagos regulares
+    if (isAdvance && payment.documentNumber) {
+      doc.text(`Documento: ${payment.documentNumber}`, 10, yPos);
+      yPos += 4;
+    } else if (payment.invoiceNumber) {
       doc.text(`Factura #: ${payment.invoiceNumber}`, 10, yPos);
       yPos += 4;
     }
     
     doc.text(`Método de pago: ${paymentMethod}`, 10, yPos);
     yPos += 4;
+    
+    // Referencia si existe
+    if (payment.reference) {
+      doc.text(`Referencia: ${payment.reference}`, 10, yPos);
+      yPos += 4;
+    }
     
     // Línea separadora
     yPos += 2;
@@ -838,7 +863,7 @@ export class PrinterService {
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`MONTO PAGADO:`, 10, yPos);
+    doc.text(isAdvance ? `MONTO ANTICIPO:` : `MONTO PAGADO:`, 10, yPos);
     doc.text(`RD$${amount.toFixed(2)}`, 75, yPos, { align: 'right' });
     yPos += 8;
     
@@ -855,6 +880,21 @@ export class PrinterService {
       
       doc.text(splitNotes, 10, yPos);
       yPos += splitNotes.length * 4;
+    }
+    
+    // Nota especial para anticipos
+    if (isAdvance) {
+      yPos += 5;
+      doc.setFillColor(219, 234, 254); // Azul claro
+      doc.rect(5, yPos - 2, 70, 10, 'F');
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Nota:', 7, yPos + 1);
+      doc.setFont('helvetica', 'normal');
+      const advanceNote = 'Este anticipo será aplicado a futuras compras del cliente.';
+      const splitAdvanceNote = doc.splitTextToSize(advanceNote, 60);
+      doc.text(splitAdvanceNote, 7, yPos + 4.5);
+      yPos += 12;
     }
     
     return yPos;

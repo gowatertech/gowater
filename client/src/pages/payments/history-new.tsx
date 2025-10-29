@@ -312,6 +312,58 @@ export default function PaymentsHistory() {
 
     return <Badge variant={variant}>{label}</Badge>;
   };
+
+  // Función segura para imprimir recibo individual de pago o anticipo usando PrinterService
+  const printPaymentReceipt = async (payment: PaymentWithDetails) => {
+    try {
+      // Obtener configuración de la empresa
+      const settingsResponse = await fetch('/api/settings');
+      const settings = await settingsResponse.json();
+      
+      // Preparar datos del pago para el servicio de impresión
+      const paymentData = {
+        id: payment.id,
+        date: payment.date,
+        amount: payment.amount,
+        method: payment.method,
+        paymentMethod: payment.method,
+        customerName: payment.customerName,
+        invoiceNumber: payment.invoiceNumber,
+        documentNumber: payment.documentNumber,
+        isAdvance: payment.isAdvance,
+        reference: payment.reference,
+        notes: payment.notes,
+      };
+      
+      // Generar nombre del archivo
+      const docIdentifier = payment.isAdvance 
+        ? payment.documentNumber || `anticipo-${payment.id}`
+        : `pago-factura-${payment.invoiceNumber}`;
+      const fileName = `recibo_${docIdentifier}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      
+      // Generar PDF usando el servicio centralizado
+      await PrinterService.generatePDFDirect(
+        paymentData,
+        DocumentType.PAYMENT_RECEIPT,
+        {
+          title: payment.isAdvance ? "Recibo de Anticipo" : "Recibo de Pago",
+          fileName,
+          size: [80, 297] // 80mm ancho, altura auto
+        },
+        {
+          settings,
+        }
+      );
+      
+    } catch (error: any) {
+      console.error('Error al generar recibo:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo generar el recibo",
+      });
+    }
+  };
   
   // Referencia al contenido que se va a imprimir
   const printContentRef = useRef<HTMLDivElement>(null);
@@ -822,18 +874,32 @@ export default function PaymentsHistory() {
                     
                     <div className="flex justify-between items-center">
                       <div className="text-base font-bold">{formatCurrency(payment.amount)}</div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-7 text-xs px-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPayment(payment);
-                          setDetailsOpen(true);
-                        }}
-                      >
-                        Ver detalles
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printPaymentReceipt(payment);
+                          }}
+                          data-testid={`button-print-${payment.id}`}
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPayment(payment);
+                            setDetailsOpen(true);
+                          }}
+                        >
+                          Ver detalles
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -913,12 +979,11 @@ export default function PaymentsHistory() {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    // Implementar imprimir recibo
-                    toast({
-                      title: "Imprimiendo recibo",
-                      description: "El recibo se está preparando para imprimir",
-                    });
+                    if (selectedPayment) {
+                      printPaymentReceipt(selectedPayment);
+                    }
                   }}
+                  data-testid="button-print-receipt"
                 >
                   <Printer className="h-3.5 w-3.5 mr-2" />
                   Imprimir Recibo
