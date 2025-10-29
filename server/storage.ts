@@ -839,22 +839,127 @@ export class DatabaseStorage implements IStorage {
         .values(validationResult.data)
         .returning();
       
-      // Actualizar el estado de la factura a "paid"
-      await db
-        .update(invoices)
-        .set({ status: "paid" })
-        .where(
-          and(
-            eq(invoices.id, payment.invoiceId),
-            eq(invoices.companyId, companyId)
-          )
-        ); // Asegurar que solo se actualice la factura de la misma empresa
+      // Solo actualizar el estado de la factura si no es un anticipo
+      if (payment.invoiceId && !payment.isAdvance) {
+        await db
+          .update(invoices)
+          .set({ status: "paid" })
+          .where(
+            and(
+              eq(invoices.id, payment.invoiceId),
+              eq(invoices.companyId, companyId)
+            )
+          ); // Asegurar que solo se actualice la factura de la misma empresa
+      }
       
       return newPayment;
     } catch (error) {
       console.error("Storage - registerPayment: Error al registrar pago:", error);
       throw error;
     }
+  }
+  
+  // Registrar un anticipo (pago sin factura asociada)
+  async registerAdvancePayment(customerId: number, amount: string, paymentMethod: "cash" | "credit" | "card" | "transfer", reference?: string, notes?: string): Promise<Payment> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para registrar el anticipo");
+    }
+    
+    const advancePayment: InsertPayment = {
+      customerId,
+      companyId,
+      amount,
+      paymentMethod,
+      reference,
+      notes: notes || "Anticipo registrado",
+      isAdvance: true,
+      invoiceId: null
+    };
+    
+    return this.registerPayment(advancePayment);
+  }
+  
+  // Obtener anticipos disponibles de un cliente (pagos sin factura asociada)
+  async getCustomerAvailableAdvances(customerId: number): Promise<Payment[]> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return [];
+    }
+    
+    return db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.customerId, customerId),
+          eq(payments.companyId, companyId),
+          eq(payments.isAdvance, true),
+          sql`${payments.invoiceId} IS NULL` // Anticipos que aún no han sido aplicados a ninguna factura
+        )
+      )
+      .orderBy(payments.date);
+  }
+  
+  // Calcular el balance de un cliente
+  async getCustomerBalance(customerId: number): Promise<{
+    totalPendingInvoices: string;
+    totalAvailableAdvances: string;
+    netBalance: string;
+  }> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return {
+        totalPendingInvoices: "0.00",
+        totalAvailableAdvances: "0.00",
+        netBalance: "0.00"
+      };
+    }
+    
+    // Calcular total de facturas pendientes (status = 'pending')
+    const pendingInvoicesResult = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${invoices.total}), 0)::numeric(10,2)`
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.customerId, customerId),
+          eq(invoices.companyId, companyId),
+          eq(invoices.status, "pending")
+        )
+      );
+    
+    const totalPendingInvoices = pendingInvoicesResult[0]?.total || "0.00";
+    
+    // Calcular total de anticipos disponibles (is_advance = true AND invoice_id IS NULL)
+    const availableAdvancesResult = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(${payments.amount}), 0)::numeric(10,2)`
+      })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.customerId, customerId),
+          eq(payments.companyId, companyId),
+          eq(payments.isAdvance, true),
+          sql`${payments.invoiceId} IS NULL`
+        )
+      );
+    
+    const totalAvailableAdvances = availableAdvancesResult[0]?.total || "0.00";
+    
+    // Calcular balance neto (pendiente - anticipos)
+    const netBalance = (parseFloat(totalPendingInvoices) - parseFloat(totalAvailableAdvances)).toFixed(2);
+    
+    return {
+      totalPendingInvoices,
+      totalAvailableAdvances,
+      netBalance
+    };
   }
   
   async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
