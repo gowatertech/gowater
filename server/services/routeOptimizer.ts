@@ -8,6 +8,8 @@ interface Point {
     id: number;
     type: 'depot' | 'delivery';
     estimatedTime: number; // minutos
+    orderIds?: number[]; // IDs de los pedidos en esta parada
+    deliveryCount?: number; // Número de entregas en esta parada
   };
   geometry: {
     type: 'Point';
@@ -38,8 +40,10 @@ export function calculateOptimalRoute(
 
   console.log("📍 Coordenadas del almacén:", DEPOT_COORDINATES);
 
-  // Convertir órdenes a puntos para el cálculo
-  const points: Point[] = orders.map(order => {
+  // Agrupar pedidos por ubicación (mismo cliente/coordenadas)
+  const locationGroups = new Map<string, Order[]>();
+  
+  orders.forEach(order => {
     // Intentar usar deliveryCoordinates primero, si no existe usar coordinates del cliente
     const coordString = order.deliveryCoordinates || (order as any).coordinates;
     
@@ -47,25 +51,46 @@ export function calculateOptimalRoute(
       throw new Error(`Pedido ${order.id} no tiene coordenadas de entrega ni coordenadas del cliente`);
     }
 
-    console.log(`Pedido ${order.id}: usando coordenadas ${coordString}`);
+    // Usar coordenadas como clave para agrupar
+    if (!locationGroups.has(coordString)) {
+      locationGroups.set(coordString, []);
+    }
+    locationGroups.get(coordString)!.push(order);
+  });
+
+  console.log(`📦 Total de pedidos: ${orders.length}, Paradas únicas: ${locationGroups.size}`);
+
+  // Convertir grupos de ubicación a puntos para el cálculo
+  const points: Point[] = [];
+  let stopIndex = 1;
+  
+  locationGroups.forEach((ordersAtLocation, coordString) => {
+    console.log(`Pedidos en ${coordString}: ${ordersAtLocation.map(o => o.id).join(', ')} (${ordersAtLocation.length} entregas)`);
 
     const [lat, lng] = coordString.split(",").map(Number);
     if (isNaN(lat) || isNaN(lng)) {
-      throw new Error(`Coordenadas inválidas para pedido ${order.id}: ${coordString}`);
+      throw new Error(`Coordenadas inválidas: ${coordString}`);
     }
 
-    return {
+    const orderIds = ordersAtLocation.map(o => o.id);
+    const deliveryCount = ordersAtLocation.length;
+
+    points.push({
       type: 'Feature',
       properties: {
-        id: order.id,
+        id: orderIds[0], // Usar el ID del primer pedido como referencia
         type: 'delivery',
-        estimatedTime: DELIVERY_TIME
+        estimatedTime: DELIVERY_TIME * deliveryCount, // Tiempo por cada entrega
+        orderIds: orderIds,
+        deliveryCount: deliveryCount
       },
       geometry: {
         type: 'Point',
         coordinates: [lng, lat] as [number, number]
       }
-    };
+    });
+    
+    stopIndex++;
   });
 
   // Agregar el depósito como punto inicial y final
@@ -146,14 +171,28 @@ export function calculateOptimalRoute(
     points.reduce((sum, p) => sum + p.properties.estimatedTime, 0) // Tiempo de entrega
   );
 
+  // Expandir la secuencia para incluir todos los pedidos
+  const expandedSequence: number[] = [];
+  for (const pointIndex of sequence.slice(1, -1)) {
+    const point = points[pointIndex];
+    // Si hay múltiples pedidos en esta parada, agregarlos todos
+    if (point.properties.orderIds && point.properties.orderIds.length > 0) {
+      expandedSequence.push(...point.properties.orderIds);
+    } else {
+      expandedSequence.push(point.properties.id);
+    }
+  }
+
   console.log("Ruta optimizada:", {
-    sequence: sequence.slice(1, -1).map(i => points[i].properties.id),
+    sequence: expandedSequence,
+    stops: sequence.slice(1, -1).length,
+    deliveries: expandedSequence.length,
     totalDistance,
     estimatedDuration
   });
 
   return {
-    sequence: sequence.slice(1, -1).map(i => points[i].properties.id),
+    sequence: expandedSequence,
     totalDistance: Math.round(totalDistance * 100) / 100,
     estimatedDuration,
     points: points.slice(1, -1)
@@ -180,7 +219,7 @@ export function updateEstimatedDeliveryTimes(
 
     return {
       ...order,
-      estimatedDeliveryTime: estimatedDeliveryTime.toISOString(),
+      estimatedDeliveryTime: estimatedDeliveryTime,
       deliverySequence: sequenceIndex + 1
     };
   });
