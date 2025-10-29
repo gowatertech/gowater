@@ -43,7 +43,10 @@ import { Separator } from "@/components/ui/separator";
 import { DollarSign, Plus, TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
 const advancePaymentSchema = z.object({
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/, "Debe ser un monto válido con máximo 2 decimales"),
+  amount: z.string()
+    .min(1, "El monto es requerido")
+    .regex(/^\d+(\.\d{1,2})?$/, "Debe ser un monto válido con máximo 2 decimales")
+    .refine((val) => parseFloat(val) > 0, "El monto debe ser mayor a 0"),
   paymentMethod: z.enum(["cash", "card", "transfer"]),
   reference: z.string().optional(),
   notes: z.string().optional(),
