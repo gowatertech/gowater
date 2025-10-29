@@ -572,6 +572,7 @@ export const payments = pgTable("payments", {
   reference: text("reference"), // Para pagos con tarjeta/crédito/transferencia
   notes: text("notes"),
   isAdvance: boolean("is_advance").notNull().default(false), // Indica si es un anticipo
+  documentNumber: text("document_number"), // Número de documento para anticipos (ANT-001, ANT-002, etc.)
 });
 
 export const insertPaymentSchema = z.object({
@@ -583,6 +584,7 @@ export const insertPaymentSchema = z.object({
   reference: z.string().optional(),
   notes: z.string().optional(),
   isAdvance: z.boolean().optional().default(false), // Indica si es un anticipo
+  documentNumber: z.string().optional(), // Número de documento para anticipos (ANT-001, ANT-002, etc.)
 });
 
 // Customer Orders

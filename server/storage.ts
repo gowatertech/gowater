@@ -867,6 +867,30 @@ export class DatabaseStorage implements IStorage {
       throw new Error("No se encontró companyId para registrar el anticipo");
     }
     
+    // Generar número de documento secuencial para el anticipo
+    const lastAdvance = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.companyId, companyId),
+          eq(payments.isAdvance, true),
+          isNotNull(payments.documentNumber)
+        )
+      )
+      .orderBy(desc(payments.id))
+      .limit(1);
+    
+    let documentNumber = "ANT-001";
+    if (lastAdvance.length > 0 && lastAdvance[0].documentNumber) {
+      // Extraer el número del último anticipo y incrementar
+      const match = lastAdvance[0].documentNumber.match(/ANT-(\d+)/);
+      if (match) {
+        const nextNumber = parseInt(match[1]) + 1;
+        documentNumber = `ANT-${nextNumber.toString().padStart(3, '0')}`;
+      }
+    }
+    
     const advancePayment: InsertPayment = {
       customerId,
       companyId,
@@ -875,7 +899,8 @@ export class DatabaseStorage implements IStorage {
       reference,
       notes: notes || "Anticipo registrado",
       isAdvance: true,
-      invoiceId: null
+      invoiceId: null,
+      documentNumber
     };
     
     return this.registerPayment(advancePayment);
