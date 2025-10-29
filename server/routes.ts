@@ -2042,23 +2042,59 @@ export async function registerRoutes(router: express.Router) {
       if (route && req.body.orderIds && Array.isArray(req.body.orderIds) && req.body.orderIds.length > 0) {
         console.log(`Asignando ${req.body.orderIds.length} pedidos a la ruta ${route.id}`);
         
+        // Primero, obtener información de todos los pedidos para conocer sus coordenadas
+        const orderDetails = await db
+          .select({
+            id: orders.id,
+            customerId: orders.customerId,
+            deliveryCoordinates: orders.deliveryCoordinates,
+            customerCoordinates: customers.coordinates
+          })
+          .from(orders)
+          .leftJoin(customers, eq(orders.customerId, customers.id))
+          .where(
+            and(
+              inArray(orders.id, req.body.orderIds.map(Number)),
+              eq(orders.companyId, numericCompanyId)
+            )
+          );
+        
+        // Crear un mapa de orderId -> clave de agrupación (coordenadas o customerId)
+        // Usar deliveryCoordinates si existe, si no usar coordinates del cliente, 
+        // y como último recurso usar customerId para agrupar pedidos del mismo cliente
+        const orderGroupingKeyMap = new Map<number, string>();
+        orderDetails.forEach(order => {
+          const coords = order.deliveryCoordinates || order.customerCoordinates;
+          const groupingKey = coords || `customer-${order.customerId}`;
+          orderGroupingKeyMap.set(order.id, groupingKey);
+        });
+        
         // Crear mapa de orderId -> delivery_sequence desde deliverySequence
-        // El deliverySequence puede contener "company" como primer elemento (warehouse), así que lo filtramos
+        // Agrupar pedidos consecutivos que van al mismo cliente (mismas coordenadas o customerId)
         const deliverySequenceMap = new Map<number, number>();
         if (req.body.deliverySequence && Array.isArray(req.body.deliverySequence)) {
-          let sequenceNumber = 0; // Contador para secuencia real (sin contar "company")
+          let stopNumber = 0; // Contador de paradas (no de pedidos)
+          let lastGroupingKey: string | null = null;
           
           req.body.deliverySequence.forEach((item: any) => {
             // Ignorar "company" (warehouse) y solo procesar IDs de órdenes
             if (item !== "company" && item !== "warehouse") {
               const numericOrderId = Number(item);
               if (!isNaN(numericOrderId)) {
-                sequenceNumber++;
-                deliverySequenceMap.set(numericOrderId, sequenceNumber);
+                const currentGroupingKey = orderGroupingKeyMap.get(numericOrderId);
+                
+                // Si la clave de agrupación cambia, incrementar el número de parada
+                if (currentGroupingKey !== lastGroupingKey) {
+                  stopNumber++;
+                  lastGroupingKey = currentGroupingKey || null;
+                }
+                
+                // Asignar el mismo stopNumber a todos los pedidos con la misma clave
+                deliverySequenceMap.set(numericOrderId, stopNumber);
               }
             }
           });
-          console.log(`📍 Mapa de delivery_sequence creado:`, Array.from(deliverySequenceMap.entries()));
+          console.log(`📍 Mapa de delivery_sequence creado (agrupado por ubicación):`, Array.from(deliverySequenceMap.entries()));
         }
         
         // Actualizar cada pedido para asignarlo a esta ruta con su delivery_sequence
@@ -2083,7 +2119,7 @@ export async function registerRoutes(router: express.Router) {
           console.log(`  ✅ Pedido ${numericOrderId} asignado con delivery_sequence: ${deliverySeq}`);
         }
         
-        console.log(`Pedidos asignados a la ruta ${route.id} con sus secuencias de entrega`);
+        console.log(`Pedidos asignados a la ruta ${route.id} con sus secuencias de entrega agrupadas por parada`);
       } else {
         console.log("No se proporcionaron IDs de pedidos para asignar a la ruta");
       }
