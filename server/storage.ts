@@ -903,7 +903,22 @@ export class DatabaseStorage implements IStorage {
       documentNumber
     };
     
-    return this.registerPayment(advancePayment);
+    const payment = await this.registerPayment(advancePayment);
+    
+    // Actualizar el balance del cliente: restar el anticipo (balance negativo = a favor del cliente)
+    await db
+      .update(customers)
+      .set({
+        balance: sql`COALESCE(${customers.balance}, 0) - ${amount}`
+      })
+      .where(
+        and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        )
+      );
+    
+    return payment;
   }
   
   // Obtener anticipos disponibles de un cliente (pagos sin factura asociada)
