@@ -70,6 +70,9 @@ const resources = {
       noStopsPlanned: "No stops planned",
       errorLoadingRoute: "Error loading route details",
       vehicle: "Vehicle",
+      confirmDeleteRoute: "Are you sure you want to delete this route? This action cannot be undone.",
+      errorDeletingRoute: "Error deleting route",
+      routeDeletedSuccessfully: "Route deleted successfully",
 
       // Forms
       name: "Name",
@@ -283,6 +286,9 @@ const resources = {
       noStopsPlanned: "No hay paradas planificadas",
       errorLoadingRoute: "Error al cargar los detalles de la ruta",
       vehicle: "Vehículo",
+      confirmDeleteRoute: "¿Está seguro de que desea eliminar esta ruta? Esta acción no se puede deshacer.",
+      errorDeletingRoute: "Error al eliminar la ruta",
+      routeDeletedSuccessfully: "Ruta eliminada exitosamente",
 
       // Forms
       name: "Nombre",
