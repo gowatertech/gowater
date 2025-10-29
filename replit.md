@@ -60,6 +60,21 @@ The system supports prepaid invoices for office payments before delivery, elimin
 - **Backend Guards**: POST /api/update-order-status and PATCH /api/orders/:id/status prevent duplicate invoice creation for prepaid orders and donations
 - **Database Integration**: Uses `orders.invoice_id` foreign key to link prepaid invoices, ensuring referential integrity
 
+### Customer Advance Payments (Anticipos) System
+The system supports comprehensive advance payment tracking with secure documentation generation. It features:
+- **Automatic Document Numbering**: Sequential document numbers in ANT-XXXX format (e.g., ANT-0001, ANT-0002) auto-generated for all advance payments
+- **Multi-Payment Method Support**: Accepts advances via cash, card, credit, and transfer methods
+- **Payment History Integration**: Unified payment history page displays both regular payments and advances with visual badges (green "ANTICIPO" badge for advances)
+- **Advanced Filtering**: Filter payments by type (advance/regular), method, date range, and customer
+- **Secure Receipt Printing**: Uses centralized `PrinterService.generatePDFDirect()` for XSS-safe PDF generation
+  - Automatic detection of advance payments via `isAdvance` flag or `documentNumber` prefix
+  - Custom receipt formatting for advances: "RECIBO DE ANTICIPO" title, green "PAGO ANTICIPADO" badge
+  - Shows document number (ANT-XXXX) for advances vs invoice number for regular payments
+  - Includes informational note: "Este anticipo será aplicado a futuras compras del cliente"
+- **Database Schema**: `payments.documentNumber` column stores advance document numbers, `payments.isAdvance` boolean flag identifies advance payments
+- **Customer Balance Display**: CustomerBalance component shows advance balance with ability to register and print advances
+- **Print Integration**: Print buttons in payment history table view, responsive card view, and detail dialogs
+
 ## External Dependencies
 
 ### Core Infrastructure
