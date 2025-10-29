@@ -133,10 +133,12 @@ export default function DriverRoute() {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
+  const [showOrderSelectionForBottleReturn, setShowOrderSelectionForBottleReturn] = useState(false);
   const [showCompleteRouteDialog, setShowCompleteRouteDialog] = useState(false);
   const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
   const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
+  const [currentStopForBottleReturn, setCurrentStopForBottleReturn] = useState<RouteStop | null>(null);
   const [returnableProductsForDialog, setReturnableProductsForDialog] = useState<Array<{id: number, name: string, quantity: number, bottleDeposit: string, isReturnable: boolean}>>([]);
   const [existingReturnsForDialog, setExistingReturnsForDialog] = useState<Array<{productId: number, returnedQuantity: number}>>([]);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation" | "transfer">("cash");
@@ -620,36 +622,83 @@ export default function DriverRoute() {
       return;
     }
     
-    // Verificar si la parada tiene múltiples órdenes
+    // Si la parada tiene múltiples órdenes, mostrar selector de orden
     if (stop.orders && stop.orders.length > 1) {
-      toast({
-        title: "Función no disponible",
-        description: "Para paradas con múltiples órdenes, registra la devolución desde cada orden individual en la sección de Entregas.",
-        variant: "destructive"
-      });
+      setCurrentStopForBottleReturn(stop);
+      setShowOrderSelectionForBottleReturn(true);
       return;
     }
     
-    // Preparar productos retornables para el diálogo
-    const returnableProducts = stop.products
-      .filter(p => p.isReturnable)
-      .map(p => ({
-        id: p.id,
-        name: p.name,
-        quantity: p.quantity,
-        bottleDeposit: "0.00", // Por ahora no tenemos este campo en RouteStop
-        isReturnable: true
-      }));
+    // Para una sola orden, proceder directamente
+    await openBottleReturnDialogForOrder(stopId, stop);
+  };
+  
+  // Función auxiliar para abrir el diálogo de devolución de una orden específica
+  const openBottleReturnDialogForOrder = async (orderId: number, stop: RouteStop) => {
+    // Si la parada tiene múltiples órdenes, necesitamos obtener los productos del pedido específico
+    let returnableProducts: Array<{id: number, name: string, quantity: number, bottleDeposit: string, isReturnable: boolean}> = [];
+    
+    if (stop.orders && stop.orders.length > 1) {
+      // Obtener los detalles completos del pedido desde el API
+      try {
+        const orderData = await apiRequest(`/api/orders/${orderId}`);
+        
+        if (!orderData || !orderData.items) {
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los productos del pedido",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Mapear los items del pedido a productos retornables
+        returnableProducts = orderData.items
+          .filter((item: any) => item.product?.isReturnable)
+          .map((item: any) => ({
+            id: item.product.id,
+            name: item.product.name,
+            quantity: item.quantity,
+            bottleDeposit: item.product.bottleDeposit || "0.00",
+            isReturnable: true
+          }));
+        
+        if (returnableProducts.length === 0) {
+          toast({
+            title: "Sin productos retornables",
+            description: "Este pedido no tiene productos retornables",
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error al obtener detalles del pedido:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los productos del pedido",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else {
+      // Para una sola orden, usar los productos de la parada
+      returnableProducts = stop.products
+        .filter(p => p.isReturnable)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          quantity: p.quantity,
+          bottleDeposit: "0.00",
+          isReturnable: true
+        }));
+    }
     
     // Obtener devoluciones existentes si las hay
     let existingReturns: Array<{productId: number, returnedQuantity: number}> = [];
     try {
-      const returns = await fetch(`/api/orders/${stopId}/bottle-returns`, {
-        credentials: 'include'
-      });
-      if (returns.ok) {
-        const data = await returns.json();
-        existingReturns = data.map((r: any) => ({
+      const returnsData = await apiRequest(`/api/orders/${orderId}/bottle-returns`);
+      if (returnsData && Array.isArray(returnsData)) {
+        existingReturns = returnsData.map((r: any) => ({
           productId: r.productId,
           returnedQuantity: r.returnedQuantity
         }));
@@ -658,7 +707,7 @@ export default function DriverRoute() {
       console.log("No se pudieron cargar devoluciones existentes:", error);
     }
     
-    setCurrentOrderIdForBottleReturn(stopId);
+    setCurrentOrderIdForBottleReturn(orderId);
     setReturnableProductsForDialog(returnableProducts);
     setExistingReturnsForDialog(existingReturns);
     setShowBottleReturnDialog(true);
@@ -1433,6 +1482,75 @@ export default function DriverRoute() {
                   Confirmar
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo para seleccionar pedido en paradas con múltiples órdenes */}
+      <Dialog open={showOrderSelectionForBottleReturn} onOpenChange={setShowOrderSelectionForBottleReturn}>
+        <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Recycle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+              Seleccionar Pedido
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Esta parada tiene múltiples pedidos. Selecciona el pedido para el cual registrarás la devolución de envases.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-1">
+            <div className="space-y-2">
+              {currentStopForBottleReturn?.orders && currentStopForBottleReturn.orders.map((order) => (
+                <Card 
+                  key={order.id}
+                  className={`cursor-pointer transition-all hover:shadow-md hover:border-green-500 ${darkMode ? 'bg-gray-800 border-gray-700' : ''}`}
+                  onClick={async () => {
+                    setShowOrderSelectionForBottleReturn(false);
+                    if (currentStopForBottleReturn) {
+                      await openBottleReturnDialogForOrder(order.id, currentStopForBottleReturn);
+                    }
+                  }}
+                  data-testid={`order-selection-${order.id}`}
+                >
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Receipt className="h-4 w-4 text-blue-500" />
+                          <p className="font-semibold text-sm sm:text-base">
+                            Pedido #{order.id}
+                          </p>
+                        </div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          {order.customerName}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant={order.invoiceId ? "default" : "secondary"} className="text-xs">
+                            {order.invoiceId ? "PAGADO" : "PENDIENTE"}
+                          </Badge>
+                          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                            ${(typeof order.totalValue === 'string' ? parseFloat(order.totalValue) : order.totalValue || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-5 w-5 text-muted-foreground rotate-[-90deg]" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+          
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-2 sm:mt-3 border-t border-border flex flex-row gap-1.5 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowOrderSelectionForBottleReturn(false)}
+              className="flex-1 py-1.5 sm:py-2 h-8 sm:h-10 text-xs sm:text-sm"
+              data-testid="button-cancel-order-selection"
+            >
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
