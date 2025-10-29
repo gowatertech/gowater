@@ -87,6 +87,163 @@ ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Respon
   }
 });
 
+// Endpoint para obtener todos los pedidos pendientes con filtro opcional por zona
+// IMPORTANTE: Esta ruta debe estar ANTES de /api/orders/:orderId para evitar que "pending" sea interpretado como un ID
+ordersRouter.get("/api/orders/pending", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    // Obtener el parámetro de zona si existe
+    const zoneId = req.query.zoneId ? Number(req.query.zoneId) : null;
+    console.log(`🔍 Iniciando búsqueda de pedidos pendientes...${zoneId ? ` Filtrados por zona ${zoneId}` : ''}`);
+    
+    // Obtener companyId desde varias fuentes
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error("❌ Error: No se encontró companyId para obtener pedidos pendientes");
+      return res.status(403).json({ 
+        error: "Acceso denegado", 
+        message: "No se ha encontrado un contexto de compañía válido."
+      });
+    }
+    
+    console.log(`🔍 GET /api/orders/pending - Buscando pedidos pendientes para compañía ${companyId}${zoneId ? ` en zona ${zoneId}` : ''}`);
+    
+    // 1. Obtener IDs de pedidos pendientes con filtro opcional por zona
+    let pendingOrdersIdsQuery = `
+      SELECT o.id 
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      WHERE o.status = 'pending' 
+      AND o.route_id IS NULL 
+      AND o.company_id = $1
+    `;
+    
+    const queryParams = [companyId];
+    
+    // Agregar filtro por zona si se especificó
+    if (zoneId) {
+      pendingOrdersIdsQuery += ` AND c.zone_id = $2`;
+      queryParams.push(zoneId);
+    }
+    
+    const pendingOrdersIdsResult = await pool.query(pendingOrdersIdsQuery, queryParams);
+    console.log(`Encontrados ${pendingOrdersIdsResult.rows.length} IDs de pedidos pendientes para la compañía ${companyId}`);
+    
+    // Si no hay pedidos pendientes, devolver un array vacío
+    if (pendingOrdersIdsResult.rows.length === 0) {
+      return res.json([]);
+    }
+    
+    // Lista final de pedidos válidos
+    const validOrders = [];
+    
+    // 2. Para cada ID, obtener detalles completos
+    for (const orderRow of pendingOrdersIdsResult.rows) {
+      try {
+        const orderId = orderRow.id;
+        
+        // Obtener datos básicos del pedido
+        const orderQuery = `
+          SELECT 
+            id, customer_id as "customerId", date, 
+            total, status, 
+            delivery_coordinates as "deliveryCoordinates",
+            notes
+          FROM orders
+          WHERE id = $1 AND company_id = $2
+        `;
+        
+        const orderResult = await pool.query(orderQuery, [orderId, companyId]);
+        
+        if (!orderResult.rows || orderResult.rows.length === 0) {
+          console.warn(`Pedido ${orderId} no encontrado`);
+          continue;
+        }
+        
+        const orderData = orderResult.rows[0];
+        
+        // Obtener datos del cliente
+        const customerQuery = `
+          SELECT 
+            businessname, street, streetnumber, phone, 
+            zoneid, coordinates
+          FROM customers
+          WHERE id = $1 AND company_id = $2
+        `;
+        
+        const customerResult = await pool.query(customerQuery, [orderData.customerId, companyId]);
+        const customerData = customerResult.rows[0] || null;
+        
+        // Obtener datos de zona si existe
+        let zoneName = "Sin asignar";
+        let zoneId = null;
+        
+        if (customerData && customerData.zoneid) {
+          const zoneQuery = `
+            SELECT name
+            FROM zones
+            WHERE id = $1 AND company_id = $2
+          `;
+          
+          const zoneResult = await pool.query(zoneQuery, [customerData.zoneid, companyId]);
+          
+          if (zoneResult.rows && zoneResult.rows.length > 0) {
+            zoneName = zoneResult.rows[0].name;
+            zoneId = customerData.zoneid;
+          }
+        }
+        
+        // Obtener productos del pedido
+        const productsQuery = `
+          SELECT 
+            jsonb_agg(
+              jsonb_build_object(
+                'id', oi.product_id,
+                'name', p.name,
+                'quantity', oi.quantity,
+                'price', oi.price,
+                'subtotal', oi.total
+              )
+            ) as products
+          FROM order_items oi
+          JOIN products p ON p.id = oi.product_id
+          WHERE oi.order_id = $1 AND p.company_id = $2
+        `;
+        
+        const productsResult = await pool.query(productsQuery, [orderId, companyId]);
+        const products = productsResult.rows[0]?.products || [];
+        
+        // Combinar todos los datos
+        validOrders.push({
+          ...orderData,
+          customerName: customerData?.businessname || "Cliente desconocido",
+          customerAddress: customerData?.street || "Dirección desconocida",
+          customerAddressNumber: customerData?.streetnumber || "",
+          customerPhone: customerData?.phone || "",
+          coordinates: customerData?.coordinates || null,
+          zoneName: zoneName,
+          zoneId: zoneId,
+          products: products,
+        });
+        
+      } catch (error) {
+        console.error(`Error al obtener detalles del pedido ${orderRow.id}:`, error);
+        // Continuar con el siguiente pedido
+        continue;
+      }
+    }
+    
+    // Ordenar por fecha
+    validOrders.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    console.log(`Procesados ${validOrders.length} pedidos pendientes válidos para la compañía ${companyId}`);
+    res.json(validOrders);
+  } catch (error) {
+    console.error("Error al obtener todos los pedidos pendientes:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Endpoint para obtener una orden específica con sus detalles
 ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, res: Response) => {
   const orderId = safeParseInt(req.params.orderId, -1);
