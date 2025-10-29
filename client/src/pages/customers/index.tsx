@@ -84,7 +84,12 @@ import {
   ImageIcon,
   MoreVertical,
   MessageSquare,
-  Map
+  Map,
+  Grid3x3,
+  List,
+  Sparkles,
+  Shield,
+  TrendingUp
 } from "lucide-react";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
@@ -101,6 +106,7 @@ export default function Customers() {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [locationCaptureCustomer, setLocationCaptureCustomer] = useState<CustomerWithDetails | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const queryClient = useQueryClient();
 
   // Obtener provincias
@@ -446,7 +452,14 @@ export default function Customers() {
   };
 
   if (isLoading) {
-    return <div className="p-8">Cargando...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Cargando clientes...</p>
+        </div>
+      </div>
+    );
   }
 
   // Estadísticas de clientes
@@ -462,923 +475,459 @@ export default function Customers() {
     customers.forEach(c => uniqueProvinces.add(c.provinceid));
     const provinces = uniqueProvinces.size;
     
+    // Clientes con donaciones
+    const charityCount = customers.filter(c => c.isCharity).length;
+    
     return {
       totalCustomers,
       totalCredit,
       avgCredit,
-      provinces
+      provinces,
+      charityCount
     };
   };
 
   const stats = getCustomerStats();
 
+  const getZoneColor = (zoneId?: number | null) => {
+    if (!zoneId) return 'bg-gray-500';
+    switch(zoneId) {
+      case 1: return 'bg-purple-500';
+      case 2: return 'bg-red-500';
+      case 3: return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getZoneName = (zoneId?: number | null) => {
+    if (!zoneId) return 'Sin zona';
+    const zone = zones.find(z => z.id === zoneId);
+    return zone?.name || 'Sin zona';
+  };
+
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Cabecera - formato exacto como rutas */}
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-lg font-bold flex items-center">
-          <Users className="h-4 w-4 mr-1 text-gray-600" />
-          Clientes
-        </h1>
-        <div className="flex gap-1">
-          {!isMobile && (
-            <Button 
-              onClick={() => setActiveTab("new")} 
-              className="bg-blue-500 hover:bg-blue-600 text-white h-7 text-xs px-2 py-0.5"
-            >
-              <PlusCircle className="h-3 w-3 mr-1" />
-              Crear Cliente
-            </Button>
-          )}
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Cabecera moderna */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              Gestión de Clientes
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Administra y organiza tu cartera de clientes
+            </p>
+          </div>
+          <Button 
+            onClick={() => setActiveTab("new")} 
+            size="lg"
+            className="gap-2"
+            data-testid="button-create-customer"
+          >
+            <PlusCircle className="h-5 w-5" />
+            Nuevo Cliente
+          </Button>
         </div>
       </div>
       
-      {/* Tabs de navegación - formato exacto como rutas */}
+      {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-2 h-7`}>
-          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2 py-0">
-            <Users className="h-3 w-3" />
+        <TabsList className="grid w-full grid-cols-3 mb-6 h-12">
+          <TabsTrigger value="list" className="flex items-center gap-2 text-sm">
+            <List className="h-4 w-4" />
             <span>Lista</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 py-0">
-            <PlusCircle className="h-3 w-3 text-blue-500" />
+          <TabsTrigger value="new" className="flex items-center gap-2 text-sm">
+            <PlusCircle className="h-4 w-4" />
             <span>Nuevo</span>
           </TabsTrigger>
-          {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1 text-xs px-2 py-0">
-              <FileText className="h-3 w-3" />
-              <span>{isEditing ? "Editar" : "Detalles"}</span>
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-2 text-sm">
+            <Eye className="h-4 w-4" />
+            <span>{isEditing ? "Editar" : "Detalles"}</span>
+          </TabsTrigger>
         </TabsList>
         
-        {/* Contenido del Tab de Lista de Clientes */}
-        <TabsContent value="list" className="space-y-4">
-          {/* Estadísticas - versión compacta que coincide exactamente con la vista de rutas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-            <Card className="border-l-4 border-l-gray-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Clientes</p>
-                  <p className="text-base font-bold">{stats.totalCustomers}</p>
+        {/* Tab: Lista de Clientes */}
+        <TabsContent value="list" className="space-y-6">
+          {/* Estadísticas modernas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Total Clientes</p>
+                    <p className="text-3xl font-bold">{stats.totalCustomers}</p>
+                  </div>
+                  <div className="p-3 bg-blue-500/10 rounded-full">
+                    <Users className="h-6 w-6 text-blue-500" />
+                  </div>
                 </div>
-                <Users className="h-5 w-5 text-gray-600" />
               </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-green-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Crédito Total</p>
-                  <p className="text-base font-bold">RD$ {stats.totalCredit.toFixed(2)}</p>
+            <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Crédito Total</p>
+                    <p className="text-2xl font-bold">RD$ {stats.totalCredit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div className="p-3 bg-green-500/10 rounded-full">
+                    <DollarSign className="h-6 w-6 text-green-500" />
+                  </div>
                 </div>
-                <DollarSign className="h-5 w-5 text-green-500" />
               </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Crédito Promedio</p>
-                  <p className="text-base font-bold">RD$ {stats.avgCredit.toFixed(2)}</p>
+            <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Promedio</p>
+                    <p className="text-2xl font-bold">RD$ {stats.avgCredit.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div className="p-3 bg-yellow-500/10 rounded-full">
+                    <TrendingUp className="h-6 w-6 text-yellow-500" />
+                  </div>
                 </div>
-                <CreditCard className="h-5 w-5 text-yellow-500" />
               </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-purple-500 shadow-sm">
-              <CardContent className="p-2 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Provincias</p>
-                  <p className="text-base font-bold">{stats.provinces}</p>
+            <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Provincias</p>
+                    <p className="text-3xl font-bold">{stats.provinces}</p>
+                  </div>
+                  <div className="p-3 bg-purple-500/10 rounded-full">
+                    <MapPin className="h-6 w-6 text-purple-500" />
+                  </div>
                 </div>
-                <MapPin className="h-5 w-5 text-purple-500" />
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-pink-500 hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Benéficos</p>
+                    <p className="text-3xl font-bold">{stats.charityCount}</p>
+                  </div>
+                  <div className="p-3 bg-pink-500/10 rounded-full">
+                    <Shield className="h-6 w-6 text-pink-500" />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="p-2">
-            {/* Buscador */}
-            <div className="relative mb-2">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <Input 
-                placeholder="Buscar por nombre, encargado, RNC o teléfono..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 h-7 text-xs"
-              />
-              {searchTerm && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-gray-600" />
-                <h2 className="font-semibold text-sm">Directorio de Clientes</h2>
+          <Card>
+            <CardHeader className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-xl">Directorio de Clientes</CardTitle>
+                  <CardDescription>
+                    {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="gap-2"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                    {!isMobile && 'Grid'}
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="gap-2"
+                  >
+                    <List className="h-4 w-4" />
+                    {!isMobile && 'Lista'}
+                  </Button>
+                </div>
               </div>
-              <Badge className="px-2 py-0 h-5 text-[10px] bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500">{filteredCustomers.length} clientes</Badge>
-            </div>
+              
+              {/* Buscador */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar por nombre, encargado, RNC o teléfono..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-10"
+                  data-testid="input-search-customers"
+                />
+                {searchTerm && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
 
-            <div className="overflow-hidden rounded-md border">
+            <CardContent>
               {filteredCustomers.length === 0 ? (
-                <div className="text-center py-8 bg-gradient-to-b from-gray-50 to-white text-gray-500 border border-dashed border-gray-200">
-                  <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p className="font-medium">No se encontraron clientes</p>
-                  <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
+                <div className="text-center py-16">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">No se encontraron clientes</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {searchTerm 
+                      ? 'Intenta con otros términos de búsqueda'
+                      : 'Crea tu primer cliente para comenzar'
+                    }
+                  </p>
+                  {!searchTerm && (
+                    <Button onClick={() => setActiveTab("new")} className="gap-2">
+                      <PlusCircle className="h-4 w-4" />
+                      Crear Cliente
+                    </Button>
+                  )}
+                </div>
+              ) : viewMode === 'grid' ? (
+                // Vista Grid
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredCustomers.map((customer) => (
+                    <Card 
+                      key={customer.id}
+                      className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 overflow-hidden"
+                      style={{ borderLeftColor: getZoneColor(customer.zoneid).replace('bg-', '#') }}
+                      onClick={() => handleViewCustomer(customer)}
+                      data-testid={`card-customer-${customer.id}`}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="relative flex-shrink-0">
+                              {customer.logo ? (
+                                <div className="w-14 h-14 rounded-xl border-2 border-muted overflow-hidden bg-white shadow-sm">
+                                  <img
+                                    src={`data:image/jpeg;base64,${customer.logo}`}
+                                    alt="Logo"
+                                    className="w-full h-full object-contain p-1"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl flex items-center justify-center border-2 border-muted">
+                                  <Building2 className="h-7 w-7 text-primary" />
+                                </div>
+                              )}
+                              {customer.isCharity && (
+                                <div className="absolute -top-1 -right-1 bg-pink-500 rounded-full p-1 shadow-lg">
+                                  <Shield className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">
+                                {customer.businessname}
+                              </h3>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {customer.managername}
+                              </p>
+                            </div>
+                          </div>
+                          <DropdownMenu 
+                            open={openDropdownId === customer.id}
+                            onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
+                          >
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => handleViewCustomer(customer)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Detalles
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCaptureOnMap(customer)}>
+                                <Map className="h-4 w-4 mr-2" />
+                                Capturar en Mapa
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleSendWhatsApp(customer)}>
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Enviar WhatsApp
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">{customer.phone}</span>
+                        </div>
+                        {customer.email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="truncate">{customer.email}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate">
+                            {provinces.find(p => p.id === customer.provinceid)?.name || 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <Badge variant="secondary" className="gap-1">
+                            <CreditCard className="h-3 w-3" />
+                            RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
+                          </Badge>
+                          <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
+                            {getZoneName(customer.zoneid)}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
-                <>
-                  {/* Vista móvil - Cards verticales */}
-                  {isMobile ? (
-                    <ScrollArea className="h-[400px]">
-                      <div className="p-2 space-y-2">
-                        {filteredCustomers.map((customer, index) => (
-                          <div 
-                            key={customer.id}
-                            className={`border rounded-md overflow-hidden cursor-pointer hover:shadow-md transition-all bg-white`}
-                            style={{ 
-                              borderLeftWidth: '4px',
-                              borderLeftColor: customer.zoneid === 1 ? '#9333ea' : 
-                                              customer.zoneid === 2 ? '#ef4444' : 
-                                              customer.zoneid === 3 ? '#22c55e' : 
-                                              '#6b7280' 
-                            }}
-                            onClick={() => {
-                              handleViewCustomer(customer);
-                              setActiveTab("details");
-                            }}
-                          >
-                            <div className="flex items-center p-2 border-b">
-                              <div className="relative mr-2 flex-shrink-0">
-                                {customer.logo ? (
-                                  <div className="w-8 h-8 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                    <img
-                                      src={`data:image/jpeg;base64,${customer.logo}`}
-                                      alt="Logo"
-                                      className="w-full h-full object-contain"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center border">
-                                    <Building2 className="h-4 w-4 text-gray-500" />
-                                  </div>
-                                )}
-                                <div 
-                                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
-                                    customer.zoneid === 1 ? 'bg-purple-500' : 
-                                    customer.zoneid === 2 ? 'bg-red-500' : 
-                                    customer.zoneid === 3 ? 'bg-green-500' : 
-                                    'bg-gray-500'
-                                  }`}
-                                  title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                >
-                                  Z{customer.zoneid || "?"}
+                // Vista Lista
+                <div className="space-y-2">
+                  {filteredCustomers.map((customer) => (
+                    <Card 
+                      key={customer.id}
+                      className="group hover:shadow-lg transition-all duration-200 cursor-pointer border-l-4"
+                      style={{ borderLeftColor: getZoneColor(customer.zoneid).replace('bg-', '#') }}
+                      onClick={() => handleViewCustomer(customer)}
+                      data-testid={`list-customer-${customer.id}`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            <div className="relative flex-shrink-0">
+                              {customer.logo ? (
+                                <div className="w-12 h-12 rounded-lg border-2 border-muted overflow-hidden bg-white">
+                                  <img
+                                    src={`data:image/jpeg;base64,${customer.logo}`}
+                                    alt="Logo"
+                                    className="w-full h-full object-contain p-1"
+                                  />
                                 </div>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center">
-                                  <p className="font-medium text-sm truncate">
-                                    {customer.businessname}
-                                  </p>
-                                  <span className="text-xs text-gray-400 ml-1">#{index + 1}</span>
+                              ) : (
+                                <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center border-2 border-muted">
+                                  <Building2 className="h-6 w-6 text-primary" />
                                 </div>
-                                {customer.rnc && (
-                                  <p className="text-xs text-gray-500 truncate">RNC: {customer.rnc}</p>
-                                )}
-                              </div>
+                              )}
+                              {customer.isCharity && (
+                                <div className="absolute -top-1 -right-1 bg-pink-500 rounded-full p-0.5 shadow-lg">
+                                  <Shield className="h-2.5 w-2.5 text-white" />
+                                </div>
+                              )}
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-1 p-2 text-xs">
-                              <div className="flex items-center text-gray-700">
-                                <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                <span className="truncate">{customer.managername}</span>
+                            <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4">
+                              <div className="min-w-0">
+                                <p className="font-semibold truncate group-hover:text-primary transition-colors">
+                                  {customer.businessname}
+                                </p>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {customer.managername}
+                                </p>
                               </div>
-                              <div className="flex items-center text-gray-700">
-                                <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
+                              <div className="flex items-center gap-2 text-sm min-w-0">
+                                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 <span className="truncate">{customer.phone}</span>
                               </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-2 bg-gray-50 border-t">
-                              <Badge 
-                                variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                className="px-2 py-0.5 text-[10px]"
-                              >
-                                <DollarSign className="h-2.5 w-2.5 mr-0.5 inline-block" />
-                                {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                              </Badge>
-                              
-                              <Badge variant="outline" className={`px-2 py-0.5 text-[10px] ${
-                                customer.coordinates 
-                                  ? 'bg-green-50 text-green-700 border-green-200' 
-                                  : 'bg-orange-50 text-orange-700 border-orange-200'
-                              }`}>
-                                {customer.coordinates 
-                                  ? <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> Sí</span> 
-                                  : <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> No</span>
-                                }
-                              </Badge>
-                              
-                              <DropdownMenu 
-                                open={openDropdownId === customer.id} 
-                                onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
-                              >
-                                <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-6 px-2 py-0 text-[10px]"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <MoreVertical className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleViewCustomer(customer);
-                                      setActiveTab("details");
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    Ver Detalles
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCaptureOnMap(customer);
-                                    }}
-                                  >
-                                    <Map className="h-4 w-4 mr-2" />
-                                    Capturar en Mapa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSendWhatsApp(customer);
-                                    }}
-                                  >
-                                    <MessageSquare className="h-4 w-4 mr-2" />
-                                    Enviar por WhatsApp
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                              <div className="flex items-center gap-2 text-sm min-w-0">
+                                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="truncate">
+                                  {provinces.find(p => p.id === customer.provinceid)?.name || 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="gap-1">
+                                  <CreditCard className="h-3 w-3" />
+                                  RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
+                                </Badge>
+                                <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
+                                  {getZoneName(customer.zoneid)}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    /* Vista de escritorio - Tabla responsiva */
-                    <div className="overflow-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="py-2 px-4 text-left font-medium text-gray-500 w-8">#</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Negocio</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Contacto</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Ubicación</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Zona</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Crédito</th>
-                            <th className="py-2 px-4 text-center font-medium text-gray-500">Mapa</th>
-                            <th className="py-2 px-4 text-right font-medium text-gray-500">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {filteredCustomers.map((customer, index) => (
-                            <tr 
-                              key={customer.id} 
-                              className="hover:bg-gray-50/30 transition-colors cursor-pointer"
-                              onClick={() => {
-                                handleViewCustomer(customer);
-                                setActiveTab("details");
-                              }}
-                            >
-                              {/* Columna de índice */}
-                              <td className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</td>
-                              
-                              {/* Columna de Negocio */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative flex-shrink-0">
-                                    {customer.logo ? (
-                                      <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                        <img
-                                          src={`data:image/jpeg;base64,${customer.logo}`}
-                                          alt="Logo"
-                                          className="w-full h-full object-contain"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-white rounded-md flex items-center justify-center border shadow-sm">
-                                        <Building2 className="h-5 w-5 text-gray-600" />
-                                      </div>
-                                    )}
-                                    <div 
-                                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                        customer.zoneid === 1 ? 'bg-purple-500' : 
-                                        customer.zoneid === 2 ? 'bg-red-500' : 
-                                        customer.zoneid === 3 ? 'bg-green-500' : 
-                                        'bg-gray-500'
-                                      }`}
-                                      title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                    >
-                                      {customer.zoneid || "?"}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
-                                    {customer.rnc && (
-                                      <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Contacto */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="space-y-1">
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.managername}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.phone}</span>
-                                  </div>
-                                  {customer.email && (
-                                    <div className="flex items-center text-xs text-gray-700">
-                                      <Mail className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                      <span className="truncate max-w-[150px]">{customer.email}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Dirección */}
-                              <td className="py-2.5 px-4 align-middle max-w-[200px]">
-                                <div className="space-y-1">
-                                  <div className="flex items-start text-xs text-gray-700">
-                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <MapPin className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Zona */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <Badge 
-                                  className={`px-2 py-0.5 ${
-                                    customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
-                                    customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
-                                    customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
-                                    'bg-gray-50 text-gray-700 border-gray-200'
-                                  }`}
-                                >
-                                  {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Crédito */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <Badge 
-                                  variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                  className="px-2 py-0.5 font-medium"
-                                >
-                                  <DollarSign className="h-3 w-3 mr-1 inline-block" />
-                                  {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Mapa */}
-                              <td className="py-2.5 px-4 align-middle text-center">
-                                <Badge variant="outline" className={`px-2 py-0.5 text-xs ${
-                                  customer.coordinates 
-                                    ? 'bg-green-50 text-green-700 border-green-200' 
-                                    : 'bg-orange-50 text-orange-700 border-orange-200'
-                                }`}>
-                                  {customer.coordinates 
-                                    ? <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> Sí</span> 
-                                    : <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> No</span>
-                                  }
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Acciones */}
-                              <td className="py-2.5 px-4 align-middle text-right">
-                                <DropdownMenu 
-                                  open={openDropdownId === customer.id} 
-                                  onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
-                                >
-                                  <DropdownMenuTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-7 px-2 py-0 text-xs"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleViewCustomer(customer);
-                                        setActiveTab("details");
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      Ver Detalles
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCaptureOnMap(customer);
-                                      }}
-                                    >
-                                      <Map className="h-4 w-4 mr-2" />
-                                      Capturar en Mapa
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSendWhatsApp(customer);
-                                      }}
-                                    >
-                                      <MessageSquare className="h-4 w-4 mr-2" />
-                                      Enviar por WhatsApp
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
+                          <DropdownMenu 
+                            open={openDropdownId === customer.id}
+                            onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
+                          >
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 flex-shrink-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => handleViewCustomer(customer)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Detalles
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCaptureOnMap(customer)}>
+                                <Map className="h-4 w-4 mr-2" />
+                                Capturar en Mapa
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleSendWhatsApp(customer)}>
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Enviar WhatsApp
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
-            </div>
+            </CardContent>
           </Card>
         </TabsContent>
-        
-        {/* Contenido del Tab de Nuevo Cliente */}
+
+        {/* Tab: Nuevo Cliente */}
         <TabsContent value="new">
-          <div className="border rounded-md p-2 bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
-                <h3 className="text-sm font-medium">Registrar Cliente</h3>
-              </div>
-            </div>
-            
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
-                {/* Mostramos los errores del formulario para debug */}
-                {Object.keys(form.formState.errors).length > 0 && (
-                  <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
-                    Errores en el formulario: {JSON.stringify(form.formState.errors)}
-                  </div>
-                )}
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-1">
-                  <FormField
-                    control={form.control}
-                    name="logo"
-                    render={({ field: { value, onChange, ...field } }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="flex items-center justify-between text-xs">
-                          <div className="flex items-center">
-                            <Badge className="px-2 py-0 h-5 text-[10px] bg-slate-50 text-slate-700 border-slate-200 border-l-4 border-l-slate-500 mr-1">
-                              Logo (JPG/PNG, máx. 5MB)
-                            </Badge>
-                          </div>
-                          <ImageIcon className="h-4 w-4 text-slate-500" />
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            className="h-7 text-xs px-2 py-0"
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                // Validar el tamaño (5MB)
-                                if (file.size > 5 * 1024 * 1024) {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Error",
-                                    description: "El archivo debe ser menor a 5MB",
-                                  });
-                                  e.target.value = '';
-                                  return;
-                                }
-
-                                // Validar el tipo
-                                if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Error",
-                                    description: "El archivo debe ser JPG o PNG",
-                                  });
-                                  e.target.value = '';
-                                  return;
-                                }
-
-                                onChange(file);
-                              }
-                            }}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="rnc"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">RNC</FormLabel>
-                        <FormControl>
-                          <Input 
-                            className="h-7 text-xs px-2 py-0" 
-                            {...field} 
-                            value={field.value || ""} 
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="businessname"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="managername"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Teléfono</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Email</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" type="email" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="zoneid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Zona</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione una zona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()} className="text-xs">
-                                {zone.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="street"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Calle</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="streetnumber"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Número</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="provinceid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Provincia</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(parseInt(value));
-                            setSelectedProvinceId(parseInt(value));
-                          }}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione una provincia" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {provinces.map((province) => (
-                              <SelectItem key={province.id} value={province.id.toString()} className="text-xs">
-                                {province.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="municipalityid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Municipio</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!selectedProvinceId || isLoadingMunicipalities}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione un municipio" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {municipalities.map((municipality) => (
-                              <SelectItem key={municipality.id} value={municipality.id.toString()} className="text-xs">
-                                {municipality.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="reference"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">Referencia</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="isCharity"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-1 flex flex-row items-start space-x-2 space-y-0 p-2 border rounded-md">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="checkbox-is-charity-new"
-                          />
-                        </FormControl>
-                        <div className="space-y-0.5 leading-none">
-                          <FormLabel className="text-xs font-medium">
-                            Institución Benéfica
-                          </FormLabel>
-                          <FormDescription className="text-[10px] text-muted-foreground">
-                            Recibe donaciones
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="coordinates"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-3 space-y-1">
-                        <FormLabel className="text-xs">Ubicación en Mapa</FormLabel>
-                        <FormControl>
-                          <div className="h-[180px] w-full border rounded-md overflow-hidden">
-                            <LocationSelector 
-                              value={field.value || ""} 
-                              onChange={field.onChange} 
-                              initialCenter={[19.075380, -70.128822]} 
-                            />
-                          </div>
-                        </FormControl>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          Mueva el marcador para seleccionar la ubicación exacta del cliente
-                        </div>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="creditlimit"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">Límite de Crédito</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            className="h-7 text-xs px-2 py-0"
-                            value={field.value || "0.00"}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^\d.]/g, '');
-                              const parts = value.split('.');
-                              if (parts.length > 2) return;
-                              if (parts[1]?.length > 2) return;
-                              field.onChange(value);
-                            }}
-                            onBlur={(e) => {
-                              const value = e.target.value || '0';
-                              const number = parseFloat(value);
-                              if (!isNaN(number)) {
-                                field.onChange(number.toFixed(2));
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                </div>
-
-                <div className="flex justify-end mt-4 mb-4">
-                  <Button
-                    type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={createMutation.isPending}
-                  >
-                    {createMutation.isPending ? "Guardando..." : "Guardar"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </div>
-        </TabsContent>
-        
-        {/* Contenido del Tab de Detalles de Cliente */}
-        <TabsContent value="details" className="border rounded-md p-1">
-          <Card className="p-2">
-            <CardHeader className="px-0 pt-0 pb-2">
-              <div className="flex flex-row justify-between items-center mb-1">
-                <CardTitle className="text-lg font-bold flex items-center">
-                  <Building2 className="h-4 w-4 mr-1.5 text-gray-600" />
-                  {isEditing ? 'Editar Cliente' : 'Detalles del Cliente'}
-                </CardTitle>
-                {!isEditing ? (
-                  <Button onClick={handleEditClick} variant="outline" size="sm" className="h-7 text-xs" data-testid="button-edit-customer">
-                    <Edit className="h-3.5 w-3.5 mr-1" />
-                    <span className="hidden sm:inline">Editar</span>
-                  </Button>
-                ) : (
-                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm" className="h-7 text-xs" data-testid="button-cancel-edit">
-                    <X className="h-3.5 w-3.5 mr-1" />
-                    <span className="hidden sm:inline">Cancelar</span>
-                  </Button>
-                )}
-              </div>
-              <CardDescription className="text-xs">
-                {isEditing ? 'Modifique la información del cliente según sea necesario' : 'Información detallada del cliente'}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-primary" />
+                Crear Nuevo Cliente
+              </CardTitle>
+              <CardDescription>
+                Complete la información del cliente para agregarlo a su cartera
               </CardDescription>
             </CardHeader>
-            <CardContent className="px-0 pb-4">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="pr-4">
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field: { value, onChange, ...field } }) => (
-                    <FormItem>
-                      <FormLabel>Logo</FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          {/* Mostrar logo actual o placeholder */}
-                          {typeof value === 'string' ? (
-                            <img
-                              src={`data:image/jpeg;base64,${value}`}
-                              alt="Logo"
-                              className="w-32 h-32 object-contain"
-                            />
-                          ) : (
-                            <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
-                              No logo
-                            </div>
-                          )}
-
-                          {/* Input para actualizar logo */}
-                          {isEditing && (
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="logo"
+                      render={({ field: { value, onChange, ...field } }) => (
+                        <FormItem className="sm:col-span-2 lg:col-span-1">
+                          <FormLabel>Logo del Negocio</FormLabel>
+                          <FormControl>
                             <Input
+                              className="cursor-pointer"
                               type="file"
                               accept="image/jpeg,image/png"
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  console.log("Archivo seleccionado:", {
-                                    name: file.name,
-                                    size: file.size,
-                                    type: file.type
-                                  });
-
-                                  // Validar el tamaño (5MB)
                                   if (file.size > 5 * 1024 * 1024) {
                                     toast({
                                       variant: "destructive",
@@ -1388,8 +937,6 @@ export default function Customers() {
                                     e.target.value = '';
                                     return;
                                   }
-
-                                  // Validar el tipo
                                   if (!['image/jpeg', 'image/png'].includes(file.type)) {
                                     toast({
                                       variant: "destructive",
@@ -1399,419 +946,865 @@ export default function Customers() {
                                     e.target.value = '';
                                     return;
                                   }
-
                                   onChange(file);
                                 }
                               }}
                               {...field}
                             />
-                          )}
+                          </FormControl>
+                          <FormDescription>JPG o PNG, máximo 5MB</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="rnc"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>RNC</FormLabel>
+                          <FormControl>
+                            <Input placeholder="000-00000-0" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="businessname"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre del Negocio *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Colmado Central" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="managername"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre del Encargado *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Juan Pérez" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Teléfono *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="809-000-0000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="cliente@ejemplo.com" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="zoneid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Zona</FormLabel>
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            value={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione una zona" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {zones.map((zone) => (
+                                <SelectItem key={zone.id} value={zone.id.toString()}>
+                                  {zone.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="street"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Calle *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Av. Independencia" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="streetnumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: 123" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="provinceid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Provincia *</FormLabel>
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(parseInt(value));
+                              setSelectedProvinceId(parseInt(value));
+                            }}
+                            value={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione una provincia" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {provinces.map((province) => (
+                                <SelectItem key={province.id} value={province.id.toString()}>
+                                  {province.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="municipalityid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Municipio *</FormLabel>
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            value={field.value?.toString()}
+                            disabled={!selectedProvinceId || isLoadingMunicipalities}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccione un municipio" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {municipalities.map((municipality) => (
+                                <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                  {municipality.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="reference"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Referencia de Ubicación</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Cerca del parque central" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="creditlimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Límite de Crédito (RD$)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              value={field.value || "0.00"}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d.]/g, '');
+                                const parts = value.split('.');
+                                if (parts.length > 2) return;
+                                if (parts[1]?.length > 2) return;
+                                field.onChange(value);
+                              }}
+                              onBlur={(e) => {
+                                const value = e.target.value || '0';
+                                const number = parseFloat(value);
+                                if (!isNaN(number)) {
+                                  field.onChange(number.toFixed(2));
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="isCharity"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              data-testid="checkbox-is-charity-new"
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-pink-500" />
+                              Institución Benéfica
+                            </FormLabel>
+                            <FormDescription>
+                              Cliente que recibe donaciones de agua
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="coordinates"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2 lg:col-span-3">
+                          <FormLabel>Ubicación en Mapa</FormLabel>
+                          <FormControl>
+                            <div className="h-[300px] w-full border rounded-lg overflow-hidden shadow-sm">
+                              <LocationSelector 
+                                value={field.value || ""} 
+                                onChange={field.onChange} 
+                                initialCenter={[19.075380, -70.128822]} 
+                              />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Mueva el marcador para seleccionar la ubicación exacta del cliente
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        form.reset();
+                        setActiveTab("list");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending}
+                      className="gap-2"
+                    >
+                      {createMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Crear Cliente
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Tab: Detalles del Cliente */}
+        <TabsContent value="details">
+          {selectedCustomer && (
+            <div className="space-y-6">
+              {/* Header con info principal */}
+              <Card className="border-l-4" style={{ borderLeftColor: getZoneColor(selectedCustomer.zoneid).replace('bg-', '#') }}>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-shrink-0">
+                      {selectedCustomer.logo ? (
+                        <div className="w-24 h-24 rounded-2xl border-2 border-muted overflow-hidden bg-white shadow-lg">
+                          <img
+                            src={`data:image/jpeg;base64,${selectedCustomer.logo}`}
+                            alt="Logo"
+                            className="w-full h-full object-contain p-2"
+                          />
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="rnc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RNC</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="businessname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Building2 className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Nombre del Negocio</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="managername"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <User className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Nombre del Encargado</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Teléfono</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Email</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="zoneid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Zona</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!isEditing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione una zona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()}>
-                                {zone.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       ) : (
-                        <FormControl>
-                          <Input 
-                            value={zones.find(z => z.id === field.value)?.name || "No asignada"} 
-                            readOnly 
-                          />
-                        </FormControl>
+                        <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center border-2 border-muted shadow-lg">
+                          <Building2 className="h-12 w-12 text-primary" />
+                        </div>
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="street"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Home className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Calle</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="streetnumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Número</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="provinceid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Provincia</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(parseInt(value));
-                            setSelectedProvinceId(parseInt(value));
-                          }}
-                          value={field.value?.toString()}
-                          disabled={!isEditing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione una provincia" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {provinces.map((province) => (
-                              <SelectItem key={province.id} value={province.id.toString()}>
-                                {province.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input 
-                            value={provinces.find(p => p.id === field.value)?.name || ""} 
-                            readOnly 
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="municipalityid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Municipio</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!selectedProvinceId || isLoadingMunicipalities || !isEditing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un municipio" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {municipalities.map((municipality) => (
-                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                                {municipality.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input 
-                            value={municipalities.find(m => m.id === field.value)?.name || ""} 
-                            readOnly 
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="reference"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Referencia</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="isCharity"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-1 flex flex-row items-start space-x-3 space-y-0 p-4 border rounded-md">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!isEditing}
-                          data-testid="checkbox-is-charity-edit"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="font-medium">
-                          Institución Benéfica
-                        </FormLabel>
-                        <FormDescription className="text-xs text-muted-foreground">
-                          Marcar si es una institución que recibe donaciones
-                        </FormDescription>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-3xl font-bold">{selectedCustomer.businessname}</h2>
+                          <p className="text-muted-foreground text-lg mt-1">{selectedCustomer.managername}</p>
+                        </div>
+                        {!isEditing ? (
+                          <Button onClick={handleEditClick} className="gap-2" data-testid="button-edit-customer">
+                            <Edit className="h-4 w-4" />
+                            Editar
+                          </Button>
+                        ) : (
+                          <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2" data-testid="button-cancel-edit">
+                            <X className="h-4 w-4" />
+                            Cancelar
+                          </Button>
+                        )}
                       </div>
-                    </FormItem>
-                  )}
-                />
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={`${getZoneColor(selectedCustomer.zoneid)} text-white`}>
+                          {getZoneName(selectedCustomer.zoneid)}
+                        </Badge>
+                        {selectedCustomer.isCharity && (
+                          <Badge variant="secondary" className="bg-pink-500 text-white gap-1">
+                            <Shield className="h-3 w-3" />
+                            Benéfico
+                          </Badge>
+                        )}
+                        {selectedCustomer.rnc && (
+                          <Badge variant="outline">
+                            RNC: {selectedCustomer.rnc}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-                <FormField
-                  control={form.control}
-                  name="coordinates"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-3">
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" /> 
-                        <span>Ubicación en Mapa</span>
-                      </FormLabel>
-                      <FormControl>
-                        <div className="h-[200px] w-full">
-                          <LocationSelector 
-                            value={field.value || ""} 
-                            onChange={isEditing ? field.onChange : () => {}} 
-                            initialCenter={[19.075380, -70.128822]} 
-                          />
-                        </div>
-                      </FormControl>
-                      {isEditing && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Mueva el marcador para seleccionar la ubicación exacta
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Información en dos columnas */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Columna izquierda: Formulario */}
+                <div className="lg:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        {isEditing ? 'Editar Información' : 'Información del Cliente'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                          <ScrollArea className="h-[600px] pr-4">
+                            <div className="space-y-6">
+                              {/* Sección: Información de Contacto */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Phone className="h-5 w-5 text-primary" />
+                                  Contacto
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="phone"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Teléfono</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} value={field.value || ""} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
 
-                {/* Balance y Anticipos */}
-                {selectedCustomer && (
-                  <div className="md:col-span-3">
-                    <CustomerBalance
-                      customerId={selectedCustomer.id}
+                              {/* Sección: Información del Negocio */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Building2 className="h-5 w-5 text-primary" />
+                                  Información del Negocio
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="businessname"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Nombre del Negocio</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="managername"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Encargado</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="rnc"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>RNC</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} value={field.value || ""} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="zoneid"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Zona</FormLabel>
+                                        <Select
+                                          onValueChange={(value) => field.onChange(parseInt(value))}
+                                          value={field.value?.toString()}
+                                          disabled={!isEditing}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Seleccione una zona" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {zones.map((zone) => (
+                                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                                                {zone.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Sección: Dirección */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                  <MapPin className="h-5 w-5 text-primary" />
+                                  Dirección
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="street"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Calle</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="streetnumber"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Número</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="provinceid"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Provincia</FormLabel>
+                                        <Select
+                                          onValueChange={(value) => {
+                                            field.onChange(parseInt(value));
+                                            setSelectedProvinceId(parseInt(value));
+                                          }}
+                                          value={field.value?.toString()}
+                                          disabled={!isEditing}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Seleccione una provincia" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {provinces.map((province) => (
+                                              <SelectItem key={province.id} value={province.id.toString()}>
+                                                {province.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="municipalityid"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Municipio</FormLabel>
+                                        <Select
+                                          onValueChange={(value) => field.onChange(parseInt(value))}
+                                          value={field.value?.toString()}
+                                          disabled={!isEditing || !selectedProvinceId}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Seleccione un municipio" />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent>
+                                            {municipalities.map((municipality) => (
+                                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                                {municipality.name}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="reference"
+                                    render={({ field }) => (
+                                      <FormItem className="md:col-span-2">
+                                        <FormLabel>Referencia</FormLabel>
+                                        <FormControl>
+                                          <Input {...field} value={field.value || ""} readOnly={!isEditing} disabled={!isEditing} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Sección: Información Financiera */}
+                              <div className="space-y-4">
+                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                  <CreditCard className="h-5 w-5 text-primary" />
+                                  Información Financiera
+                                </h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="creditlimit"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Límite de Crédito (RD$)</FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={field.value || "0.00"}
+                                            onChange={(e) => {
+                                              if (!isEditing) return;
+                                              const value = e.target.value.replace(/[^\d.]/g, '');
+                                              const parts = value.split('.');
+                                              if (parts.length > 2) return;
+                                              if (parts[1]?.length > 2) return;
+                                              field.onChange(value);
+                                            }}
+                                            onBlur={(e) => {
+                                              if (!isEditing) return;
+                                              const value = e.target.value || '0';
+                                              const number = parseFloat(value);
+                                              if (!isNaN(number)) {
+                                                field.onChange(number.toFixed(2));
+                                              }
+                                            }}
+                                            readOnly={!isEditing}
+                                            disabled={!isEditing}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="isCharity"
+                                    render={({ field }) => (
+                                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-4">
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            disabled={!isEditing}
+                                            data-testid="checkbox-is-charity-detail"
+                                          />
+                                        </FormControl>
+                                        <div className="space-y-1 leading-none">
+                                          <FormLabel className="flex items-center gap-2">
+                                            <Shield className="h-4 w-4 text-pink-500" />
+                                            Institución Benéfica
+                                          </FormLabel>
+                                          <FormDescription>
+                                            Recibe donaciones
+                                          </FormDescription>
+                                        </div>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Sección: Ubicación en Mapa */}
+                              {isEditing && (
+                                <div className="space-y-4">
+                                  <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                    <Map className="h-5 w-5 text-primary" />
+                                    Ubicación en Mapa
+                                  </h3>
+                                  <FormField
+                                    control={form.control}
+                                    name="coordinates"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormControl>
+                                          <div className="h-[300px] w-full border rounded-lg overflow-hidden">
+                                            <LocationSelector 
+                                              value={field.value || ""} 
+                                              onChange={field.onChange} 
+                                              initialCenter={[19.075380, -70.128822]} 
+                                            />
+                                          </div>
+                                        </FormControl>
+                                        <FormDescription>
+                                          Mueva el marcador para actualizar la ubicación
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Logo Update */}
+                              {isEditing && (
+                                <div className="space-y-4">
+                                  <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
+                                    <ImageIcon className="h-5 w-5 text-primary" />
+                                    Logo del Negocio
+                                  </h3>
+                                  <FormField
+                                    control={form.control}
+                                    name="logo"
+                                    render={({ field: { value, onChange, ...field } }) => (
+                                      <FormItem>
+                                        <FormControl>
+                                          <div className="space-y-3">
+                                            {typeof value === 'string' && value && (
+                                              <div className="flex items-center gap-4">
+                                                <img
+                                                  src={`data:image/jpeg;base64,${value}`}
+                                                  alt="Logo actual"
+                                                  className="w-24 h-24 object-contain border rounded-lg"
+                                                />
+                                                <div className="text-sm text-muted-foreground">
+                                                  Logo actual
+                                                </div>
+                                              </div>
+                                            )}
+                                            <Input
+                                              type="file"
+                                              accept="image/jpeg,image/png"
+                                              onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                  if (file.size > 5 * 1024 * 1024) {
+                                                    toast({
+                                                      variant: "destructive",
+                                                      title: "Error",
+                                                      description: "El archivo debe ser menor a 5MB",
+                                                    });
+                                                    e.target.value = '';
+                                                    return;
+                                                  }
+                                                  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                                    toast({
+                                                      variant: "destructive",
+                                                      title: "Error",
+                                                      description: "El archivo debe ser JPG o PNG",
+                                                    });
+                                                    e.target.value = '';
+                                                    return;
+                                                  }
+                                                  onChange(file);
+                                                }
+                                              }}
+                                              {...field}
+                                            />
+                                          </div>
+                                        </FormControl>
+                                        <FormDescription>
+                                          JPG o PNG, máximo 5MB
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </ScrollArea>
+
+                          {isEditing && (
+                            <div className="flex justify-end gap-3 pt-4 border-t">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsEditing(false)}
+                              >
+                                Cancelar
+                              </Button>
+                              <Button
+                                type="submit"
+                                disabled={updateMutation.isPending}
+                                className="gap-2"
+                              >
+                                {updateMutation.isPending ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Guardando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="h-4 w-4" />
+                                    Guardar Cambios
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </form>
+                      </Form>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Columna derecha: Balance */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-6">
+                    <CustomerBalance 
+                      customerId={selectedCustomer.id} 
                       customerName={selectedCustomer.businessname}
                     />
                   </div>
-                )}
-
-                <FormField
-                  control={form.control}
-                  name="creditlimit"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="flex items-center gap-1">
-                        <DollarSign className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Límite de Crédito</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          {...field}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            const value = e.target.value.replace(/[^\d.]/g, '');
-                            const parts = value.split('.');
-                            if (parts.length > 2) return;
-                            if (parts[1]?.length > 2) return;
-                            field.onChange(value);
-                          }}
-                          onBlur={(e) => {
-                            if (!isEditing) return;
-                            const value = e.target.value || '0';
-                            const number = parseFloat(value);
-                            if (!isNaN(number)) {
-                              field.onChange(number.toFixed(2));
-                            }
-                          }}
-                          readOnly={!isEditing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                </div>
               </div>
-              </div>
-          </ScrollArea>
-
-              {isEditing && (
-                <Button
-                  type="submit"
-                  className="w-full mt-4"
-                  disabled={updateMutation.isPending}
-                  data-testid="button-save-changes"
-                >
-                  {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-              )}
-            </form>
-          </Form>
-          </CardContent>
-          </Card>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      <LocationCaptureDialog
-        open={locationDialogOpen}
-        onOpenChange={(open) => {
-          setLocationDialogOpen(open);
-          if (!open) {
-            setLocationCaptureCustomer(null);
-          }
-        }}
-        customerId={locationCaptureCustomer?.id || 0}
-        customerName={locationCaptureCustomer?.businessname || ""}
-        currentCoordinates={locationCaptureCustomer?.coordinates || undefined}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-          toast({
-            title: "Ubicación guardada",
-            description: "La ubicación del cliente se ha actualizado correctamente",
-          });
-        }}
-      />
+      {/* Dialog para captura de ubicación */}
+      {locationCaptureCustomer && (
+        <LocationCaptureDialog
+          open={locationDialogOpen}
+          onOpenChange={setLocationDialogOpen}
+          customerId={locationCaptureCustomer.id}
+          customerName={locationCaptureCustomer.businessname}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+          }}
+        />
+      )}
     </div>
   );
 }
