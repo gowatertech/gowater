@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
@@ -20,6 +20,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Iconos
 import { Truck, Calendar, MapPin, Eye, ArrowRight, X, Route as RouteIcon } from "lucide-react";
@@ -36,56 +46,76 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Estados para el diálogo de confirmación
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState<number | null>(null);
 
   // Filtrar rutas según el tipo (activas o completadas)
   const filteredRoutes = routes.filter(route => isActive ? !route.isCompleted : route.isCompleted);
 
-  // Manejar eliminación de ruta
-  const handleDeleteRoute = async (routeId: number) => {
-    if (confirm(t("confirmDeleteRoute"))) {
-      try {
-        // Mostrar toast de carga
-        toast({
-          description: "Eliminando ruta...",
-        });
-        
-        const response = await fetch(`/api/routes/${routeId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        // Verificar si la respuesta fue exitosa
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || t("errorDeletingRoute"));
+  // Abrir diálogo de confirmación
+  const handleDeleteRoute = (routeId: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setRouteToDelete(routeId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirmar eliminación de ruta
+  const confirmDelete = async () => {
+    if (!routeToDelete) return;
+    
+    try {
+      // Mostrar toast de carga
+      toast({
+        description: "Eliminando ruta...",
+      });
+      
+      const response = await fetch(`/api/routes/${routeToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
         }
-        
-        // Procesar la respuesta exitosa
-        const result = await response.json();
-        console.log("Ruta eliminada:", result);
-        
-        // Invalidar la caché y actualizar la lista
-        queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-        
-        // Mostrar mensaje de éxito
-        toast({
-          description: t("routeDeletedSuccessfully"),
-        });
-        
-        // Forzar actualización de la página para mostrar cambios
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error: any) {
-        console.error("Error al eliminar ruta:", error);
-        toast({
-          variant: "destructive",
-          title: t("error"),
-          description: error.message || t("errorDeletingRoute")
-        });
+      });
+      
+      // Verificar si la respuesta fue exitosa
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || t("errorDeletingRoute"));
       }
+      
+      // Procesar la respuesta exitosa
+      const result = await response.json();
+      console.log("Ruta eliminada:", result);
+      
+      // Invalidar la caché y actualizar la lista
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+      
+      // Mostrar mensaje de éxito
+      toast({
+        description: t("routeDeletedSuccessfully"),
+      });
+      
+      // Cerrar el diálogo
+      setDeleteDialogOpen(false);
+      setRouteToDelete(null);
+      
+      // Forzar actualización de la página para mostrar cambios
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error("Error al eliminar ruta:", error);
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message || t("errorDeletingRoute")
+      });
+      setDeleteDialogOpen(false);
+      setRouteToDelete(null);
     }
   };
 
@@ -191,7 +221,7 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
                     variant="outline"
                     size="sm"
                     className="text-xs h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => handleDeleteRoute(route.id)}
+                    onClick={(e) => handleDeleteRoute(route.id, e)}
                     data-testid={`button-delete-${route.id}`}
                     aria-label="Eliminar ruta"
                   >
@@ -289,7 +319,7 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
                           variant="ghost"
                           size="sm"
                           className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteRoute(route.id)}
+                          onClick={(e) => handleDeleteRoute(route.id, e)}
                           data-testid={`button-delete-table-${route.id}`}
                           aria-label="Eliminar ruta"
                         >
@@ -304,6 +334,30 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
           </Table>
         </div>
       </div>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("delete")} {t("routes")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("confirmDeleteRoute")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              {t("cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
+            >
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ScrollArea>
   );
 }
