@@ -75,6 +75,7 @@ import MobileProfile from "@/pages/mobile-app/perfil";
 import MobileNewOrder from "@/pages/mobile-app/new-order";
 // Lazy loaded components
 const MobileMap = lazy(() => import("@/pages/mobile-app/mapa"));
+const MobileClientesPage = lazy(() => import("@/pages/mobile-app/clientes"));
 // El componente MobilePaymentsHistory no está disponible
 // import MobilePaymentsHistory from "@/pages/mobile-app/payments/history";
 
@@ -214,6 +215,11 @@ function Router() {
         <Route path="/mobile-app/payments" component={MobilePayments} />
         <Route path="/mobile-app/perfil" component={MobileProfile} />
         <Route path="/mobile-app/new-order" component={MobileNewOrder} />
+        <Route path="/mobile-app/clientes">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <MobileClientesPage />
+          </Suspense>
+        </Route>
         <Route path="/mobile-app/mapa">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <MobileMap />

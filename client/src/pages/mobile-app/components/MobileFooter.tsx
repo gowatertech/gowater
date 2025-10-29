@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { Home, Truck, FileText, Map, Settings, User } from "lucide-react";
+import { Home, Truck, FileText, Users, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileFooterProps {
@@ -57,12 +57,13 @@ export const MobileFooter: React.FC<MobileFooterProps> = ({ darkMode = false }) 
           variant="ghost"
           size="sm"
           className={`flex flex-col items-center gap-1 h-auto py-2 ${
-            isActivePath("/mobile-app/mapa") ? "text-primary" : ""
+            isActivePath("/mobile-app/clientes") ? "text-primary" : ""
           }`}
-          onClick={() => setLocation("/mobile-app/mapa")}
+          onClick={() => setLocation("/mobile-app/clientes")}
+          data-testid="button-footer-clientes"
         >
-          <Map className="h-5 w-5" />
-          <span className="text-xs">Mapa</span>
+          <Users className="h-5 w-5" />
+          <span className="text-xs">Clientes</span>
         </Button>
 
         <Button
