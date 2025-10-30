@@ -58,26 +58,59 @@ const menuColors = {
   settings: "#6366F1", // Indigo 500
 };
 
-// Categorías reorganizadas y más descriptivas
+// Categorías reorganizadas según solicitud del usuario
 const sidebarItems = [
   { 
-    icon: Home, 
-    label: "Panel Principal", 
+    icon: LayoutDashboard, 
+    label: "Panel de Control", 
     href: "/dashboard",
-    description: "Vista general"
+    description: "Vista general del sistema"
+  },
+  { 
+    icon: ClipboardList, 
+    label: "Pedidos", 
+    href: "/orders",
+    description: "Gestión de pedidos"
+  },
+  { 
+    icon: FileText, 
+    label: "Facturación", 
+    href: "/billing",
+    description: "Facturas y comprobantes"
+  },
+  { 
+    icon: CreditCard, 
+    label: "Pagos", 
+    href: "/payments",
+    description: "Gestión de pagos"
+  },
+  { 
+    icon: Users, 
+    label: "Clientes", 
+    href: "/customers",
+    description: "Base de datos de clientes"
+  },
+  { 
+    icon: Route, 
+    label: "Rutas", 
+    href: "/routes",
+    description: "Planificación de rutas"
+  },
+  { 
+    icon: MapPin, 
+    label: "Zonas", 
+    href: "/zones",
+    description: "Gestión de zonas de entrega"
   },
   {
     icon: Truck,
     label: "Operaciones",
-    href: "/routes",
+    href: "/operations",
     description: "Logística y distribución", 
     subItems: [
       { icon: Truck, label: "Vehículos", href: "/routes/trucks" },
-      { icon: Target, label: "Zonas", href: "/zones" },
-      { icon: MapPin, label: "Rutas", href: "/routes" },
       { icon: FileStack, label: "Carga de Vehículo", href: "/vehicle-loading" },
       { icon: ScrollText, label: "Cuadre de Vehículo", href: "/vehicle-settlement" },
-      { icon: ReceiptText, label: "Pedidos", href: "/orders" },
       { icon: Calendar, label: "Pedidos Recurrentes", href: "/recurring-orders" },
       { icon: CircleUser, label: "Vista del Chofer", href: "/drivers" },
     ],
@@ -105,13 +138,11 @@ const sidebarItems = [
     ],
   },
   {
-    icon: Landmark,
+    icon: Calculator,
     label: "Finanzas",
-    href: "/payments",
+    href: "/finance",
     description: "Gestión financiera", 
     subItems: [
-      { icon: CreditCard, label: "Pagos", href: "/payments" },
-      { icon: FileText, label: "Facturación", href: "/billing" },
       { 
         icon: TrendingUp, 
         label: "Comisiones", 
@@ -121,6 +152,7 @@ const sidebarItems = [
           { icon: TrendingUp, label: "Vista Simple", href: "/commissions/simple" },
         ],
       },
+      { icon: AreaChart, label: "Reportes", href: "/reports" },
     ],
   },
   {
@@ -129,9 +161,7 @@ const sidebarItems = [
     href: "/admin",
     description: "Gestión empresarial", 
     subItems: [
-      { icon: Users, label: "Usuarios", href: "/users" },
-      { icon: UserCircle, label: "Clientes", href: "/customers" },
-      { icon: AreaChart, label: "Reportes", href: "/reports" },
+      { icon: UserCircle, label: "Usuarios", href: "/users" },
     ],
   },
 
