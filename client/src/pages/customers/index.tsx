@@ -902,8 +902,8 @@ export default function Customers() {
           </Card>
 
           {/* Panel de Estadísticas Lateral */}
-          <div className="lg:block">
-            <div className="sticky top-6">
+          <div>
+            <div className="lg:sticky lg:top-6">
               <CustomerStats customers={filteredCustomers} />
             </div>
           </div>
