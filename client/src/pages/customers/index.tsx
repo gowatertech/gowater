@@ -1361,19 +1361,18 @@ export default function Customers() {
 
               {/* Tabs para organizar la información */}
               <Tabs value={detailTab} onValueChange={setDetailTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="info" className="gap-2" data-testid="tab-customer-info">
-                    <FileText className="h-4 w-4" />
+                <TabsList className="grid w-full grid-cols-3 h-auto">
+                  <TabsTrigger value="info" className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm" data-testid="tab-customer-info">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="hidden sm:inline">Información</span>
                     <span className="sm:hidden">Info</span>
                   </TabsTrigger>
-                  <TabsTrigger value="balance" className="gap-2" data-testid="tab-customer-balance">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="hidden sm:inline">Balance</span>
-                    <span className="sm:hidden">Balance</span>
+                  <TabsTrigger value="balance" className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm" data-testid="tab-customer-balance">
+                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span>Balance</span>
                   </TabsTrigger>
-                  <TabsTrigger value="transactions" className="gap-2" data-testid="tab-customer-transactions">
-                    <TrendingUp className="h-4 w-4" />
+                  <TabsTrigger value="transactions" className="gap-1 sm:gap-2 px-2 sm:px-4 py-2 text-xs sm:text-sm" data-testid="tab-customer-transactions">
+                    <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="hidden sm:inline">Transacciones</span>
                     <span className="sm:hidden">Trans.</span>
                   </TabsTrigger>
