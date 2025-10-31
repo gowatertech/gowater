@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import LocationCaptureDialog from "@/components/customers/LocationCaptureDialog";
 import { CustomerBalance } from "@/components/customers/CustomerBalance";
+import { CustomerStats } from "@/components/customers/CustomerStats";
 import { 
   PlusCircle, 
   Eye, 
@@ -625,15 +626,18 @@ export default function Customers() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-                <div>
-                  <CardTitle className="text-xl">Directorio de Clientes</CardTitle>
-                  <CardDescription>
-                    {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
-                  </CardDescription>
-                </div>
+          {/* Grid principal: Directorio + Estadísticas */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+            {/* Directorio de Clientes */}
+            <Card>
+              <CardHeader className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle className="text-xl">Directorio de Clientes</CardTitle>
+                    <CardDescription>
+                      {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+                    </CardDescription>
+                  </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -896,6 +900,14 @@ export default function Customers() {
               )}
             </CardContent>
           </Card>
+
+          {/* Panel de Estadísticas Lateral */}
+          <div className="lg:block">
+            <div className="sticky top-6">
+              <CustomerStats customers={filteredCustomers} />
+            </div>
+          </div>
+        </div>
         </TabsContent>
 
         {/* Tab: Nuevo Cliente */}
