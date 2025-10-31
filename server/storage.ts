@@ -971,33 +971,19 @@ export class DatabaseStorage implements IStorage {
     const customerBalance = customer?.balance || "0.00";
     const creditLimit = customer?.creditLimit || "0.00";
     
-    // Calcular total de facturas pendientes
-    // IMPORTANTE: Considerar TODAS las facturas que tengan saldo pendiente > 0, no solo status='pending'
-    // Esto es consistente con cómo se muestra en /api/invoices/pending (registrar pago)
+    // Calcular total de facturas pendientes (status = 'pending')
+    // IMPORTANTE: Restar TODOS los pagos aplicados a cada factura (anticipos + pagos normales)
     const pendingInvoicesResult = await db
       .select({
         total: sql<string>`
           COALESCE(
             SUM(
-              CASE 
-                WHEN (
-                  ${invoices.total}::numeric - COALESCE(
-                    (SELECT SUM(amount::numeric) 
-                     FROM ${payments} 
-                     WHERE ${payments.invoiceId} = ${invoices.id}
-                    ), 0
-                  )
-                ) > 0 
-                THEN (
-                  ${invoices.total}::numeric - COALESCE(
-                    (SELECT SUM(amount::numeric) 
-                     FROM ${payments} 
-                     WHERE ${payments.invoiceId} = ${invoices.id}
-                    ), 0
-                  )
-                )
-                ELSE 0
-              END
+              ${invoices.total}::numeric - COALESCE(
+                (SELECT SUM(amount::numeric) 
+                 FROM ${payments} 
+                 WHERE ${payments.invoiceId} = ${invoices.id}
+                ), 0
+              )
             ), 0
           )::numeric(10,2)
         `
@@ -1006,7 +992,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(invoices.customerId, customerId),
-          eq(invoices.companyId, companyId)
+          eq(invoices.companyId, companyId),
+          eq(invoices.status, "pending")
         )
       );
     
