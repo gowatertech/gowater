@@ -4,6 +4,7 @@ import { type Customer, type Product, type Invoice } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PrinterService } from "@/services/PrinterService";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Componentes UI
 import { Input } from "@/components/ui/input";
@@ -898,7 +899,7 @@ export default function Billing() {
                             {customers.find((c) => c.id === invoice.customerId)?.businessname || "Cliente"}
                           </TableCell>
                           <TableCell>
-                            {new Date(invoice.date).toLocaleDateString('es-ES')}
+                            {formatDateRD(invoice.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             RD$ {parseFloat(invoice.total).toFixed(2)}
@@ -972,7 +973,7 @@ export default function Billing() {
                     <div>
                       <p className="text-muted-foreground">Fecha</p>
                       <p className="font-medium">
-                        {new Date(selectedInvoice.date).toLocaleDateString('es-ES')}
+                        {formatDateRD(selectedInvoice.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                       </p>
                     </div>
                     <div>
