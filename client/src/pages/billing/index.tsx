@@ -454,12 +454,16 @@ export default function Billing() {
                         {filteredCustomers.map((customer) => (
                           <CommandItem
                             key={customer.id}
-                            value={`${customer.businessname} ${customer.phone}`}
-                            onSelect={() => {
-                              setSelectedCustomer(customer);
-                              setOpenCustomerPopover(false);
-                              setCustomerSearchTerm("");
+                            value={customer.id.toString()}
+                            onSelect={(value) => {
+                              const selected = customers.find(c => c.id.toString() === value);
+                              if (selected) {
+                                setSelectedCustomer(selected);
+                                setOpenCustomerPopover(false);
+                                setCustomerSearchTerm("");
+                              }
                             }}
+                            className="cursor-pointer"
                             data-testid={`option-customer-${customer.id}`}
                           >
                             <Check
