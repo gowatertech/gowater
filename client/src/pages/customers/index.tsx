@@ -8,6 +8,7 @@ import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -100,6 +101,7 @@ export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [_, setLocation] = useLocation();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithDetails | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -525,15 +527,27 @@ export default function Customers() {
               Administra y organiza tu cartera de clientes
             </p>
           </div>
-          <Button 
-            onClick={() => setActiveTab("new")} 
-            size="lg"
-            className="gap-2"
-            data-testid="button-create-customer"
-          >
-            <PlusCircle className="h-5 w-5" />
-            Nuevo Cliente
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => setLocation("/transactions/initial-balance")} 
+              size="lg"
+              variant="outline"
+              className="gap-2"
+              data-testid="button-register-cxc"
+            >
+              <FileText className="h-5 w-5" />
+              Registrar CxC Inicial
+            </Button>
+            <Button 
+              onClick={() => setActiveTab("new")} 
+              size="lg"
+              className="gap-2"
+              data-testid="button-create-customer"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Nuevo Cliente
+            </Button>
+          </div>
         </div>
       </div>
       
