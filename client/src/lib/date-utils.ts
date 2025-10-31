@@ -10,8 +10,7 @@
  * @returns Date object en zona horaria RD
  */
 export function getNowRD(): Date {
-  // Crear fecha actual y convertir a zona horaria de República Dominicana
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
+  return toRD(new Date());
 }
 
 /**
@@ -40,7 +39,36 @@ export function getTodayRD(): Date {
  */
 export function toRD(date: Date | string): Date {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  return new Date(inputDate.toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
+  
+  // Obtener las partes de la fecha en zona horaria RD
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(inputDate);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  // Construir nueva fecha con las partes en RD timezone
+  return new Date(
+    parseInt(dateParts.year),
+    parseInt(dateParts.month) - 1,
+    parseInt(dateParts.day),
+    parseInt(dateParts.hour),
+    parseInt(dateParts.minute),
+    parseInt(dateParts.second)
+  );
 }
 
 /**
