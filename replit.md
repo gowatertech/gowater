@@ -75,6 +75,27 @@ The system supports comprehensive advance payment tracking with secure documenta
 - **Customer Balance Display**: CustomerBalance component shows advance balance with ability to register and print advances
 - **Print Integration**: Print buttons in payment history table view, responsive card view, and detail dialogs
 
+### Billing Interface with Customer Balance Integration
+The billing interface displays real-time customer balance (saldo a favor) and intelligently handles mixed payment scenarios:
+- **Real-Time Balance Display**: Shows customer's available advance balance when selected in billing interface
+- **Smart Payment Method Handling**:
+  - **Full Coverage**: When balance ≥ invoice total, payment methods are hidden and replaced with a confirmation message
+  - **Partial Coverage**: When 0 < balance < invoice total, displays warning showing balance to be applied and remaining amount to pay
+  - **No Balance**: Standard payment method selection when customer has no advances
+- **Automatic Advance Application**: Backend automatically applies available advances to all invoices regardless of payment method
+- **Intelligent Advance Splitting**: When advance amount exceeds invoice total:
+  - Creates new payment record with exact amount needed for invoice
+  - Updates original advance with remaining balance for future use
+  - Prevents loss of excess advance funds
+- **Mixed Payment Support**: For cash invoices with partial balance coverage, creates payment record for remaining amount after applying advances
+- **Customer Balance (CxC) Synchronization**:
+  - Registering advance: `balance -= advance` (customer deposits money)
+  - Applying advance to invoice: `balance += advance` (reverses the credit since advance was used)
+  - Creating credit invoice: `balance += pending_amount` (customer owes money)
+  - System ensures balance field always reflects accurate accounts receivable
+- **Transaction Records**: All payment flows generate detailed transaction records with automatic note generation
+- **Success Messages**: Context-aware toast notifications indicate balance applied, mixed payments, or full advance coverage
+
 ## External Dependencies
 
 ### Core Infrastructure

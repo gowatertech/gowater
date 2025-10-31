@@ -2984,16 +2984,32 @@ export async function registerRoutes(router: express.Router) {
       console.log(`🔍 DEBUG - Comparación 'cash':`, result.data.paymentMethod === 'cash');
       console.log(`🔍 DEBUG - Status inicial:`, initialStatus);
 
-      // Si es pago en efectivo, crear automáticamente el registro de pago
-      if (result.data.paymentMethod === 'cash') {
-        console.log(`💵 Creando pago automático en efectivo para factura #${invoice.id}`);
-        console.log(`💵 Valores del pago:`, {
-          companyId,
-          invoiceId: invoice.id,
-          customerId: invoice.customer_id,
-          amount: invoice.total,
-          paymentMethod: 'cash'
-        });
+      // PASO 1: Aplicar anticipos disponibles del cliente (SIEMPRE, independientemente del método de pago)
+      console.log(`💰 Verificando anticipos disponibles para factura #${invoice.id}`);
+      let remainingBalance = parseFloat(invoice.total);
+      
+      try {
+        const advanceResult = await storage.applyAdvancePaymentsToInvoice(invoice.id);
+        
+        if (advanceResult.appliedPayments.length > 0) {
+          console.log(`✅ ${advanceResult.appliedPayments.length} anticipo(s) aplicados por un total de $${advanceResult.appliedAmount}`);
+          console.log(`💵 Balance restante: $${advanceResult.remainingBalance}`);
+          
+          remainingBalance = parseFloat(advanceResult.remainingBalance);
+        }
+      } catch (advanceError) {
+        console.error(`❌ Error al aplicar anticipos a factura #${invoice.id}:`, advanceError);
+        // Continuar con el proceso aunque falle la aplicación de anticipos
+      }
+
+      // PASO 2: Manejar el balance restante según el método de pago
+      if (remainingBalance <= 0.01) {
+        // La factura está completamente cubierta con anticipos
+        console.log(`✅ Factura #${invoice.id} completamente cubierta con anticipos`);
+        invoice.status = 'paid';
+      } else if (result.data.paymentMethod === 'cash') {
+        // Pago en efectivo: crear pago por el balance restante
+        console.log(`💵 Creando pago en efectivo por el balance restante: $${remainingBalance.toFixed(2)}`);
         
         try {
           const [payment] = await db
@@ -3002,40 +3018,42 @@ export async function registerRoutes(router: express.Router) {
               companyId: companyId,
               invoiceId: invoice.id,
               customerId: invoice.customer_id,
-              amount: invoice.total,
+              amount: remainingBalance.toFixed(2),
               paymentMethod: 'cash',
               date: new Date(),
-              notes: `Pago automático en efectivo al crear factura #${invoice.invoice_number}`
+              notes: `Pago en efectivo (balance restante después de anticipos) - Factura #${invoice.invoice_number}`
             })
             .returning();
           
-          console.log(`✅ Pago automático #${payment.id} creado exitosamente para factura #${invoice.id}`);
+          console.log(`✅ Pago #${payment.id} creado por $${remainingBalance.toFixed(2)}`);
+          invoice.status = 'paid';
         } catch (paymentError) {
-          console.error(`❌ ERROR CRÍTICO al crear pago automático para factura #${invoice.id}:`);
-          console.error(`❌ Tipo de error:`, paymentError);
-          console.error(`❌ Detalles completos:`, JSON.stringify(paymentError, null, 2));
+          console.error(`❌ ERROR al crear pago en efectivo para factura #${invoice.id}:`, paymentError);
           // No fallar la creación de la factura si falla el pago
         }
-      } 
-      // Si es crédito o tarjeta/transferencia, aplicar automáticamente anticipos disponibles
-      else if (initialStatus === 'pending') {
-        console.log(`💰 Aplicando anticipos disponibles a factura #${invoice.id}`);
+      } else {
+        // Crédito, tarjeta o transferencia: dejar pendiente el balance restante
+        console.log(`📋 Factura #${invoice.id} pendiente de pago: $${remainingBalance.toFixed(2)} (método: ${result.data.paymentMethod})`);
+        invoice.status = 'pending';
         
+        // PASO 3: Actualizar el balance del cliente (CxC) con el monto pendiente
         try {
-          const advanceResult = await storage.applyAdvancePaymentsToInvoice(invoice.id);
+          await db
+            .update(customers)
+            .set({
+              balance: sql`COALESCE(${customers.balance}, 0) + ${remainingBalance.toFixed(2)}`
+            })
+            .where(
+              and(
+                eq(customers.id, invoice.customer_id),
+                eq(customers.companyId, companyId)
+              )
+            );
           
-          if (advanceResult.appliedPayments.length > 0) {
-            console.log(`✅ ${advanceResult.appliedPayments.length} anticipo(s) aplicados por un total de $${advanceResult.appliedAmount}`);
-            console.log(`💵 Balance restante: $${advanceResult.remainingBalance}`);
-            
-            // Actualizar el objeto invoice con el status correcto si fue pagado completamente
-            if (parseFloat(advanceResult.remainingBalance) <= 0.01) {
-              invoice.status = 'paid';
-            }
-          }
-        } catch (advanceError) {
-          console.error(`❌ Error al aplicar anticipos a factura #${invoice.id}:`, advanceError);
-          // No fallar la creación de la factura si falla la aplicación de anticipos
+          console.log(`💰 Balance del cliente actualizado: +$${remainingBalance.toFixed(2)} (factura pendiente #${invoice.id})`);
+        } catch (balanceError) {
+          console.error(`❌ Error al actualizar balance del cliente:`, balanceError);
+          // No fallar la creación de la factura si falla la actualización del balance
         }
       }
 

@@ -120,6 +120,22 @@ export default function Billing() {
     enabled: !!selectedInvoice,
   });
 
+  // Obtener saldo del cliente seleccionado
+  const { data: customerBalance, isLoading: isLoadingBalance } = useQuery({
+    queryKey: ["/api/customers", selectedCustomer?.id, "balance"],
+    queryFn: async () => {
+      if (!selectedCustomer) return null;
+      const response = await fetch(`/api/customers/${selectedCustomer.id}/balance`);
+      if (!response.ok) throw new Error("Error al obtener balance del cliente");
+      return await response.json();
+    },
+    enabled: !!selectedCustomer,
+  });
+
+  // Calcular saldo a favor del cliente
+  const availableAdvances = customerBalance?.availableAdvances || [];
+  const totalAdvances = parseFloat(customerBalance?.balance?.totalAvailableAdvances || "0");
+
   // Filtrar clientes
   const filteredCustomers = customers.filter((customer) => {
     if (!customerSearchTerm) return true;
@@ -214,12 +230,16 @@ export default function Billing() {
       if (!selectedCustomer) throw new Error('Debe seleccionar un cliente');
       if (cart.length === 0) throw new Error('Debe agregar al menos un producto');
 
+      // Si el saldo a favor cubre el total, usar 'credit' automáticamente
+      // Los anticipos se aplicarán automáticamente en el backend
+      const finalPaymentMethod = (totalAdvances >= total && total > 0) ? 'credit' : paymentMethod;
+
       const invoiceData = {
         customerId: selectedCustomer.id,
         subtotal: subtotal.toFixed(2),
         tax: tax.toFixed(2),
         total: total.toFixed(2),
-        paymentMethod,
+        paymentMethod: finalPaymentMethod,
       };
 
       const invoiceResponse = await fetch("/api/invoices", {
@@ -258,14 +278,29 @@ export default function Billing() {
     },
     onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", selectedCustomer?.id, "balance"] });
       
-      const isPaid = paymentMethod === 'cash';
-      toast({
-        title: isPaid ? "¡Factura pagada!" : "¡Factura creada!",
-        description: isPaid 
-          ? "La factura fue creada y marcada como pagada en efectivo"
-          : "La factura se creó exitosamente",
-      });
+      // Determinar el mensaje según el flujo
+      let title = "¡Factura creada!";
+      let description = "La factura se creó exitosamente";
+      
+      if (totalAdvances >= total && total > 0) {
+        title = "¡Factura pagada con saldo a favor!";
+        description = `Se aplicaron RD$ ${Math.min(totalAdvances, total).toFixed(2)} de anticipos`;
+      } else if (totalAdvances > 0 && totalAdvances < total) {
+        if (paymentMethod === 'cash') {
+          title = "¡Factura pagada!";
+          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} de anticipos + RD$ ${(total - totalAdvances).toFixed(2)} en efectivo`;
+        } else {
+          title = "¡Factura creada!";
+          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} de anticipos. Pendiente: RD$ ${(total - totalAdvances).toFixed(2)}`;
+        }
+      } else if (paymentMethod === 'cash') {
+        title = "¡Factura pagada!";
+        description = "La factura fue creada y marcada como pagada en efectivo";
+      }
+      
+      toast({ title, description });
       clearCart();
       setActiveTab("list");
     },
@@ -488,6 +523,29 @@ export default function Billing() {
                     </Command>
                   </PopoverContent>
                 </Popover>
+
+                {/* Mostrar saldo a favor si el cliente tiene anticipos */}
+                {selectedCustomer && !isLoadingBalance && totalAdvances > 0 && (
+                  <div className="mt-2 p-2 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        💰 Saldo a favor
+                      </span>
+                      <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                        RD$ {totalAdvances.toFixed(2)}
+                      </span>
+                    </div>
+                    {total > 0 && (
+                      <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                        {totalAdvances >= total ? (
+                          <span>✅ El saldo cubre el total completo</span>
+                        ) : (
+                          <span>⚠️ Debe pagar RD$ {(total - totalAdvances).toFixed(2)}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -566,44 +624,76 @@ export default function Billing() {
             <Card>
               <CardContent className="p-3 space-y-2">
                 <label className="text-sm font-semibold">Método de Pago</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                    className="flex-col h-16"
-                    onClick={() => setPaymentMethod('cash')}
-                    data-testid="button-payment-cash"
-                  >
-                    <Banknote className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Efectivo</span>
-                  </Button>
-                  <Button
-                    variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                    className="flex-col h-16"
-                    onClick={() => setPaymentMethod('card')}
-                    data-testid="button-payment-card"
-                  >
-                    <CreditCard className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Tarjeta</span>
-                  </Button>
-                  <Button
-                    variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                    className="flex-col h-16"
-                    onClick={() => setPaymentMethod('credit')}
-                    data-testid="button-payment-credit"
-                  >
-                    <Receipt className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Crédito</span>
-                  </Button>
-                  <Button
-                    variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
-                    className="flex-col h-16"
-                    onClick={() => setPaymentMethod('transfer')}
-                    data-testid="button-payment-transfer"
-                  >
-                    <ArrowLeftRight className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Transferencia</span>
-                  </Button>
-                </div>
+                
+                {/* Verificar si el saldo cubre el total */}
+                {selectedCustomer && totalAdvances >= total && total > 0 ? (
+                  <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
+                    <CheckCircle className="h-8 w-8 mx-auto text-emerald-600 dark:text-emerald-400" />
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      Será pagado con saldo a favor
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Saldo disponible: RD$ {totalAdvances.toFixed(2)}
+                    </p>
+                    {totalAdvances > total && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Quedará RD$ {(totalAdvances - total).toFixed(2)} disponible
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                        className="flex-col h-16"
+                        onClick={() => setPaymentMethod('cash')}
+                        data-testid="button-payment-cash"
+                      >
+                        <Banknote className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Efectivo</span>
+                      </Button>
+                      <Button
+                        variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                        className="flex-col h-16"
+                        onClick={() => setPaymentMethod('card')}
+                        data-testid="button-payment-card"
+                      >
+                        <CreditCard className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Tarjeta</span>
+                      </Button>
+                      <Button
+                        variant={paymentMethod === 'credit' ? 'default' : 'outline'}
+                        className="flex-col h-16"
+                        onClick={() => setPaymentMethod('credit')}
+                        data-testid="button-payment-credit"
+                      >
+                        <Receipt className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Crédito</span>
+                      </Button>
+                      <Button
+                        variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
+                        className="flex-col h-16"
+                        onClick={() => setPaymentMethod('transfer')}
+                        data-testid="button-payment-transfer"
+                      >
+                        <ArrowLeftRight className="h-5 w-5 mb-1" />
+                        <span className="text-xs">Transferencia</span>
+                      </Button>
+                    </div>
+                    {/* Mostrar monto pendiente si hay saldo insuficiente */}
+                    {selectedCustomer && totalAdvances > 0 && totalAdvances < total && total > 0 && (
+                      <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-center">
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                          Se aplicarán RD$ {totalAdvances.toFixed(2)} de saldo a favor
+                        </p>
+                        <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300 mt-1">
+                          Debe pagar RD$ {(total - totalAdvances).toFixed(2)} con el método seleccionado
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 
