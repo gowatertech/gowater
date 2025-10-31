@@ -60,17 +60,17 @@ export function CustomerTransactionHistory({ customerId }: CustomerTransactionHi
   };
 
   const getDocumentTypeBadge = (type: string) => {
-    const config: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; color: string }> = {
-      FT: { variant: "destructive", color: "text-red-600" },
-      RI: { variant: "default", color: "text-green-600" },
-      ANT: { variant: "default", color: "text-blue-600" },
-      CXC: { variant: "outline", color: "text-orange-600" },
-      GS: { variant: "secondary", color: "text-gray-600" },
-      NC: { variant: "default", color: "text-green-600" },
-      ND: { variant: "destructive", color: "text-red-600" },
+    const config: Record<string, string> = {
+      FT: "bg-green-600 text-white hover:bg-green-700",
+      RI: "bg-blue-600 text-white hover:bg-blue-700",
+      ANT: "bg-blue-600 text-white hover:bg-blue-700",
+      CXC: "bg-red-600 text-white hover:bg-red-700",
+      GS: "bg-gray-600 text-white hover:bg-gray-700",
+      NC: "bg-green-600 text-white hover:bg-green-700",
+      ND: "bg-red-600 text-white hover:bg-red-700",
     };
-    const { variant, color } = config[type] || { variant: "outline" as const, color: "text-gray-600" };
-    return <Badge variant={variant} className={color}>{getDocumentTypeLabel(type)}</Badge>;
+    const className = config[type] || "bg-gray-600 text-white hover:bg-gray-700";
+    return <Badge className={className}>{getDocumentTypeLabel(type)}</Badge>;
   };
 
   const formatCurrency = (value: string | null) => {
