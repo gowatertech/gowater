@@ -96,6 +96,18 @@ The billing interface displays real-time customer balance (saldo a favor) and in
 - **Transaction Records**: All payment flows generate detailed transaction records with automatic note generation
 - **Success Messages**: Context-aware toast notifications indicate balance applied, mixed payments, or full advance coverage
 
+### Timezone Configuration (República Dominicana)
+The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations:
+- **Date Utilities Module** (`server/date-utils.ts`): Centralized date handling functions ensure consistency across the application
+  - `getNowRD()`: Returns current date/time in República Dominicana timezone
+  - `getTimestampRD()`: Returns ISO timestamp formatted for PostgreSQL in RD timezone
+  - `getTodayRD()`: Returns today's date at 00:00:00 in RD timezone
+  - `toRD(date)`: Converts any date to RD timezone
+- **Invoice Creation**: Uses `getTimestampRD()` to ensure invoices are created with correct local date
+- **Payment Processing**: Uses `getNowRD()` for payment timestamps
+- **Dashboard Statistics**: All date-based queries (daily sales, weekly trends, monthly reports) use PostgreSQL's `CURRENT_DATE` which respects the database's UTC-4 timezone
+- **Benefits**: Prevents date mismatch issues where UTC timestamps would show future dates, ensures accurate daily sales reporting, and maintains consistency across all temporal data
+
 ## External Dependencies
 
 ### Core Infrastructure

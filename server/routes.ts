@@ -1,6 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
+import { getNowRD, getTimestampRD } from "./date-utils";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
@@ -2967,7 +2968,7 @@ export async function registerRoutes(router: express.Router) {
         result.data.total,
         initialStatus,
         result.data.paymentMethod,
-        new Date().toISOString(),
+        getTimestampRD(),
         result.data.notes || null
       ];
       
@@ -3020,7 +3021,7 @@ export async function registerRoutes(router: express.Router) {
               customerId: invoice.customer_id,
               amount: remainingBalance.toFixed(2),
               paymentMethod: 'cash',
-              date: new Date(),
+              date: getNowRD(),
               notes: `Pago en efectivo (balance restante después de anticipos) - Factura #${invoice.invoice_number}`
             })
             .returning();
