@@ -1282,10 +1282,10 @@ export default function Customers() {
               {/* Header con info principal */}
               <Card className="border-l-4" style={{ borderLeftColor: getZoneColor(selectedCustomer.zoneid).replace('bg-', '#') }}>
                 <CardHeader>
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                    <div className="flex-shrink-0 mx-auto sm:mx-0">
                       {selectedCustomer.logo ? (
-                        <div className="w-24 h-24 rounded-2xl border-2 border-muted overflow-hidden bg-white shadow-lg">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-muted overflow-hidden bg-white shadow-lg">
                           <img
                             src={`data:image/jpeg;base64,${selectedCustomer.logo}`}
                             alt="Logo"
@@ -1293,41 +1293,43 @@ export default function Customers() {
                           />
                         </div>
                       ) : (
-                        <div className="w-24 h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center border-2 border-muted shadow-lg">
-                          <Building2 className="h-12 w-12 text-primary" />
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center border-2 border-muted shadow-lg">
+                          <Building2 className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h2 className="text-3xl font-bold">{selectedCustomer.businessname}</h2>
-                          <p className="text-muted-foreground text-lg mt-1">{selectedCustomer.managername}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="text-center sm:text-left">
+                          <h2 className="text-2xl sm:text-3xl font-bold break-words">{selectedCustomer.businessname}</h2>
+                          <p className="text-muted-foreground text-base sm:text-lg mt-1">{selectedCustomer.managername}</p>
                         </div>
-                        {!isEditing ? (
-                          <Button onClick={handleEditClick} className="gap-2" data-testid="button-edit-customer">
-                            <Edit className="h-4 w-4" />
-                            Editar
-                          </Button>
-                        ) : (
-                          <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2" data-testid="button-cancel-edit">
-                            <X className="h-4 w-4" />
-                            Cancelar
-                          </Button>
-                        )}
+                        <div className="flex gap-2 justify-center sm:justify-start flex-shrink-0">
+                          {!isEditing ? (
+                            <Button onClick={handleEditClick} className="gap-2 w-full sm:w-auto" size={isMobile ? "sm" : "default"} data-testid="button-edit-customer">
+                              <Edit className="h-4 w-4" />
+                              <span className="sm:inline">Editar</span>
+                            </Button>
+                          ) : (
+                            <Button onClick={() => setIsEditing(false)} variant="outline" className="gap-2 w-full sm:w-auto" size={isMobile ? "sm" : "default"} data-testid="button-cancel-edit">
+                              <X className="h-4 w-4" />
+                              <span className="sm:inline">Cancelar</span>
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={`${getZoneColor(selectedCustomer.zoneid)} text-white`}>
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        <Badge className={`${getZoneColor(selectedCustomer.zoneid)} text-white text-xs sm:text-sm`}>
                           {getZoneName(selectedCustomer.zoneid)}
                         </Badge>
                         {selectedCustomer.isCharity && (
-                          <Badge variant="secondary" className="bg-pink-500 text-white gap-1">
+                          <Badge variant="secondary" className="bg-pink-500 text-white gap-1 text-xs sm:text-sm">
                             <Shield className="h-3 w-3" />
                             Benéfico
                           </Badge>
                         )}
                         {selectedCustomer.rnc && (
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="text-xs sm:text-sm">
                             RNC: {selectedCustomer.rnc}
                           </Badge>
                         )}
@@ -1338,28 +1340,28 @@ export default function Customers() {
               </Card>
 
               {/* Información en dos columnas */}
-              <div className="grid lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Columna izquierda: Formulario */}
                 <div className="lg:col-span-2">
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
+                    <CardHeader className="px-4 sm:px-6">
+                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                         {isEditing ? 'Editar Información' : 'Información del Cliente'}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-4 sm:px-6">
                       <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                          <ScrollArea className="h-[600px] pr-4">
+                          <ScrollArea className="h-[500px] sm:h-[600px] pr-2 sm:pr-4">
                             <div className="space-y-6">
                               {/* Sección: Información de Contacto */}
                               <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                  <Phone className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                   Contacto
                                 </h3>
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
                                     name="phone"
@@ -1391,11 +1393,11 @@ export default function Customers() {
 
                               {/* Sección: Información del Negocio */}
                               <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                  <Building2 className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                   Información del Negocio
                                 </h3>
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
                                     name="businessname"
@@ -1468,11 +1470,11 @@ export default function Customers() {
 
                               {/* Sección: Dirección */}
                               <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                  <MapPin className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                  <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                   Dirección
                                 </h3>
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
                                     name="street"
@@ -1576,11 +1578,11 @@ export default function Customers() {
 
                               {/* Sección: Información Financiera */}
                               <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                  <CreditCard className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                   Información Financiera
                                 </h3>
-                                <div className="grid md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
                                     name="creditlimit"
@@ -1646,8 +1648,8 @@ export default function Customers() {
 
                               {/* Sección: Ubicación en Mapa */}
                               <div className="space-y-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                  <Map className="h-5 w-5 text-primary" />
+                                <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                  <Map className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                   Ubicación en Mapa
                                 </h3>
                                 {isEditing ? (
@@ -1657,7 +1659,7 @@ export default function Customers() {
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormControl>
-                                          <div className="h-[300px] w-full border rounded-lg overflow-hidden">
+                                          <div className="h-[250px] sm:h-[300px] w-full border rounded-lg overflow-hidden">
                                             <LocationSelector 
                                               value={field.value || ""} 
                                               onChange={field.onChange} 
@@ -1674,7 +1676,7 @@ export default function Customers() {
                                   />
                                 ) : (
                                   <div className="space-y-2">
-                                    <div className="h-[300px] w-full border rounded-lg overflow-hidden bg-muted/30">
+                                    <div className="h-[250px] sm:h-[300px] w-full border rounded-lg overflow-hidden bg-muted/30">
                                       {selectedCustomer?.coordinates ? (
                                         <LocationSelector 
                                           value={selectedCustomer.coordinates} 
@@ -1704,8 +1706,8 @@ export default function Customers() {
                               {/* Logo Update */}
                               {isEditing && (
                                 <div className="space-y-4">
-                                  <h3 className="font-semibold text-lg flex items-center gap-2 pb-2 border-b">
-                                    <ImageIcon className="h-5 w-5 text-primary" />
+                                  <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 pb-2 border-b">
+                                    <ImageIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                                     Logo del Negocio
                                   </h3>
                                   <FormField
@@ -1771,18 +1773,21 @@ export default function Customers() {
                           </ScrollArea>
 
                           {isEditing && (
-                            <div className="flex justify-end gap-3 pt-4 border-t">
+                            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
                               <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => setIsEditing(false)}
+                                className="w-full sm:w-auto"
+                                size={isMobile ? "sm" : "default"}
                               >
                                 Cancelar
                               </Button>
                               <Button
                                 type="submit"
                                 disabled={updateMutation.isPending}
-                                className="gap-2"
+                                className="gap-2 w-full sm:w-auto"
+                                size={isMobile ? "sm" : "default"}
                               >
                                 {updateMutation.isPending ? (
                                   <>
