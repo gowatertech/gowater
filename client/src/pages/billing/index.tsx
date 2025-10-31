@@ -113,8 +113,9 @@ export default function Billing() {
 
   const { 
     data: invoiceDetails = [], 
+    isLoading: isLoadingDetails 
   } = useQuery<any[]>({
-    queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
+    queryKey: [`/api/invoices/${selectedInvoice?.id}/items`],
     enabled: !!selectedInvoice,
   });
 
@@ -895,19 +896,33 @@ export default function Billing() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoiceDetails.map((item: any) => {
-                        const product = products.find(p => p.id === item.productId);
-                        return (
-                          <TableRow key={item.id}>
-                            <TableCell>{product?.name || "Producto"}</TableCell>
-                            <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                            <TableCell className="text-right font-medium">
-                              RD$ {parseFloat(item.total).toFixed(2)}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {isLoadingDetails ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <div className="inline-block h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                          </TableCell>
+                        </TableRow>
+                      ) : invoiceDetails.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No hay productos
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        invoiceDetails.map((item: any) => {
+                          const product = products.find(p => p.id === item.productId);
+                          return (
+                            <TableRow key={item.id}>
+                              <TableCell>{product?.name || "Producto"}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                RD$ {parseFloat(item.total).toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
                     </TableBody>
                   </Table>
                   <Separator className="my-3" />
