@@ -545,10 +545,11 @@ export const insertInvoiceSchema = z.object({
   subtotal: z.string().regex(/^\d+\.\d{2}$/, "El subtotal debe tener 2 decimales"),
   tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales"),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
-  status: z.enum(["pending", "paid", "cancelled"]),
+  status: z.enum(["pending", "paid", "cancelled"]).optional(),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   notes: z.string().max(200).optional(),
   // La fecha se manejará en el servidor con defaultNow()
+  // status es opcional - el backend lo determina automáticamente basado en paymentMethod
 });
 
 export const insertInvoiceItemSchema = z.object({

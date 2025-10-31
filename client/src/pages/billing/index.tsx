@@ -218,7 +218,6 @@ export default function Billing() {
         subtotal: subtotal.toFixed(2),
         tax: tax.toFixed(2),
         total: total.toFixed(2),
-        status: "pending" as const,
         paymentMethod,
       };
 
@@ -256,13 +255,18 @@ export default function Billing() {
 
       return invoice;
     },
-    onSuccess: () => {
+    onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      
+      const isPaid = paymentMethod === 'cash';
       toast({
-        title: "¡Factura creada!",
-        description: "La factura se creó exitosamente",
+        title: isPaid ? "¡Factura pagada!" : "¡Factura creada!",
+        description: isPaid 
+          ? "La factura fue creada y marcada como pagada en efectivo"
+          : "La factura se creó exitosamente",
       });
       clearCart();
+      setActiveTab("list");
     },
     onError: (error: Error) => {
       toast({
