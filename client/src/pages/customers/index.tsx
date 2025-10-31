@@ -626,6 +626,11 @@ export default function Customers() {
             </Card>
           </div>
 
+          {/* Panel de Estadísticas - visible solo en móvil */}
+          <div className="lg:hidden">
+            <CustomerStats customers={filteredCustomers} />
+          </div>
+
           {/* Grid principal: Directorio + Estadísticas */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
             {/* Directorio de Clientes */}
@@ -901,9 +906,9 @@ export default function Customers() {
             </CardContent>
           </Card>
 
-          {/* Panel de Estadísticas Lateral */}
-          <div>
-            <div className="lg:sticky lg:top-6">
+          {/* Panel de Estadísticas Lateral - visible solo en desktop */}
+          <div className="hidden lg:block">
+            <div className="sticky top-6">
               <CustomerStats customers={filteredCustomers} />
             </div>
           </div>
