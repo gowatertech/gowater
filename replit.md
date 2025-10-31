@@ -54,7 +54,36 @@ The mobile delivery app implements a robust partial payment system allowing driv
 The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It detects prepaid orders across mobile and web interfaces, updates order status without creating duplicate invoices, and uses backend guards to prevent duplicate invoice creation for prepaid orders and donations.
 
 ### Unified Transaction System
-The system implements a comprehensive transaction ledger tracking all financial documents (Factura, Recibo, Anticipo, CxC Inicial, Gasto, Nota Crédito, Nota Débito) with automatic creation and sequential numbering per document type. It ensures concurrency-safe numbering, automatic transaction creation, real-time customer balance calculation, multi-tenancy support, and a unified ledger for comprehensive reporting, with type-safe implementation using Zod validation.
+The system implements a comprehensive transaction ledger tracking all financial documents with the following features:
+
+#### Transaction Document Types
+- **FT (Factura)**: Invoices automatically created when orders are delivered
+- **RI (Recibo)**: Payment receipts for customer payments  
+- **ANT (Anticipo)**: Customer advance payments
+- **CXC (CxC Inicial)**: Initial customer balance entries
+- **GS (Gastos)**: Business expenses
+- **NC (Nota Crédito)**: Credit notes for returns/adjustments
+- **ND (Nota Débito)**: Debit notes for additional charges
+
+#### Technical Implementation
+- **Sequential Numbering**: Each document type has independent sequential numbering (FT-0001, RI-0001, ANT-0001, etc.)
+- **Concurrency Safety**: Uses `LOCK TABLE transactions IN SHARE ROW EXCLUSIVE MODE` to prevent race conditions during number generation
+- **Automatic Creation**: Transactions are automatically created when invoices, payments, and advances are registered
+- **Multi-Tenancy**: All transactions are scoped by `companyId` using `AsyncLocalStorage`
+- **Type Safety**: Full Zod validation using `insertTransactionSchema` from `drizzle-zod`
+- **Balance Calculation**: Real-time customer balance computed from transaction ledger (Debits - Credits)
+
+#### UI Pages
+- **Initial Balance Registration**: `/transactions/initial-balance` - Interface for registering CxC Inicial with customer selection, amount input, and optional notes
+- Form uses React Hook Form with zodResolver for validation
+- Auto-generates descriptive transaction text: "CxC Inicial - {CustomerName}"
+- Provides success feedback and automatic form reset after submission
+
+#### Testing & Validation
+- Comprehensive E2E test coverage using Playwright
+- Verified transaction creation with proper numbering (CXC-0001, CXC-0002, etc.)
+- API endpoint validation for all transaction operations
+- Customer balance calculation verified across multiple transaction types
 
 ### Customer Advance Payments (Anticipos) System
 The system supports comprehensive advance payment tracking with automatic document numbering (ANT-XXXX), integration with the unified transaction system, multi-payment method support, and a unified payment history display. It provides secure, XSS-safe PDF receipt printing with custom formatting for advances and integrates advance balances into customer displays.
