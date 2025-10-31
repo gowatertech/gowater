@@ -3503,8 +3503,17 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Ventas del mes:`, monthlySales);
       
-      // 2. Cuentas por Cobrar (facturas pendientes de pago)
-      const accountsReceivable = await db
+      // 2. Cuentas por Cobrar (balance clientes + facturas pendientes - anticipos)
+      // 2.1 Suma de balance de todos los clientes (CXC del Excel)
+      const customerBalances = await db
+        .select({
+          total: sql`COALESCE(SUM(${customers.balance}::numeric), 0)`.mapWith(Number),
+        })
+        .from(customers)
+        .where(eq(customers.companyId, companyId));
+      
+      // 2.2 Facturas pendientes
+      const pendingInvoices = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -3516,7 +3525,31 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
-      console.log(`Cuentas por cobrar:`, accountsReceivable);
+      // 2.3 Anticipos disponibles (no aplicados a facturas)
+      const availableAdvances = await db
+        .select({
+          total: sql`COALESCE(SUM(${payments.amount}::numeric), 0)`.mapWith(Number),
+        })
+        .from(payments)
+        .where(
+          and(
+            eq(payments.companyId, companyId),
+            eq(payments.isAdvance, true),
+            sql`${payments.invoiceId} IS NULL`
+          )
+        );
+      
+      const totalCustomerBalance = Number(customerBalances[0]?.total) || 0;
+      const totalPendingInvoices = Number(pendingInvoices[0]?.total) || 0;
+      const totalAdvances = Number(availableAdvances[0]?.total) || 0;
+      
+      // CXC Total = Balance Clientes + Facturas Pendientes - Anticipos
+      const accountsReceivable = totalCustomerBalance + totalPendingInvoices - totalAdvances;
+      
+      console.log(`Balance clientes: ${totalCustomerBalance}`);
+      console.log(`Facturas pendientes: ${totalPendingInvoices}`);
+      console.log(`Anticipos disponibles: ${totalAdvances}`);
+      console.log(`Cuentas por cobrar TOTAL: ${accountsReceivable}`);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
       const donations = await db
@@ -3538,7 +3571,7 @@ export async function registerRoutes(router: express.Router) {
       
       const stats = {
         monthlySales: Number(monthlySales[0]?.total) || 0,
-        accountsReceivable: Number(accountsReceivable[0]?.total) || 0,
+        accountsReceivable: accountsReceivable,
         donations: Number(donations[0]?.total) || 0,
         donationsCount: Number(donations[0]?.count) || 0,
         monthStartDate: monthStart.toISOString(),
