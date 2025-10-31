@@ -33,42 +33,15 @@ export function getTodayRD(): Date {
 }
 
 /**
- * Convierte cualquier fecha a zona horaria de República Dominicana
- * @param date - Fecha a convertir
- * @returns Date object en zona horaria RD
+ * Interpreta una fecha guardada como "hora local de RD en formato UTC"
+ * El backend guarda la hora local de RD con marca UTC, aquí solo la interpretamos
+ * @param date - Fecha a interpretar
+ * @returns Date object listo para formatear
  */
 export function toRD(date: Date | string): Date {
-  const inputDate = typeof date === 'string' ? new Date(date) : date;
-  
-  // Obtener las partes de la fecha en zona horaria RD
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Santo_Domingo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(inputDate);
-  const dateParts: Record<string, string> = {};
-  parts.forEach(part => {
-    if (part.type !== 'literal') {
-      dateParts[part.type] = part.value;
-    }
-  });
-  
-  // Construir nueva fecha con las partes en RD timezone
-  return new Date(
-    parseInt(dateParts.year),
-    parseInt(dateParts.month) - 1,
-    parseInt(dateParts.day),
-    parseInt(dateParts.hour),
-    parseInt(dateParts.minute),
-    parseInt(dateParts.second)
-  );
+  // El timestamp ya viene con la hora de RD (guardada como UTC)
+  // Solo necesitamos convertirlo a Date object
+  return typeof date === 'string' ? new Date(date) : date;
 }
 
 /**
