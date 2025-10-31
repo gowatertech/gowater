@@ -588,6 +588,49 @@ export const insertPaymentSchema = z.object({
   documentNumber: z.string().optional(), // Número de documento para anticipos (ANT-001, ANT-002, etc.)
 });
 
+// Transactions (Sistema unificado de transacciones)
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  documentType: text("document_type", { 
+    enum: ["FT", "RI", "ANT", "CXC", "GS", "NC", "ND"] 
+  }).notNull(), // FT=Factura, RI=Recibo, ANT=Anticipo, CXC=CxC Inicial, GS=Gasto, NC=Nota Crédito, ND=Nota Débito
+  documentNumber: text("document_number").notNull(), // FT-0001, RI-0001, etc.
+  customerId: integer("customer_id").references(() => customers.id), // Nullable para gastos sin cliente
+  invoiceId: integer("invoice_id").references(() => invoices.id), // Referencia a factura si aplica
+  paymentId: integer("payment_id").references(() => payments.id), // Referencia a pago si aplica
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  type: text("type", { enum: ["debit", "credit"] }).notNull(), // debit aumenta deuda, credit la disminuye
+  category: text("category"), // Para gastos: "combustible", "mantenimiento", "salarios", etc.
+  description: text("description").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  reference: text("reference"), // Número de referencia externo
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id), // Usuario que creó la transacción
+}, (table) => ({
+  // Restricción unique: cada compañía tiene su propia numeración por tipo
+  uniqueDocumentNumber: unique().on(table.companyId, table.documentType, table.documentNumber),
+}));
+
+export const insertTransactionSchema = z.object({
+  companyId: z.number().int().positive().optional(), // Opcional - se inyecta del servidor
+  documentType: z.enum(["FT", "RI", "ANT", "CXC", "GS", "NC", "ND"]),
+  customerId: z.number().int().positive().optional().nullable(),
+  invoiceId: z.number().int().positive().optional().nullable(),
+  paymentId: z.number().int().positive().optional().nullable(),
+  amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
+  type: z.enum(["debit", "credit"]),
+  category: z.string().optional().nullable(),
+  description: z.string().min(1, "La descripción es requerida"),
+  date: z.string().datetime().optional(),
+  reference: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  createdBy: z.number().int().positive().optional().nullable(),
+});
+
+export type Transaction = typeof transactions.$inferSelect;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+
 // Customer Orders
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),

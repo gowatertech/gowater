@@ -1,7 +1,7 @@
 import {
   users, customers, products, routes, orders, orderItems,
   settings as settingsTable, trucks, invoices, payments,
-  recurringOrders, recurringOrderItems,
+  recurringOrders, recurringOrderItems, transactions,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -15,7 +15,8 @@ import {
   type BottleReturn, type InsertBottleReturn,
   type Payment, type InsertPayment, insertPaymentSchema,
   type RecurringOrder, type InsertRecurringOrder,
-  type RecurringOrderItem, type InsertRecurringOrderItem
+  type RecurringOrderItem, type InsertRecurringOrderItem,
+  type Transaction, type InsertTransaction
 } from "@shared/schema";
 import { db } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
@@ -116,6 +117,18 @@ export interface IStorage {
   updateRecurringOrderItem(id: number, item: Partial<InsertRecurringOrderItem>): Promise<RecurringOrderItem>;
   deleteRecurringOrderItem(id: number): Promise<void>;
   generateOrderFromRecurring(recurringOrderId: number): Promise<Order>;
+  
+  // Transactions
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getCustomerTransactions(customerId: number): Promise<Transaction[]>;
+  getAllTransactions(): Promise<Transaction[]>;
+  getCustomerBalanceFromTransactions(customerId: number): Promise<{
+    totalDebits: string;
+    totalCredits: string;
+    balance: string;
+    transactions: Transaction[];
+  }>;
+  generateDocumentNumber(documentType: "FT" | "RI" | "ANT" | "CXC" | "GS" | "NC" | "ND"): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1315,6 +1328,145 @@ export class DatabaseStorage implements IStorage {
       console.error("Error en storage.generateOrderFromRecurring:", error);
       throw error;
     }
+  }
+
+  // Transactions
+  async generateDocumentNumber(documentType: "FT" | "RI" | "ANT" | "CXC" | "GS" | "NC" | "ND"): Promise<string> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para generar número de documento");
+    }
+
+    // Obtener el último número para este tipo de documento
+    const maxNumberResult = await db
+      .select({
+        maxNumber: sql<string>`MAX(CAST(SUBSTRING(${transactions.documentNumber} FROM '[0-9]+') AS INTEGER))`
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.companyId, companyId),
+          eq(transactions.documentType, documentType)
+        )
+      );
+
+    const maxNumber = parseInt(maxNumberResult[0]?.maxNumber || "0", 10);
+    const nextNumber = maxNumber + 1;
+
+    // Formato: TIPO-0001, TIPO-0002, etc.
+    return `${documentType}-${nextNumber.toString().padStart(4, '0')}`;
+  }
+
+  async createTransaction(transactionData: InsertTransaction): Promise<Transaction> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para crear transacción");
+    }
+
+    // Usar transacción DB para garantizar numeración secuencial segura ante concurrencia
+    const [transaction] = await db.transaction(async (tx) => {
+      // Obtener el último número para este tipo de documento CON LOCK
+      const maxNumberResult = await tx
+        .select({
+          maxNumber: sql<string>`MAX(CAST(SUBSTRING(${transactions.documentNumber} FROM '[0-9]+') AS INTEGER))`
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.companyId, companyId),
+            eq(transactions.documentType, transactionData.documentType)
+          )
+        )
+        .for('update'); // Lock para evitar race conditions
+
+      const maxNumber = parseInt(maxNumberResult[0]?.maxNumber || "0", 10);
+      const nextNumber = maxNumber + 1;
+      const documentNumber = `${transactionData.documentType}-${nextNumber.toString().padStart(4, '0')}`;
+
+      // Insertar con el número generado dentro de la transacción
+      return await tx.insert(transactions).values({
+        ...transactionData,
+        companyId,
+        documentNumber,
+        date: transactionData.date || getNowRD()
+      }).returning();
+    });
+
+    console.log(`✅ Transacción ${transaction.documentNumber} creada exitosamente`);
+    return transaction;
+  }
+
+  async getCustomerTransactions(customerId: number): Promise<Transaction[]> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para obtener transacciones");
+    }
+
+    return await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.companyId, companyId),
+          eq(transactions.customerId, customerId)
+        )
+      )
+      .orderBy(desc(transactions.date));
+  }
+
+  async getAllTransactions(): Promise<Transaction[]> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para obtener transacciones");
+    }
+
+    return await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.companyId, companyId))
+      .orderBy(desc(transactions.date));
+  }
+
+  async getCustomerBalanceFromTransactions(customerId: number): Promise<{
+    totalDebits: string;
+    totalCredits: string;
+    balance: string;
+    transactions: Transaction[];
+  }> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para calcular balance");
+    }
+
+    // Obtener todas las transacciones del cliente
+    const customerTransactions = await this.getCustomerTransactions(customerId);
+
+    // Calcular totales
+    let totalDebits = 0;
+    let totalCredits = 0;
+
+    customerTransactions.forEach(transaction => {
+      const amount = parseFloat(transaction.amount.toString());
+      if (transaction.type === "debit") {
+        totalDebits += amount;
+      } else {
+        totalCredits += amount;
+      }
+    });
+
+    const balance = totalDebits - totalCredits;
+
+    return {
+      totalDebits: totalDebits.toFixed(2),
+      totalCredits: totalCredits.toFixed(2),
+      balance: balance.toFixed(2),
+      transactions: customerTransactions
+    };
   }
 }
 

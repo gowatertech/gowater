@@ -2980,6 +2980,25 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
       console.log(`✅ Total guardado en factura: "${invoice.total}"`);
 
+      // Crear transacción automática tipo FT (Factura)
+      try {
+        await storage.createTransaction({
+          companyId,
+          documentType: 'FT',
+          customerId: invoice.customer_id,
+          invoiceId: invoice.id,
+          amount: invoice.total.toString(),
+          type: 'debit', // Las facturas aumentan la deuda del cliente
+          description: `Factura #${invoice.invoice_number}`,
+          notes: invoice.notes || null,
+          date: invoice.date
+        });
+        console.log(`✅ Transacción FT creada automáticamente para factura #${invoice.invoice_number}`);
+      } catch (transactionError) {
+        console.error(`❌ Error al crear transacción para factura #${invoice.id}:`, transactionError);
+        // No fallar la creación de la factura si falla la transacción
+      }
+
       // DEBUG: Ver el método de pago recibido
       console.log(`🔍 DEBUG - paymentMethod recibido:`, result.data.paymentMethod);
       console.log(`🔍 DEBUG - Comparación 'cash':`, result.data.paymentMethod === 'cash');
@@ -4573,6 +4592,31 @@ export async function registerRoutes(router: express.Router) {
         
         console.log("POST /api/payments - Pago creado:", payment);
         
+        // Crear transacción automática (RI para pagos normales, ANT para anticipos)
+        try {
+          const documentType = payment.isAdvance ? 'ANT' : 'RI';
+          const description = payment.isAdvance 
+            ? `Anticipo ${payment.documentNumber || ''}`
+            : `Pago a factura`;
+          
+          await storage.createTransaction({
+            companyId,
+            documentType,
+            customerId: payment.customerId,
+            invoiceId: payment.invoiceId || null,
+            paymentId: payment.id,
+            amount: payment.amount.toString(),
+            type: 'credit', // Los pagos y anticipos disminuyen la deuda (son crédito para el cliente)
+            description,
+            notes: payment.notes || null,
+            date: payment.date
+          });
+          console.log(`✅ Transacción ${documentType} creada automáticamente para pago #${payment.id}`);
+        } catch (transactionError) {
+          console.error(`❌ Error al crear transacción para pago #${payment.id}:`, transactionError);
+          // No fallar la creación del pago si falla la transacción
+        }
+        
         // Actualizar el estado de la factura si corresponde
         const invoiceId = payment.invoiceId;
         
@@ -4629,6 +4673,120 @@ export async function registerRoutes(router: express.Router) {
       }
     } catch (error) {
       console.error("Error al crear pago:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Transactions (Sistema unificado de transacciones)
+  router.post("/transactions", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      console.log("POST /api/transactions - Datos recibidos:", JSON.stringify(req.body, null, 2));
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      // Asegurarse que amount tenga el formato correcto (string con 2 decimales)
+      const amount = typeof req.body.amount === 'number' 
+        ? req.body.amount.toFixed(2) 
+        : Number(req.body.amount).toFixed(2);
+      
+      // Inyectar companyId del servidor antes de validar
+      const dataWithCompanyId = {
+        ...req.body,
+        companyId,
+        amount,
+        customerId: req.body.customerId || null,
+        invoiceId: req.body.invoiceId || null,
+        paymentId: req.body.paymentId || null,
+      };
+      
+      // Validar con Zod schema
+      const validationResult = insertTransactionSchema.safeParse(dataWithCompanyId);
+      
+      if (!validationResult.success) {
+        console.error("POST /api/transactions - Validación fallida:", validationResult.error.format());
+        return res.status(400).json({ 
+          error: "Datos de transacción inválidos", 
+          details: validationResult.error.format() 
+        });
+      }
+      
+      console.log("POST /api/transactions - Datos validados:", JSON.stringify(validationResult.data, null, 2));
+      
+      // Crear la transacción (el storage se encarga de generar el número de documento)
+      const transaction = await storage.createTransaction(validationResult.data);
+      
+      console.log(`✅ Transacción ${transaction.documentNumber} creada exitosamente`);
+      res.json(transaction);
+    } catch (error) {
+      console.error("Error al crear transacción:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  router.get("/transactions", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      const allTransactions = await storage.getAllTransactions();
+      
+      console.log(`GET /api/transactions - Retornando ${allTransactions.length} transacciones`);
+      res.json(allTransactions);
+    } catch (error) {
+      console.error("Error al obtener transacciones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  router.get("/customers/:id/transactions", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      const customerId = parseInt(req.params.id);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      if (!customerId || isNaN(customerId)) {
+        return res.status(400).json({ error: "ID de cliente inválido" });
+      }
+      
+      const customerTransactions = await storage.getCustomerTransactions(customerId);
+      
+      console.log(`GET /api/customers/${customerId}/transactions - Retornando ${customerTransactions.length} transacciones`);
+      res.json(customerTransactions);
+    } catch (error) {
+      console.error("Error al obtener transacciones del cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  router.get("/customers/:id/balance-detail", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      const customerId = parseInt(req.params.id);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      if (!customerId || isNaN(customerId)) {
+        return res.status(400).json({ error: "ID de cliente inválido" });
+      }
+      
+      const balanceDetail = await storage.getCustomerBalanceFromTransactions(customerId);
+      
+      console.log(`GET /api/customers/${customerId}/balance-detail - Balance: ${balanceDetail.balance}`);
+      res.json(balanceDetail);
+    } catch (error) {
+      console.error("Error al obtener balance detallado del cliente:", error);
       res.status(500).json({ error: String(error) });
     }
   });

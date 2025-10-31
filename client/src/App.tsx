@@ -23,6 +23,7 @@ import RegisterPayment from "@/pages/payments/register";
 import PaymentsList from "@/pages/payments/list";
 import PaymentsHistory from "@/pages/payments/history";
 import Billing from "@/pages/billing";
+import RegisterInitialBalance from "@/pages/transactions/initial-balance";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import Entregas from "@/pages/entregas";
@@ -386,6 +387,7 @@ function Router() {
         <Route path="/payments/register" component={RegisterPayment} />
         <Route path="/payments/list" component={PaymentsList} />
         <Route path="/payments/history" component={PaymentsHistory} />
+        <Route path="/transactions/initial-balance" component={RegisterInitialBalance} />
         <Route path="/customers" component={Customers} />
 
         {/* Inventory Routes - Specific routes first */}
