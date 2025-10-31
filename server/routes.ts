@@ -2979,9 +2979,21 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
       console.log(`✅ Total guardado en factura: "${invoice.total}"`);
 
+      // DEBUG: Ver el método de pago recibido
+      console.log(`🔍 DEBUG - paymentMethod recibido:`, result.data.paymentMethod);
+      console.log(`🔍 DEBUG - Comparación 'cash':`, result.data.paymentMethod === 'cash');
+      console.log(`🔍 DEBUG - Status inicial:`, initialStatus);
+
       // Si es pago en efectivo, crear automáticamente el registro de pago
       if (result.data.paymentMethod === 'cash') {
         console.log(`💵 Creando pago automático en efectivo para factura #${invoice.id}`);
+        console.log(`💵 Valores del pago:`, {
+          companyId,
+          invoiceId: invoice.id,
+          customerId: invoice.customer_id,
+          amount: invoice.total,
+          paymentMethod: 'cash'
+        });
         
         try {
           const [payment] = await db
@@ -2989,17 +3001,19 @@ export async function registerRoutes(router: express.Router) {
             .values({
               companyId: companyId,
               invoiceId: invoice.id,
-              customerId: invoice.customerId,
+              customerId: invoice.customer_id,
               amount: invoice.total,
               paymentMethod: 'cash',
               date: new Date(),
-              notes: `Pago automático en efectivo al crear factura #${invoice.invoiceNumber}`
+              notes: `Pago automático en efectivo al crear factura #${invoice.invoice_number}`
             })
             .returning();
           
-          console.log(`✅ Pago automático #${payment.id} creado para factura #${invoice.id}`);
+          console.log(`✅ Pago automático #${payment.id} creado exitosamente para factura #${invoice.id}`);
         } catch (paymentError) {
-          console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
+          console.error(`❌ ERROR CRÍTICO al crear pago automático para factura #${invoice.id}:`);
+          console.error(`❌ Tipo de error:`, paymentError);
+          console.error(`❌ Detalles completos:`, JSON.stringify(paymentError, null, 2));
           // No fallar la creación de la factura si falla el pago
         }
       } 
