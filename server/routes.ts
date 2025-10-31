@@ -4760,8 +4760,35 @@ export async function registerRoutes(router: express.Router) {
       
       const customerTransactions = await storage.getCustomerTransactions(customerId);
       
-      console.log(`GET /api/customers/${customerId}/transactions - Retornando ${customerTransactions.length} transacciones`);
-      res.json(customerTransactions);
+      // Transformar las transacciones para calcular balance acumulado y separar debit/credit
+      let runningBalance = 0;
+      const transactionsWithBalance = customerTransactions
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) // Ordenar por fecha ascendente
+        .map(transaction => {
+          const amount = parseFloat(transaction.amount.toString());
+          
+          // Calcular debit y credit basados en el tipo
+          const debit = transaction.type === "debit" ? transaction.amount : null;
+          const credit = transaction.type === "credit" ? transaction.amount : null;
+          
+          // Actualizar balance acumulado
+          if (transaction.type === "debit") {
+            runningBalance += amount;
+          } else {
+            runningBalance -= amount;
+          }
+          
+          return {
+            ...transaction,
+            debit,
+            credit,
+            balance: runningBalance.toFixed(2)
+          };
+        })
+        .reverse(); // Invertir para mostrar más recientes primero
+      
+      console.log(`GET /api/customers/${customerId}/transactions - Retornando ${transactionsWithBalance.length} transacciones`);
+      res.json(transactionsWithBalance);
     } catch (error) {
       console.error("Error al obtener transacciones del cliente:", error);
       res.status(500).json({ error: String(error) });
