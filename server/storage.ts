@@ -945,6 +945,8 @@ export class DatabaseStorage implements IStorage {
   
   // Calcular el balance de un cliente
   async getCustomerBalance(customerId: number): Promise<{
+    customerBalance: string;
+    creditLimit: string;
     totalPendingInvoices: string;
     totalAvailableAdvances: string;
     netBalance: string;
@@ -953,11 +955,30 @@ export class DatabaseStorage implements IStorage {
     
     if (!companyId) {
       return {
+        customerBalance: "0.00",
+        creditLimit: "0.00",
         totalPendingInvoices: "0.00",
         totalAvailableAdvances: "0.00",
         netBalance: "0.00"
       };
     }
+    
+    // Obtener balance y límite de crédito del cliente desde la tabla customers
+    const [customer] = await db
+      .select({
+        balance: customers.balance,
+        creditLimit: customers.creditlimit
+      })
+      .from(customers)
+      .where(
+        and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        )
+      );
+    
+    const customerBalance = customer?.balance || "0.00";
+    const creditLimit = customer?.creditLimit || "0.00";
     
     // Calcular total de facturas pendientes (status = 'pending')
     const pendingInvoicesResult = await db
@@ -992,10 +1013,12 @@ export class DatabaseStorage implements IStorage {
     
     const totalAvailableAdvances = availableAdvancesResult[0]?.total || "0.00";
     
-    // Calcular balance neto (pendiente - anticipos)
-    const netBalance = (parseFloat(totalPendingInvoices) - parseFloat(totalAvailableAdvances)).toFixed(2);
+    // Calcular balance neto (balance del cliente + facturas pendientes - anticipos)
+    const netBalance = (parseFloat(customerBalance) + parseFloat(totalPendingInvoices) - parseFloat(totalAvailableAdvances)).toFixed(2);
     
     return {
+      customerBalance,
+      creditLimit,
       totalPendingInvoices,
       totalAvailableAdvances,
       netBalance

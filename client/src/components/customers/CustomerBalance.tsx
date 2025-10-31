@@ -139,6 +139,8 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
 
   const balance = balanceData?.balance;
   const availableAdvances = balanceData?.availableAdvances || [];
+  const customerBalance = parseFloat(balance?.customerBalance || "0");
+  const creditLimit = parseFloat(balance?.creditLimit || "0");
   const netBalance = parseFloat(balance?.netBalance || "0");
   const pendingInvoices = parseFloat(balance?.totalPendingInvoices || "0");
   const totalAdvances = parseFloat(balance?.totalAvailableAdvances || "0");
@@ -263,6 +265,27 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Balance Principal y Límite de Crédito */}
+        <div className="grid grid-cols-2 gap-3 p-3 bg-muted/50 rounded-lg">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground font-medium">Balance del Cliente (CXC)</p>
+            <p className="text-2xl font-bold text-red-600 flex items-center gap-1" data-testid="text-customer-balance">
+              <DollarSign className="h-5 w-5" />
+              {customerBalance.toFixed(2)}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground font-medium">Límite de Crédito</p>
+            <p className="text-2xl font-bold text-blue-600 flex items-center gap-1" data-testid="text-credit-limit">
+              <Wallet className="h-5 w-5" />
+              {creditLimit.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Desglose del Balance */}
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Facturas Pendientes</p>
@@ -279,9 +302,9 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Balance Neto</p>
-            <p className={`text-lg font-semibold flex items-center gap-1 ${netBalance > 0 ? 'text-red-600' : netBalance < 0 ? 'text-green-600' : ''}`} data-testid="text-net-balance">
-              <DollarSign className="h-4 w-4" />
+            <p className="text-xs text-muted-foreground font-medium">Balance Total</p>
+            <p className={`text-xl font-bold flex items-center gap-1 ${netBalance > 0 ? 'text-red-600' : netBalance < 0 ? 'text-green-600' : ''}`} data-testid="text-net-balance">
+              <DollarSign className="h-5 w-5" />
               ${netBalance.toFixed(2)}
             </p>
           </div>
