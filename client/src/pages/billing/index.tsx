@@ -279,6 +279,8 @@ export default function Billing() {
     onSuccess: (invoice) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers", selectedCustomer?.id, "balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/payments-stats"] });
       
       // Determinar el mensaje según el flujo
       let title = "¡Factura creada!";
