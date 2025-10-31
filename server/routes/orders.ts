@@ -1455,6 +1455,77 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
     
     console.log(`✅ Orden #${orderId} actualizada con invoice_id: ${invoice.id}`);
     
+    // ===== CREAR TRANSACCIONES =====
+    // Obtener nombre del cliente
+    const customerQuery = `SELECT businessname FROM customers WHERE id = $1 AND company_id = $2`;
+    const customerResult = await pool.query(customerQuery, [order.customer_id, companyId]);
+    const customerName = customerResult.rows[0]?.businessname || 'Cliente';
+    
+    // 1. Crear transacción FT (Factura)
+    await pool.query('LOCK TABLE transactions IN SHARE ROW EXCLUSIVE MODE');
+    
+    const ftQuery = `
+      SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num
+      FROM transactions
+      WHERE company_id = $1 AND document_type = 'FT'
+    `;
+    const ftResult = await pool.query(ftQuery, [companyId]);
+    const nextFtNumber = ftResult.rows[0].max_num + 1;
+    const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
+    
+    const createFtTransactionQuery = `
+      INSERT INTO transactions (
+        company_id, document_type, document_number, customer_id, invoice_id,
+        amount, type, description, date
+      )
+      VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, NOW())
+      RETURNING *
+    `;
+    
+    await pool.query(createFtTransactionQuery, [
+      companyId,
+      ftDocNumber,
+      order.customer_id,
+      invoice.id,
+      total.toFixed(2),
+      `Factura #${invoice.invoice_number} - ${customerName}`
+    ]);
+    
+    console.log(`✅ Transacción ${ftDocNumber} creada para factura #${invoice.id}`);
+    
+    // 2. Crear transacción RI (Recibo) solo si hay pago
+    if (payment) {
+      const riQuery = `
+        SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num
+        FROM transactions
+        WHERE company_id = $1 AND document_type = 'RI'
+      `;
+      const riResult = await pool.query(riQuery, [companyId]);
+      const nextRiNumber = riResult.rows[0].max_num + 1;
+      const riDocNumber = `RI-${String(nextRiNumber).padStart(4, '0')}`;
+      
+      const createRiTransactionQuery = `
+        INSERT INTO transactions (
+          company_id, document_type, document_number, customer_id, invoice_id, payment_id,
+          amount, type, description, date
+        )
+        VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, NOW())
+        RETURNING *
+      `;
+      
+      await pool.query(createRiTransactionQuery, [
+        companyId,
+        riDocNumber,
+        order.customer_id,
+        invoice.id,
+        payment.id,
+        total.toFixed(2),
+        `Pago Factura - ${customerName}`
+      ]);
+      
+      console.log(`✅ Transacción ${riDocNumber} creada para pago #${payment.id}`);
+    }
+    
     res.json({
       success: true,
       invoice: {
