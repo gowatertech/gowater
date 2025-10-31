@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocation } from "wouter";
 import { PrinterService, DocumentType } from "@/services/PrinterService";
-import { formatDateRD } from "@/lib/date-utils";
+import { toRD } from "@/lib/date-utils";
 import { 
   CheckCircle, 
   XCircle, 
@@ -468,7 +468,7 @@ export default function PaymentsHistory() {
             <tbody>
               {filteredPayments.map(payment => (
                 <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
-                  <td style={{padding: "8px"}}>{formatDateRD(payment.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                  <td style={{padding: "8px"}}>{format(toRD(payment.date), 'dd/MM/yyyy')}</td>
                   <td style={{padding: "8px"}}>{payment.customerName}</td>
                   <td style={{padding: "8px"}}>
                     {payment.isAdvance 
@@ -774,7 +774,7 @@ export default function PaymentsHistory() {
                       <TableRow key={payment.id} className="text-xs hover:bg-muted/30">
                         <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                         <TableCell className="py-1.5">
-                          {formatDateRD(payment.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                          {format(toRD(payment.date), 'dd/MM/yyyy', { locale: es })}
                         </TableCell>
                         <TableCell className="py-1.5">
                           <div className="flex flex-col gap-1">
@@ -849,7 +849,7 @@ export default function PaymentsHistory() {
                     <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        {formatDateRD(payment.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {format(toRD(payment.date), 'dd/MM/yyyy', { locale: es })}
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <FileText className="h-3 w-3" />
@@ -947,7 +947,7 @@ export default function PaymentsHistory() {
                 <div>
                   <p className="text-muted-foreground text-xs">Fecha:</p>
                   <p className="font-medium">
-                    {formatDateRD(selectedPayment.date, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {format(toRD(selectedPayment.date), 'dd/MM/yyyy HH:mm', { locale: es })}
                   </p>
                 </div>
                 <div>
