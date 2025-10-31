@@ -1094,7 +1094,7 @@ export class DatabaseStorage implements IStorage {
     
     // Aplicar anticipos hasta cubrir el total de la factura
     for (const advance of availableAdvances) {
-      if (remainingBalance <= 0) break;
+      if (remainingBalance <= 0.01) break; // Tolerancia de 1 centavo
       
       const advanceAmount = parseFloat(advance.amount);
       
@@ -1112,17 +1112,41 @@ export class DatabaseStorage implements IStorage {
         
         console.log(`✅ Anticipo #${advance.id} ($${advanceAmount}) aplicado completamente a factura #${invoiceId}`);
       } else {
-        // El anticipo es mayor que el balance restante
-        // En este caso, aplicamos todo el anticipo y la factura queda completamente pagada
+        // El anticipo es MAYOR que el balance restante
+        // Dividir el anticipo: aplicar solo lo necesario y dejar el exceso disponible
+        
+        const amountToApply = remainingBalance;
+        const amountToKeep = advanceAmount - remainingBalance;
+        
+        console.log(`🔄 Dividiendo anticipo #${advance.id}: Aplicar $${amountToApply.toFixed(2)} a factura, Mantener $${amountToKeep.toFixed(2)} disponible`);
+        
+        // Actualizar el anticipo original con el exceso (sin vincular a factura)
         await db
           .update(payments)
-          .set({ invoiceId: invoiceId })
+          .set({ amount: amountToKeep.toFixed(2) })
           .where(eq(payments.id, advance.id));
         
-        totalApplied += remainingBalance;
-        appliedPayments.push(advance);
+        // Crear un nuevo pago con el monto exacto para cubrir la factura
+        const [newPayment] = await db
+          .insert(payments)
+          .values({
+            companyId: advance.companyId,
+            customerId: advance.customerId,
+            invoiceId: invoiceId,
+            amount: amountToApply.toFixed(2),
+            paymentMethod: advance.paymentMethod,
+            date: new Date(),
+            isAdvance: true,
+            notes: `Anticipo aplicado parcialmente de pago #${advance.id}`
+          })
+          .returning();
         
-        console.log(`✅ Anticipo #${advance.id} ($${advanceAmount}) aplicado parcialmente ($${remainingBalance}) a factura #${invoiceId}`);
+        totalApplied += amountToApply;
+        appliedPayments.push(newPayment);
+        
+        console.log(`✅ Anticipo dividido: Nuevo pago #${newPayment.id} ($${amountToApply.toFixed(2)}) aplicado a factura #${invoiceId}`);
+        console.log(`✅ Anticipo #${advance.id} actualizado a $${amountToKeep.toFixed(2)} (disponible para futuras facturas)`);
+        
         remainingBalance = 0;
         break;
       }
