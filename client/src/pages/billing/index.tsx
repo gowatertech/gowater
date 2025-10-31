@@ -134,7 +134,7 @@ export default function Billing() {
 
   // Calcular saldo a favor del cliente
   const availableAdvances = customerBalance?.availableAdvances || [];
-  const totalAdvances = parseFloat(customerBalance?.balance?.totalAvailableAdvances || "0");
+  const totalAdvances = parseFloat(customerBalance?.balance?.availableAdvances || "0");
 
   // Filtrar clientes
   const filteredCustomers = customers.filter((customer) => {
