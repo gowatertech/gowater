@@ -61,6 +61,7 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -86,7 +87,7 @@ export default function Billing() {
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer'>('cash');
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
@@ -565,7 +566,7 @@ export default function Billing() {
             <Card>
               <CardContent className="p-3 space-y-2">
                 <label className="text-sm font-semibold">Método de Pago</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                     className="flex-col h-16"
@@ -592,6 +593,15 @@ export default function Billing() {
                   >
                     <Receipt className="h-5 w-5 mb-1" />
                     <span className="text-xs">Crédito</span>
+                  </Button>
+                  <Button
+                    variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
+                    className="flex-col h-16"
+                    onClick={() => setPaymentMethod('transfer')}
+                    data-testid="button-payment-transfer"
+                  >
+                    <ArrowLeftRight className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Transferencia</span>
                   </Button>
                 </div>
               </CardContent>

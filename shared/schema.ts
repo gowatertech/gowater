@@ -521,7 +521,7 @@ export const invoices = pgTable("invoices", {
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "transfer"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
   notes: text("notes"),
 }, (table) => ({
@@ -546,7 +546,7 @@ export const insertInvoiceSchema = z.object({
   tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales"),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]).optional(),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
+  paymentMethod: z.enum(["cash", "credit", "card", "transfer"]),
   notes: z.string().max(200).optional(),
   // La fecha se manejará en el servidor con defaultNow()
   // status es opcional - el backend lo determina automáticamente basado en paymentMethod
