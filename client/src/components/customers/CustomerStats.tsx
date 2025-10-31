@@ -40,11 +40,11 @@ export function CustomerStats({ customers }: CustomerStatsProps) {
 
   return (
     <Card className="shadow-lg border-primary/20">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 bg-primary/5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            Estadísticas
+          <CardTitle className="text-lg sm:text-xl flex items-center gap-2 font-bold">
+            <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+            Estadísticas de Clientes
           </CardTitle>
           <Button
             variant="ghost"
