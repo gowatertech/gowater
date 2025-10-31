@@ -485,7 +485,7 @@ export default function Billing() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-0" align="start">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Buscar cliente..." 
                         value={customerSearchTerm}
