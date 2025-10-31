@@ -104,6 +104,7 @@ export default function Customers() {
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
+  const [detailTab, setDetailTab] = useState<string>("info");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [locationCaptureCustomer, setLocationCaptureCustomer] = useState<CustomerWithDetails | null>(null);
@@ -365,6 +366,7 @@ export default function Customers() {
     setSelectedCustomer(customer);
     setSelectedProvinceId(customer.provinceid);
     setIsEditing(false);
+    setDetailTab("info"); // Resetear al tab de información
     
     // Prepara los datos para el formulario, convirtiendo null a undefined
     const formData = {
@@ -1357,26 +1359,28 @@ export default function Customers() {
                 </CardHeader>
               </Card>
 
-              {/* Información en columnas */}
-              <div className="grid grid-cols-1 gap-6">
-                {/* Sección de Balance */}
-                <div>
-                  <CustomerBalance 
-                    customerId={selectedCustomer.id} 
-                    customerName={selectedCustomer.businessname}
-                  />
-                </div>
+              {/* Tabs para organizar la información */}
+              <Tabs value={detailTab} onValueChange={setDetailTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="info" className="gap-2" data-testid="tab-customer-info">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Información</span>
+                    <span className="sm:hidden">Info</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="balance" className="gap-2" data-testid="tab-customer-balance">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">Balance</span>
+                    <span className="sm:hidden">Balance</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="transactions" className="gap-2" data-testid="tab-customer-transactions">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="hidden sm:inline">Transacciones</span>
+                    <span className="sm:hidden">Trans.</span>
+                  </TabsTrigger>
+                </TabsList>
 
-                {/* Sección de Historial de Transacciones */}
-                <div>
-                  <CustomerTransactionHistory customerId={selectedCustomer.id} />
-                </div>
-              </div>
-
-              {/* Información en dos columnas */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                {/* Columna izquierda: Formulario */}
-                <div className="lg:col-span-3">
+                {/* Tab: Información del Cliente */}
+                <TabsContent value="info" className="mt-6">
                   <Card>
                     <CardHeader className="px-4 sm:px-6">
                       <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -1841,8 +1845,21 @@ export default function Customers() {
                       </Form>
                     </CardContent>
                   </Card>
-                </div>
-              </div>
+                </TabsContent>
+
+                {/* Tab: Balance */}
+                <TabsContent value="balance" className="mt-6">
+                  <CustomerBalance 
+                    customerId={selectedCustomer.id} 
+                    customerName={selectedCustomer.businessname}
+                  />
+                </TabsContent>
+
+                {/* Tab: Transacciones */}
+                <TabsContent value="transactions" className="mt-6">
+                  <CustomerTransactionHistory customerId={selectedCustomer.id} />
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </TabsContent>
