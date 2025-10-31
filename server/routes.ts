@@ -3037,25 +3037,9 @@ export async function registerRoutes(router: express.Router) {
         console.log(`📋 Factura #${invoice.id} pendiente de pago: $${remainingBalance.toFixed(2)} (método: ${result.data.paymentMethod})`);
         invoice.status = 'pending';
         
-        // PASO 3: Actualizar el balance del cliente (CxC) con el monto pendiente
-        try {
-          await db
-            .update(customers)
-            .set({
-              balance: sql`COALESCE(${customers.balance}, 0) + ${remainingBalance.toFixed(2)}`
-            })
-            .where(
-              and(
-                eq(customers.id, invoice.customer_id),
-                eq(customers.companyId, companyId)
-              )
-            );
-          
-          console.log(`💰 Balance del cliente actualizado: +$${remainingBalance.toFixed(2)} (factura pendiente #${invoice.id})`);
-        } catch (balanceError) {
-          console.error(`❌ Error al actualizar balance del cliente:`, balanceError);
-          // No fallar la creación de la factura si falla la actualización del balance
-        }
+        // NO actualizar el balance del cliente (CxC)
+        // El balance es un campo MANUAL de carga inicial, no debe ser calculado automáticamente
+        // El Balance Total se calcula como: CxC + Facturas Pendientes - Anticipos Disponibles
       }
 
       res.json(invoice);

@@ -906,18 +906,8 @@ export class DatabaseStorage implements IStorage {
     
     const payment = await this.registerPayment(advancePayment);
     
-    // Actualizar el balance del cliente: restar el anticipo (balance negativo = a favor del cliente)
-    await db
-      .update(customers)
-      .set({
-        balance: sql`COALESCE(${customers.balance}, 0) - ${amount}`
-      })
-      .where(
-        and(
-          eq(customers.id, customerId),
-          eq(customers.companyId, companyId)
-        )
-      );
+    // NO actualizar el balance del cliente
+    // El balance (CxC) es un campo MANUAL de carga inicial, no debe ser calculado automáticamente
     
     return payment;
   }
