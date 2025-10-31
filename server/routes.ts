@@ -4523,10 +4523,30 @@ export async function registerRoutes(router: express.Router) {
         ? req.body.amount.toFixed(2) 
         : Number(req.body.amount).toFixed(2);
       
+      let notes = req.body.notes;
+      
+      // Si es un abono a una factura (no es anticipo), generar la nota automáticamente
+      if (req.body.invoiceId && !req.body.isAdvance) {
+        // Obtener el número de factura
+        const [invoice] = await db
+          .select()
+          .from(invoices)
+          .where(and(
+            eq(invoices.id, req.body.invoiceId),
+            eq(invoices.companyId, companyId)
+          ));
+        
+        if (invoice) {
+          notes = `Abono a factura No. Fact ${invoice.invoiceNumber}`;
+          console.log(`📝 Nota generada automáticamente: ${notes}`);
+        }
+      }
+      
       const paymentData = {
         ...req.body,
         companyId: companyId, // Añadir el companyId del contexto
         amount: amount,
+        notes: notes, // Usar la nota generada o la original
         date: req.body.date ? new Date(req.body.date) : new Date()
       };
 
