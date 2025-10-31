@@ -4791,6 +4791,160 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para reconstruir transacciones desde datos existentes
+  router.post("/transactions/rebuild", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+
+      console.log(`🔄 Iniciando reconstrucción de transacciones para companyId=${companyId}`);
+      
+      const results = {
+        invoicesProcessed: 0,
+        paymentsProcessed: 0,
+        transactionsCreated: 0,
+        errors: [] as string[],
+      };
+
+      // 1. Obtener todas las facturas que no tengan transacción asociada
+      const allInvoices = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.companyId, companyId))
+        .orderBy(invoices.date);
+
+      console.log(`📄 Encontradas ${allInvoices.length} facturas`);
+
+      // 2. Obtener todas las transacciones existentes para evitar duplicados
+      const existingTransactions = await db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.companyId, companyId));
+
+      const existingInvoiceIds = new Set(
+        existingTransactions
+          .filter(t => t.invoiceId !== null)
+          .map(t => t.invoiceId)
+      );
+
+      const existingPaymentIds = new Set(
+        existingTransactions
+          .filter(t => t.paymentId !== null)
+          .map(t => t.paymentId)
+      );
+
+      // 3. Crear transacciones para facturas sin transacción
+      for (const invoice of allInvoices) {
+        if (existingInvoiceIds.has(invoice.id)) {
+          console.log(`⏭️  Factura #${invoice.invoiceNumber} ya tiene transacción, omitiendo`);
+          continue;
+        }
+
+        try {
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(eq(customers.id, invoice.customerId))
+            .limit(1);
+
+          if (customer.length === 0) {
+            results.errors.push(`Factura #${invoice.invoiceNumber}: cliente no encontrado`);
+            continue;
+          }
+
+          const transaction = await storage.createTransaction({
+            documentType: "FT",
+            customerId: invoice.customerId,
+            invoiceId: invoice.id,
+            paymentId: null,
+            amount: invoice.total,
+            type: "debit",
+            description: `Factura #${invoice.invoiceNumber} - ${customer[0].businessname}`,
+            date: invoice.date,
+            companyId,
+          });
+
+          results.invoicesProcessed++;
+          results.transactionsCreated++;
+          console.log(`✅ Transacción ${transaction.documentNumber} creada para factura #${invoice.invoiceNumber}`);
+        } catch (error) {
+          results.errors.push(`Factura #${invoice.invoiceNumber}: ${String(error)}`);
+          console.error(`❌ Error al procesar factura #${invoice.invoiceNumber}:`, error);
+        }
+      }
+
+      // 4. Obtener todos los pagos que no tengan transacción asociada
+      const allPayments = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.companyId, companyId))
+        .orderBy(payments.date);
+
+      console.log(`💰 Encontrados ${allPayments.length} pagos`);
+
+      // 5. Crear transacciones para pagos sin transacción
+      for (const payment of allPayments) {
+        if (existingPaymentIds.has(payment.id)) {
+          console.log(`⏭️  Pago #${payment.id} ya tiene transacción, omitiendo`);
+          continue;
+        }
+
+        try {
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(eq(customers.id, payment.customerId))
+            .limit(1);
+
+          if (customer.length === 0) {
+            results.errors.push(`Pago #${payment.id}: cliente no encontrado`);
+            continue;
+          }
+
+          // Determinar si es anticipo o pago regular
+          const documentType = payment.isAdvance ? "ANT" : "RI";
+          const description = payment.isAdvance
+            ? `Anticipo - ${customer[0].businessname}`
+            : payment.invoiceId
+            ? `Pago Factura - ${customer[0].businessname}`
+            : `Pago - ${customer[0].businessname}`;
+
+          const transaction = await storage.createTransaction({
+            documentType,
+            customerId: payment.customerId,
+            invoiceId: payment.invoiceId || null,
+            paymentId: payment.id,
+            amount: payment.amount,
+            type: "credit",
+            description,
+            date: payment.date,
+            companyId,
+          });
+
+          results.paymentsProcessed++;
+          results.transactionsCreated++;
+          console.log(`✅ Transacción ${transaction.documentNumber} creada para pago #${payment.id}`);
+        } catch (error) {
+          results.errors.push(`Pago #${payment.id}: ${String(error)}`);
+          console.error(`❌ Error al procesar pago #${payment.id}:`, error);
+        }
+      }
+
+      console.log(`🎉 Reconstrucción completada:`, results);
+      res.json({
+        success: true,
+        message: "Reconstrucción de transacciones completada",
+        ...results,
+      });
+    } catch (error) {
+      console.error("Error al reconstruir transacciones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Pedidos
   router.get("/orders", async (req, res) => {
     try {
