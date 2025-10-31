@@ -4550,7 +4550,7 @@ export async function registerRoutes(router: express.Router) {
         companyId: companyId, // Añadir el companyId del contexto
         amount: amount,
         notes: notes, // Usar la nota generada o la original
-        date: req.body.date ? new Date(req.body.date) : getNowRD()
+        date: getNowRD() // Siempre usar la fecha/hora actual en RD timezone
       };
 
       console.log("POST /api/payments - Datos del pago preparados:", JSON.stringify(paymentData, null, 2));

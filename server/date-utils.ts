@@ -4,14 +4,12 @@
  */
 
 /**
- * Obtiene la fecha y hora actual en la zona horaria de República Dominicana
- * @returns Date object con la hora local de RD
+ * Obtiene la fecha y hora actual en UTC (hora del servidor)
+ * PostgreSQL guarda en UTC, y el frontend convierte a RD timezone para mostrar
+ * @returns Date object en UTC
  */
 export function getNowRD(): Date {
-  // Crear fecha en zona horaria de República Dominicana
-  const now = new Date();
-  const rdTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Santo_Domingo' }));
-  return rdTime;
+  return new Date(); // Simplemente devolver la hora actual en UTC
 }
 
 /**
@@ -34,9 +32,9 @@ export function toRD(date: Date): Date {
 }
 
 /**
- * Formatea una fecha para PostgreSQL en zona horaria de RD
- * @returns String en formato ISO que PostgreSQL interpreta correctamente
+ * Obtiene un timestamp ISO en UTC para PostgreSQL
+ * @returns String en formato ISO (UTC)
  */
 export function getTimestampRD(): string {
-  return getNowRD().toISOString();
+  return new Date().toISOString();
 }
