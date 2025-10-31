@@ -1367,7 +1367,11 @@ export class DatabaseStorage implements IStorage {
 
     // Usar transacción DB para garantizar numeración secuencial segura ante concurrencia
     const [transaction] = await db.transaction(async (tx) => {
-      // Obtener el último número para este tipo de documento CON LOCK
+      // Lockear la tabla para evitar race conditions en numeración
+      // Esto asegura que solo una transacción pueda generar números a la vez
+      await tx.execute(sql`LOCK TABLE ${transactions} IN SHARE ROW EXCLUSIVE MODE`);
+      
+      // Obtener el último número para este tipo de documento
       const maxNumberResult = await tx
         .select({
           maxNumber: sql<string>`MAX(CAST(SUBSTRING(${transactions.documentNumber} FROM '[0-9]+') AS INTEGER))`
@@ -1378,8 +1382,7 @@ export class DatabaseStorage implements IStorage {
             eq(transactions.companyId, companyId),
             eq(transactions.documentType, transactionData.documentType)
           )
-        )
-        .for('update'); // Lock para evitar race conditions
+        );
 
       const maxNumber = parseInt(maxNumberResult[0]?.maxNumber || "0", 10);
       const nextNumber = maxNumber + 1;

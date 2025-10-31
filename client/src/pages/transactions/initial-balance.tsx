@@ -41,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 const formSchema = insertTransactionSchema.omit({ companyId: true }).extend({
   customerId: z.number().int().positive({ message: "Debes seleccionar un cliente" }),
   amount: z.string().regex(/^\d+\.?\d{0,2}$/, "El monto debe ser un número válido"),
+  description: z.string().optional(), // Hacerlo opcional ya que se genera automáticamente
 });
 
 export default function RegisterInitialBalance() {
@@ -110,7 +111,6 @@ export default function RegisterInitialBalance() {
       description: `CxC Inicial - ${customer?.businessname || 'Cliente'}`,
     };
 
-    console.log("Registrando CxC inicial:", transactionData);
     createInitialBalanceMutation.mutate(transactionData);
   };
 
