@@ -50,6 +50,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
+import { getTimestampRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 
 // Tipo para un retorno de envase
@@ -294,7 +295,7 @@ export default function DeliveryDetails() {
           expectedQuantity: expectedQuantity,
           returnedQuantity: quantity,
           pendingQuantity: newPendingQuantity,
-          returnDate: new Date().toISOString(),
+          returnDate: getTimestampRD(),
           status: newStatus,
           amountCharged: "0.00",
           depositAmount: "0.00",

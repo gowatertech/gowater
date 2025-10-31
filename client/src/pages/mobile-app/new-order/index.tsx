@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getTodayStringRD } from "@/lib/date-utils";
 
 interface Customer {
   id: number;
@@ -154,7 +155,7 @@ export default function NewOrder() {
         customerId: selectedCustomerId,
         total,
         paymentMethod: paymentMethod,
-        orderDate: new Date().toISOString().split('T')[0],
+        orderDate: getTodayStringRD(),
         notes: "",
         items: orderItems.map(item => ({
           productId: item.productId,

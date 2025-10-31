@@ -97,16 +97,35 @@ The billing interface displays real-time customer balance (saldo a favor) and in
 - **Success Messages**: Context-aware toast notifications indicate balance applied, mixed payments, or full advance coverage
 
 ### Timezone Configuration (República Dominicana)
-The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations:
-- **Date Utilities Module** (`server/date-utils.ts`): Centralized date handling functions ensure consistency across the application
+The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend:
+
+#### Backend Timezone Handling
+- **Date Utilities Module** (`server/date-utils.ts`): Centralized date handling functions ensure consistency
   - `getNowRD()`: Returns current date/time in República Dominicana timezone
   - `getTimestampRD()`: Returns ISO timestamp formatted for PostgreSQL in RD timezone
   - `getTodayRD()`: Returns today's date at 00:00:00 in RD timezone
   - `toRD(date)`: Converts any date to RD timezone
-- **Invoice Creation**: Uses `getTimestampRD()` to ensure invoices are created with correct local date
-- **Payment Processing**: Uses `getNowRD()` for payment timestamps
+- **Backend Implementation**:
+  - Invoice Creation (`server/routes.ts`): Uses `getTimestampRD()` for accurate invoice dates
+  - Payment Processing (`server/routes.ts`, `server/storage.ts`): Uses `getNowRD()` for payment timestamps
+  - Order Creation (`server/routes/orders.ts`): Uses `getTimestampRD()` for order dates
+  - Bottle Returns (`server/routes/orders.ts`): Uses `getTimestampRD()` for return dates
+  - Route Settlements (`server/routes/routeSettlements.ts`): Uses `getTimestampRD()` for settlement dates
+  - Production Batches (`server/routes.ts`): Uses `getNowRD()` for production timestamps
 - **Dashboard Statistics**: All date-based queries (daily sales, weekly trends, monthly reports) use PostgreSQL's `CURRENT_DATE` which respects the database's UTC-4 timezone
-- **Benefits**: Prevents date mismatch issues where UTC timestamps would show future dates, ensures accurate daily sales reporting, and maintains consistency across all temporal data
+
+#### Frontend/Mobile App Timezone Handling
+- **Date Utilities Module** (`client/src/lib/date-utils.ts`): Frontend equivalent with matching timezone functions
+  - `getNowRD()`: Returns current date/time in RD timezone for client-side operations
+  - `getTimestampRD()`: Returns ISO timestamp in RD timezone for server submissions
+  - `getTodayRD()`: Returns today's date at 00:00:00 in RD timezone
+  - `getTodayStringRD()`: Returns today's date in YYYY-MM-DD format for date inputs
+  - `formatDateRD()`: Formats dates in Spanish (República Dominicana locale)
+  - `toRD(date)`: Converts any date to RD timezone
+- **Mobile App Implementation**:
+  - Bottle Returns (`client/src/pages/mobile-app/entregas/[id].tsx`): Uses `getTimestampRD()` when submitting return dates
+  - New Order Creation (`client/src/pages/mobile-app/new-order/index.tsx`): Uses `getTodayStringRD()` for order dates
+- **Benefits**: Prevents date mismatch issues where UTC timestamps would show future dates, ensures accurate daily sales reporting across all devices and time zones, and maintains consistency across all temporal data in both backend and frontend
 
 ## External Dependencies
 
