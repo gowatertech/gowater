@@ -998,6 +998,7 @@ export class DatabaseStorage implements IStorage {
       );
     
     const totalPendingInvoices = pendingInvoicesResult[0]?.total || "0.00";
+    console.log(`[DEBUG getCustomerBalance] customerId=${customerId}, pending invoices query result:`, pendingInvoicesResult);
     
     // Calcular total de anticipos disponibles (is_advance = true AND invoice_id IS NULL)
     const availableAdvancesResult = await db
