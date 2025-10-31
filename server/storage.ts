@@ -1016,11 +1016,15 @@ export class DatabaseStorage implements IStorage {
     
     const totalAvailableAdvances = availableAdvancesResult[0]?.total || "0.00";
     
-    // Calcular balance neto (balance del cliente + facturas pendientes)
-    // NOTA: No restamos availableAdvances porque ya están incluidos en customerBalance
-    // Cuando se registra un anticipo, se resta del balance: balance -= anticipo
-    // Por lo tanto, customerBalance ya refleja los anticipos aplicados
-    const netBalance = (parseFloat(customerBalance) + parseFloat(totalPendingInvoices)).toFixed(2);
+    // Calcular Balance Total = (CxC + Facturas Pendientes) - Anticipos Disponibles
+    // - CxC (customerBalance): Campo manual de deuda inicial
+    // - Facturas Pendientes: Total de facturas - todos los pagos
+    // - Anticipos Disponibles: Anticipos sin aplicar a ninguna factura
+    const netBalance = (
+      parseFloat(customerBalance) + 
+      parseFloat(totalPendingInvoices) - 
+      parseFloat(totalAvailableAdvances)
+    ).toFixed(2);
     
     return {
       customerBalance,
