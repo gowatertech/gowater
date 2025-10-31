@@ -63,6 +63,7 @@ import {
 import LocationCaptureDialog from "@/components/customers/LocationCaptureDialog";
 import { CustomerBalance } from "@/components/customers/CustomerBalance";
 import { CustomerStats } from "@/components/customers/CustomerStats";
+import { CustomerTransactionHistory } from "@/components/customers/CustomerTransactionHistory";
 import { 
   PlusCircle, 
   Eye, 
@@ -1356,10 +1357,26 @@ export default function Customers() {
                 </CardHeader>
               </Card>
 
+              {/* Información en columnas */}
+              <div className="grid grid-cols-1 gap-6">
+                {/* Sección de Balance */}
+                <div>
+                  <CustomerBalance 
+                    customerId={selectedCustomer.id} 
+                    customerName={selectedCustomer.businessname}
+                  />
+                </div>
+
+                {/* Sección de Historial de Transacciones */}
+                <div>
+                  <CustomerTransactionHistory customerId={selectedCustomer.id} />
+                </div>
+              </div>
+
               {/* Información en dos columnas */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Columna izquierda: Formulario */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-3">
                   <Card>
                     <CardHeader className="px-4 sm:px-6">
                       <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
@@ -1824,16 +1841,6 @@ export default function Customers() {
                       </Form>
                     </CardContent>
                   </Card>
-                </div>
-
-                {/* Columna derecha: Balance */}
-                <div className="lg:col-span-1">
-                  <div className="sticky top-6">
-                    <CustomerBalance 
-                      customerId={selectedCustomer.id} 
-                      customerName={selectedCustomer.businessname}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
