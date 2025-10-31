@@ -982,9 +982,22 @@ export class DatabaseStorage implements IStorage {
     const creditLimit = customer?.creditLimit || "0.00";
     
     // Calcular total de facturas pendientes (status = 'pending')
+    // IMPORTANTE: Restar los anticipos ya aplicados a cada factura
     const pendingInvoicesResult = await db
       .select({
-        total: sql<string>`COALESCE(SUM(${invoices.total}), 0)::numeric(10,2)`
+        total: sql<string>`
+          COALESCE(
+            SUM(
+              ${invoices.total} - COALESCE(
+                (SELECT SUM(amount) 
+                 FROM ${payments} 
+                 WHERE ${payments.invoiceId} = ${invoices.id} 
+                 AND ${payments.isAdvance} = true
+                ), 0
+              )
+            ), 0
+          )::numeric(10,2)
+        `
       })
       .from(invoices)
       .where(
