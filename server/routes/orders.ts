@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
+import { getTimestampRD } from '../date-utils';
 import { safeParseInt, safeParseFloat, isPositiveInteger } from '../utils/validation';
 
 // Router para manejar órdenes
@@ -475,7 +476,7 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       total: req.body.total,
       status: req.body.status || "pending",
       paymentMethod: req.body.paymentMethod || "cash",
-      date: new Date(req.body.date || new Date()).toISOString(),
+      date: req.body.date ? new Date(req.body.date).toISOString() : getTimestampRD(),
       routeId: req.body.routeId || null,
       notes: req.body.notes || "",
       deliveryCoordinates: customerCoordinates,
@@ -809,7 +810,7 @@ ordersRouter.post("/api/orders/:orderId/bottle-returns", authMiddleware, async (
         newReturnedQuantity,
         newPendingQuantity,
         newStatus,
-        returnDate || new Date().toISOString(),
+        returnDate || getTimestampRD(),
         existing.id,
         companyId
       ]);
@@ -858,7 +859,7 @@ ordersRouter.post("/api/orders/:orderId/bottle-returns", authMiddleware, async (
         expectedQuantity || 0,
         returnedQuantity || 0,
         pendingQuantity !== undefined ? pendingQuantity : (expectedQuantity - returnedQuantity),
-        returnDate || new Date().toISOString(),
+        returnDate || getTimestampRD(),
         status || "pending",
         amountCharged || "0.00",
         depositAmount || "0.00",

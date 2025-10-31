@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { eq, and, inArray, gte, lt, sql, desc } from "drizzle-orm";
 import { db } from "../db";
+import { getTimestampRD } from "../date-utils";
 import * as schema from "@shared/schema";
 import { 
   vehicleLoading, vehicleLoadingItems, routes, orders, 
@@ -145,7 +146,7 @@ export async function registerRouteSettlements(app: Express) {
         .update(vehicleLoading)
         .set({
           status: "completed",
-          completedAt: new Date().toISOString()
+          completedAt: getTimestampRD()
         })
         .where(and(
           eq(vehicleLoading.id, vehicleLoadingId),
@@ -166,7 +167,7 @@ export async function registerRouteSettlements(app: Express) {
       }
 
       // 4. Crear un nuevo registro en la tabla routeSettlements
-      const currentDate = new Date().toISOString();
+      const currentDate = getTimestampRD();
       const [newSettlement] = await db
         .insert(routeSettlements)
         .values({

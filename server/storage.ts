@@ -19,6 +19,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
+import { getNowRD } from "./date-utils";
 import { eq, inArray, and, sql, isNotNull, desc } from "drizzle-orm";
 
 export interface DriverLocation {
@@ -1135,7 +1136,7 @@ export class DatabaseStorage implements IStorage {
             invoiceId: invoiceId,
             amount: amountToApply.toFixed(2),
             paymentMethod: advance.paymentMethod,
-            date: new Date(),
+            date: getNowRD(),
             isAdvance: true,
             notes: `Anticipo aplicado parcialmente de pago #${advance.id}`
           })

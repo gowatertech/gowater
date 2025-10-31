@@ -4566,7 +4566,7 @@ export async function registerRoutes(router: express.Router) {
         companyId: companyId, // Añadir el companyId del contexto
         amount: amount,
         notes: notes, // Usar la nota generada o la original
-        date: req.body.date ? new Date(req.body.date) : new Date()
+        date: req.body.date ? new Date(req.body.date) : getNowRD()
       };
 
       console.log("POST /api/payments - Datos del pago preparados:", JSON.stringify(paymentData, null, 2));
@@ -5054,7 +5054,7 @@ export async function registerRoutes(router: express.Router) {
         total: req.body.total,
         status: req.body.status || "pending",
         paymentMethod: req.body.paymentMethod || "cash",
-        date: new Date(req.body.date || new Date()).toISOString(),
+        date: req.body.date ? new Date(req.body.date).toISOString() : getTimestampRD(),
         routeId: req.body.routeId || null,
         notes: req.body.notes || "",
         deliveryCoordinates: customerCoordinates,
@@ -5811,7 +5811,7 @@ export async function registerRoutes(router: express.Router) {
           notes: result.data.notes || null,
           status: result.data.status || "completed",
           totalCost,
-          date: new Date()
+          date: getNowRD()
         })
         .returning();
 
