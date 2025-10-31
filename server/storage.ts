@@ -971,22 +971,15 @@ export class DatabaseStorage implements IStorage {
     const customerBalance = customer?.balance || "0.00";
     const creditLimit = customer?.creditLimit || "0.00";
     
-    // Calcular total de facturas pendientes (status = 'pending')
-    // IMPORTANTE: Restar TODOS los pagos aplicados a cada factura (anticipos + pagos normales)
-    const pendingInvoicesResult = await db
+    // Calcular total de facturas pendientes
+    // MISMO CÁLCULO QUE /api/invoices/pending
+    // 1. Buscar facturas con status='pending'
+    // 2. Para cada factura calcular: pendingAmount = total - pagos
+    // 3. Solo sumar facturas con pendingAmount > 0
+    const allPendingInvoices = await db
       .select({
-        total: sql<string>`
-          COALESCE(
-            SUM(
-              ${invoices.total}::numeric - COALESCE(
-                (SELECT SUM(amount::numeric) 
-                 FROM ${payments} 
-                 WHERE ${payments.invoiceId} = ${invoices.id}
-                ), 0
-              )
-            ), 0
-          )::numeric(10,2)
-        `
+        id: invoices.id,
+        total: invoices.total
       })
       .from(invoices)
       .where(
@@ -997,7 +990,24 @@ export class DatabaseStorage implements IStorage {
         )
       );
     
-    const totalPendingInvoices = pendingInvoicesResult[0]?.total || "0.00";
+    let totalPendingInvoices = 0;
+    
+    for (const invoice of allPendingInvoices) {
+      const paymentsForInvoice = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.invoiceId, invoice.id));
+      
+      const totalPaid = paymentsForInvoice.reduce((sum, payment) => sum + parseFloat(payment.amount.toString()), 0);
+      const pendingAmount = parseFloat(invoice.total) - totalPaid;
+      
+      // Solo sumar facturas que tengan un monto pendiente mayor a cero
+      if (pendingAmount > 0) {
+        totalPendingInvoices += pendingAmount;
+      }
+    }
+    
+    const totalPendingInvoicesStr = totalPendingInvoices.toFixed(2);
     
     // Calcular total de anticipos disponibles (is_advance = true AND invoice_id IS NULL)
     const availableAdvancesResult = await db
@@ -1022,15 +1032,15 @@ export class DatabaseStorage implements IStorage {
     // - Anticipos Disponibles: Anticipos sin aplicar a ninguna factura
     const netBalance = (
       parseFloat(customerBalance) + 
-      parseFloat(totalPendingInvoices) - 
+      parseFloat(totalPendingInvoicesStr) - 
       parseFloat(totalAvailableAdvances)
     ).toFixed(2);
     
     return {
-      customerBalance,
+      balance: customerBalance,
       creditLimit,
-      totalPendingInvoices,
-      totalAvailableAdvances,
+      pendingInvoices: totalPendingInvoicesStr,
+      availableAdvances: totalAvailableAdvances,
       netBalance
     };
   }
