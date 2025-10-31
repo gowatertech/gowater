@@ -1344,212 +1344,227 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
     
     console.log(`💰 Cálculos: Subtotal=${subtotal.toFixed(2)}, Impuesto=${tax.toFixed(2)} (${(taxRate * 100)}%), Total=${total.toFixed(2)}`);
     
-    // Obtener el siguiente número de factura para esta compañía
-    const maxInvoiceQuery = `
-      SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
-      FROM invoices 
-      WHERE company_id = $1
-    `;
-    const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
-    const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
+    // ===== INICIAR TRANSACCIÓN =====
+    await pool.query('BEGIN');
     
-    // Determinar el status basado en el método de pago:
-    // - cash/card: se paga ahora en oficina → 'paid'
-    // - credit: es a cuenta → 'pending'
-    const invoiceStatus = paymentMethod === 'credit' ? 'pending' : 'paid';
-    
-    // Crear la factura con subtotal, tax y total
-    const createInvoiceQuery = `
-      INSERT INTO invoices (
-        company_id, customer_id, subtotal, tax, total, status, payment_method, 
-        date, invoice_number, notes
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
-      RETURNING *
-    `;
-    
-    const invoiceResult = await pool.query(createInvoiceQuery, [
-      companyId,
-      order.customer_id,
-      subtotal.toFixed(2),
-      tax.toFixed(2),
-      total.toFixed(2),
-      invoiceStatus,
-      paymentMethod,
-      nextInvoiceNumber,
-      `Factura prepagada - Pedido #${orderId}`
-    ]);
-    
-    const invoice = invoiceResult.rows[0];
-    console.log(`✅ Factura prepagada #${invoice.id} (número ${invoice.invoice_number}) creada con status: ${invoiceStatus}`);
-    
-    // Copiar los items del pedido a la factura
-    for (const item of orderItemsResult.rows) {
-      const createInvoiceItemQuery = `
-        INSERT INTO invoice_items (
-          company_id, invoice_id, product_id, quantity, price, total
-        )
-        VALUES ($1, $2, $3, $4, $5, $6)
+    try {
+      // Obtener el siguiente número de factura para esta compañía
+      const maxInvoiceQuery = `
+        SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
+        FROM invoices 
+        WHERE company_id = $1
       `;
+      const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
+      const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
       
-      const itemTotal = parseFloat(item.price) * item.quantity;
+      // Determinar el status basado en el método de pago:
+      // - cash/card: se paga ahora en oficina → 'paid'
+      // - credit: es a cuenta → 'pending'
+      const invoiceStatus = paymentMethod === 'credit' ? 'pending' : 'paid';
       
-      await pool.query(createInvoiceItemQuery, [
-        companyId,
-        invoice.id,
-        item.product_id,
-        item.quantity,
-        item.price,
-        itemTotal.toFixed(2)
-      ]);
-    }
-    
-    console.log(`✅ Items de factura copiados (${orderItemsResult.rows.length} items)`);
-    
-    // Crear el registro de pago solo si NO es crédito
-    // - cash/card: se recibe pago ahora → crear registro de pago
-    // - credit: no se recibe pago ahora → NO crear registro de pago
-    let payment = null;
-    if (paymentMethod !== 'credit') {
-      console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
-      
-      const createPaymentQuery = `
-        INSERT INTO payments (
-          company_id, invoice_id, customer_id, amount, payment_method, date, notes
+      // Crear la factura con subtotal, tax y total
+      const createInvoiceQuery = `
+        INSERT INTO invoices (
+          company_id, customer_id, subtotal, tax, total, status, payment_method, 
+          date, invoice_number, notes
         )
-        VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
         RETURNING *
       `;
       
-      const paymentNotes = `Pago prepagado - Factura #${invoice.invoice_number} - Pedido #${orderId}`;
-      
-      const paymentResult = await pool.query(createPaymentQuery, [
+      const invoiceResult = await pool.query(createInvoiceQuery, [
         companyId,
-        invoice.id,
         order.customer_id,
+        subtotal.toFixed(2),
+        tax.toFixed(2),
         total.toFixed(2),
+        invoiceStatus,
         paymentMethod,
-        paymentNotes
+        nextInvoiceNumber,
+        `Factura prepagada - Pedido #${orderId}`
       ]);
       
-      payment = paymentResult.rows[0];
-      console.log(`✅ Pago prepagado #${payment.id} creado para factura #${invoice.id}`);
-    } else {
-      console.log(`📝 Factura a crédito - NO se crea registro de pago (pendiente de cobro)`);
-    }
-    
-    // Actualizar la orden con el invoice_id y payment_method
-    const updateOrderQuery = `
-      UPDATE orders 
-      SET invoice_id = $1, payment_method = $2
-      WHERE id = $3 AND company_id = $4
-      RETURNING *
-    `;
-    
-    const updateOrderResult = await pool.query(updateOrderQuery, [
-      invoice.id,
-      paymentMethod,
-      orderId,
-      companyId
-    ]);
-    
-    console.log(`✅ Orden #${orderId} actualizada con invoice_id: ${invoice.id}`);
-    
-    // ===== CREAR TRANSACCIONES =====
-    // Obtener nombre del cliente
-    const customerQuery = `SELECT businessname FROM customers WHERE id = $1 AND company_id = $2`;
-    const customerResult = await pool.query(customerQuery, [order.customer_id, companyId]);
-    const customerName = customerResult.rows[0]?.businessname || 'Cliente';
-    
-    // 1. Crear transacción FT (Factura)
-    await pool.query('LOCK TABLE transactions IN SHARE ROW EXCLUSIVE MODE');
-    
-    const ftQuery = `
-      SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num
-      FROM transactions
-      WHERE company_id = $1 AND document_type = 'FT'
-    `;
-    const ftResult = await pool.query(ftQuery, [companyId]);
-    const nextFtNumber = ftResult.rows[0].max_num + 1;
-    const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
-    
-    const createFtTransactionQuery = `
-      INSERT INTO transactions (
-        company_id, document_type, document_number, customer_id, invoice_id,
-        amount, type, description, date
-      )
-      VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, NOW())
-      RETURNING *
-    `;
-    
-    await pool.query(createFtTransactionQuery, [
-      companyId,
-      ftDocNumber,
-      order.customer_id,
-      invoice.id,
-      total.toFixed(2),
-      `Factura #${invoice.invoice_number} - ${customerName}`
-    ]);
-    
-    console.log(`✅ Transacción ${ftDocNumber} creada para factura #${invoice.id}`);
-    
-    // 2. Crear transacción RI (Recibo) solo si hay pago
-    if (payment) {
-      const riQuery = `
+      const invoice = invoiceResult.rows[0];
+      console.log(`✅ Factura prepagada #${invoice.id} (número ${invoice.invoice_number}) creada con status: ${invoiceStatus}`);
+      
+      // Copiar los items del pedido a la factura
+      for (const item of orderItemsResult.rows) {
+        const createInvoiceItemQuery = `
+          INSERT INTO invoice_items (
+            company_id, invoice_id, product_id, quantity, price, total
+          )
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `;
+        
+        const itemTotal = parseFloat(item.price) * item.quantity;
+        
+        await pool.query(createInvoiceItemQuery, [
+          companyId,
+          invoice.id,
+          item.product_id,
+          item.quantity,
+          item.price,
+          itemTotal.toFixed(2)
+        ]);
+      }
+      
+      console.log(`✅ Items de factura copiados (${orderItemsResult.rows.length} items)`);
+      
+      // Crear el registro de pago solo si NO es crédito
+      // - cash/card: se recibe pago ahora → crear registro de pago
+      // - credit: no se recibe pago ahora → NO crear registro de pago
+      let payment = null;
+      if (paymentMethod !== 'credit') {
+        console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
+        
+        const createPaymentQuery = `
+          INSERT INTO payments (
+            company_id, invoice_id, customer_id, amount, payment_method, date, notes
+          )
+          VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+          RETURNING *
+        `;
+        
+        const paymentNotes = `Pago prepagado - Factura #${invoice.invoice_number} - Pedido #${orderId}`;
+        
+        const paymentResult = await pool.query(createPaymentQuery, [
+          companyId,
+          invoice.id,
+          order.customer_id,
+          total.toFixed(2),
+          paymentMethod,
+          paymentNotes
+        ]);
+        
+        payment = paymentResult.rows[0];
+        console.log(`✅ Pago prepagado #${payment.id} creado para factura #${invoice.id}`);
+      } else {
+        console.log(`📝 Factura a crédito - NO se crea registro de pago (pendiente de cobro)`);
+      }
+      
+      // Actualizar la orden con el invoice_id y payment_method
+      const updateOrderQuery = `
+        UPDATE orders 
+        SET invoice_id = $1, payment_method = $2
+        WHERE id = $3 AND company_id = $4
+        RETURNING *
+      `;
+      
+      const updateOrderResult = await pool.query(updateOrderQuery, [
+        invoice.id,
+        paymentMethod,
+        orderId,
+        companyId
+      ]);
+      
+      console.log(`✅ Orden #${orderId} actualizada con invoice_id: ${invoice.id}`);
+      
+      // ===== CREAR TRANSACCIONES =====
+      // Obtener nombre del cliente
+      const customerQuery = `SELECT businessname FROM customers WHERE id = $1 AND company_id = $2`;
+      const customerResult = await pool.query(customerQuery, [order.customer_id, companyId]);
+      const customerName = customerResult.rows[0]?.businessname || 'Cliente';
+      
+      // 1. Crear transacción FT (Factura)
+      await pool.query('LOCK TABLE transactions IN SHARE ROW EXCLUSIVE MODE');
+      
+      const ftQuery = `
         SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num
         FROM transactions
-        WHERE company_id = $1 AND document_type = 'RI'
+        WHERE company_id = $1 AND document_type = 'FT'
       `;
-      const riResult = await pool.query(riQuery, [companyId]);
-      const nextRiNumber = riResult.rows[0].max_num + 1;
-      const riDocNumber = `RI-${String(nextRiNumber).padStart(4, '0')}`;
+      const ftResult = await pool.query(ftQuery, [companyId]);
+      const nextFtNumber = ftResult.rows[0].max_num + 1;
+      const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
       
-      const createRiTransactionQuery = `
+      const createFtTransactionQuery = `
         INSERT INTO transactions (
-          company_id, document_type, document_number, customer_id, invoice_id, payment_id,
+          company_id, document_type, document_number, customer_id, invoice_id,
           amount, type, description, date
         )
-        VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, NOW())
+        VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, NOW())
         RETURNING *
       `;
       
-      await pool.query(createRiTransactionQuery, [
+      await pool.query(createFtTransactionQuery, [
         companyId,
-        riDocNumber,
+        ftDocNumber,
         order.customer_id,
         invoice.id,
-        payment.id,
         total.toFixed(2),
-        `Pago Factura - ${customerName}`
+        `Factura #${invoice.invoice_number} - ${customerName}`
       ]);
       
-      console.log(`✅ Transacción ${riDocNumber} creada para pago #${payment.id}`);
+      console.log(`✅ Transacción ${ftDocNumber} creada para factura #${invoice.id}`);
+      
+      // 2. Crear transacción RI (Recibo) solo si hay pago
+      if (payment) {
+        const riQuery = `
+          SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num
+          FROM transactions
+          WHERE company_id = $1 AND document_type = 'RI'
+        `;
+        const riResult = await pool.query(riQuery, [companyId]);
+        const nextRiNumber = riResult.rows[0].max_num + 1;
+        const riDocNumber = `RI-${String(nextRiNumber).padStart(4, '0')}`;
+        
+        const createRiTransactionQuery = `
+          INSERT INTO transactions (
+            company_id, document_type, document_number, customer_id, invoice_id, payment_id,
+            amount, type, description, date
+          )
+          VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, NOW())
+          RETURNING *
+        `;
+        
+        await pool.query(createRiTransactionQuery, [
+          companyId,
+          riDocNumber,
+          order.customer_id,
+          invoice.id,
+          payment.id,
+          total.toFixed(2),
+          `Pago Factura - ${customerName}`
+        ]);
+        
+        console.log(`✅ Transacción ${riDocNumber} creada para pago #${payment.id}`);
+      }
+      
+      // ===== COMMIT TRANSACCIÓN =====
+      await pool.query('COMMIT');
+      console.log(`✅ Transacción completada exitosamente`);
+      
+      res.json({
+        success: true,
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          subtotal: invoice.subtotal,
+          tax: invoice.tax,
+          total: invoice.total,
+          status: invoice.status,
+          paymentMethod: invoice.payment_method,
+          date: invoice.date
+        },
+        payment: payment ? {
+          id: payment.id,
+          amount: payment.amount,
+          paymentMethod: payment.payment_method,
+          date: payment.date
+        } : null,
+        order: {
+          id: updateOrderResult.rows[0].id,
+          invoiceId: updateOrderResult.rows[0].invoice_id
+        },
+        message: `Factura prepagada #${invoice.invoice_number} creada exitosamente`
+      });
+      
+    } catch (innerError) {
+      // Hacer ROLLBACK si falla algo dentro de la transacción
+      await pool.query('ROLLBACK');
+      console.error(`❌ Error en transacción, ROLLBACK ejecutado:`, innerError);
+      throw innerError;
     }
-    
-    res.json({
-      success: true,
-      invoice: {
-        id: invoice.id,
-        invoiceNumber: invoice.invoice_number,
-        subtotal: invoice.subtotal,
-        tax: invoice.tax,
-        total: invoice.total,
-        status: invoice.status,
-        paymentMethod: invoice.payment_method,
-        date: invoice.date
-      },
-      payment: payment ? {
-        id: payment.id,
-        amount: payment.amount,
-        paymentMethod: payment.payment_method,
-        date: payment.date
-      } : null,
-      order: {
-        id: updateOrderResult.rows[0].id,
-        invoiceId: updateOrderResult.rows[0].invoice_id
-      },
-      message: `Factura prepagada #${invoice.invoice_number} creada exitosamente`
-    });
     
   } catch (error) {
     console.error(`❌ Error al crear factura prepagada para orden ${orderId}:`, error);
