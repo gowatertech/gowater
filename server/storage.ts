@@ -1152,6 +1152,23 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
+    // Actualizar el balance del cliente: sumar el monto aplicado (para revertir el anticipo usado)
+    if (totalApplied > 0) {
+      await db
+        .update(customers)
+        .set({
+          balance: sql`COALESCE(${customers.balance}, 0) + ${totalApplied.toFixed(2)}`
+        })
+        .where(
+          and(
+            eq(customers.id, invoice.customerId),
+            eq(customers.companyId, companyId)
+          )
+        );
+      
+      console.log(`💰 Balance del cliente actualizado: +$${totalApplied.toFixed(2)} (anticipos aplicados a factura #${invoiceId})`);
+    }
+    
     // Si la factura quedó completamente pagada con los anticipos, actualizar su estado
     if (remainingBalance <= 0.01) { // Tolerancia de 1 centavo por redondeo
       await db
