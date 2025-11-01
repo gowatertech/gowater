@@ -135,9 +135,11 @@ export default function Billing() {
     enabled: !!selectedCustomer,
   });
 
-  // Calcular saldo a favor del cliente
+  // Calcular saldo a favor del cliente (balance negativo = crédito a favor)
   const availableAdvances = customerBalance?.availableAdvances || [];
-  const totalAdvances = parseFloat(customerBalance?.balance?.totalAvailableAdvances || "0");
+  const netBalance = parseFloat(customerBalance?.balance?.netBalance || "0");
+  // Si el balance es negativo, el cliente tiene saldo a favor
+  const totalAdvances = netBalance < 0 ? Math.abs(netBalance) : 0;
 
   // Filtrar clientes
   const filteredCustomers = customers.filter((customer) => {
@@ -234,7 +236,7 @@ export default function Billing() {
       if (cart.length === 0) throw new Error('Debe agregar al menos un producto');
 
       // Si el saldo a favor cubre el total, usar 'credit' automáticamente
-      // Los anticipos se aplicarán automáticamente en el backend
+      // El saldo a favor se aplicará automáticamente en el backend
       const finalPaymentMethod = (totalAdvances >= total && total > 0) ? 'credit' : paymentMethod;
 
       const invoiceData = {
@@ -291,14 +293,14 @@ export default function Billing() {
       
       if (totalAdvances >= total && total > 0) {
         title = "¡Factura pagada con saldo a favor!";
-        description = `Se aplicaron RD$ ${Math.min(totalAdvances, total).toFixed(2)} de anticipos`;
+        description = `Se aplicaron RD$ ${Math.min(totalAdvances, total).toFixed(2)} del saldo a favor`;
       } else if (totalAdvances > 0 && totalAdvances < total) {
         if (paymentMethod === 'cash') {
           title = "¡Factura pagada!";
-          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} de anticipos + RD$ ${(total - totalAdvances).toFixed(2)} en efectivo`;
+          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} del saldo a favor + RD$ ${(total - totalAdvances).toFixed(2)} en efectivo`;
         } else {
           title = "¡Factura creada!";
-          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} de anticipos. Pendiente: RD$ ${(total - totalAdvances).toFixed(2)}`;
+          description = `Se aplicaron RD$ ${totalAdvances.toFixed(2)} del saldo a favor. Pendiente: RD$ ${(total - totalAdvances).toFixed(2)}`;
         }
       } else if (paymentMethod === 'cash') {
         title = "¡Factura pagada!";
@@ -529,12 +531,12 @@ export default function Billing() {
                   </PopoverContent>
                 </Popover>
 
-                {/* Mostrar anticipos disponibles si el cliente tiene anticipos */}
+                {/* Mostrar saldo a favor si el cliente tiene crédito */}
                 {selectedCustomer && !isLoadingBalance && totalAdvances > 0 && (
                   <div className="mt-2 p-2 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                        💰 Anticipos Disponibles
+                        💰 Saldo a Favor
                       </span>
                       <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
                         RD$ {totalAdvances.toFixed(2)}
@@ -543,7 +545,7 @@ export default function Billing() {
                     {total > 0 && (
                       <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
                         {totalAdvances >= total ? (
-                          <span>✅ Los anticipos cubren el total completo</span>
+                          <span>✅ El saldo cubre el total completo</span>
                         ) : (
                           <span>⚠️ Debe pagar RD$ {(total - totalAdvances).toFixed(2)}</span>
                         )}
