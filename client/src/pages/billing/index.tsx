@@ -90,7 +90,7 @@ export default function Billing() {
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer'>('credit');
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);

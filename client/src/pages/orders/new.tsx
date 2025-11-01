@@ -75,7 +75,7 @@ export default function NewOrder() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("credit");
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
 
   // Detectar si el cliente es institución benéfica y cambiar método de pago automáticamente
@@ -83,7 +83,7 @@ export default function NewOrder() {
     if (selectedCustomer?.isCharity) {
       setPaymentMethod("donation");
     } else if (paymentMethod === "donation") {
-      setPaymentMethod("cash");
+      setPaymentMethod("credit");
     }
   }, [selectedCustomer]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
