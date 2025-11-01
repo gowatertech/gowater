@@ -335,9 +335,10 @@ export default function Dashboard() {
                     <p className="text-xs text-blue-100">
                       {financialStats ? (
                         <>
-                          {formatDateRD(financialStats.monthStartDate, { 
+                          {new Date(financialStats.monthStartDate).toLocaleDateString('es-DO', { 
                             month: 'long', 
-                            year: 'numeric'
+                            year: 'numeric',
+                            timeZone: 'UTC'
                           })}
                         </>
                       ) : (
