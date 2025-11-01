@@ -3556,45 +3556,43 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Ventas del mes:`, monthlySales);
       
-      // 2. Cuentas por Cobrar = Total Facturas Pendientes - Pagos Aplicados a esas Facturas
-      // Calcular correctamente: (Total de facturas pendientes) - (Total pagado a esas facturas)
+      // 2. Cuentas por Cobrar = Calcular desde el sistema de transacciones
+      // CXC = (Débitos) - (Créditos)
+      // Débitos: Facturas (FT), CXC Inicial, Notas de Débito (ND)
+      // Créditos: Pagos (RI), Anticipos (ANT), Notas de Crédito (NC)
       
-      // 2.1 Obtener todas las facturas pendientes con sus totales
-      const pendingInvoices = await db
+      // 2.1 Sumar todos los débitos (aumentan CXC)
+      const debits = await db
         .select({
-          id: invoices.id,
-          total: invoices.total
+          total: sql`COALESCE(SUM(${transactions.amount}::numeric), 0)`.mapWith(Number)
         })
-        .from(invoices)
+        .from(transactions)
         .where(
           and(
-            eq(invoices.companyId, companyId),
-            eq(invoices.status, 'pending')
+            eq(transactions.companyId, companyId),
+            eq(transactions.type, 'debit')
           )
         );
       
-      // 2.2 Calcular el monto pendiente de cada factura (Total - Pagos)
-      let accountsReceivable = 0;
+      // 2.2 Sumar todos los créditos (disminuyen CXC)
+      const credits = await db
+        .select({
+          total: sql`COALESCE(SUM(${transactions.amount}::numeric), 0)`.mapWith(Number)
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.companyId, companyId),
+            eq(transactions.type, 'credit')
+          )
+        );
       
-      for (const invoice of pendingInvoices) {
-        const paymentsForInvoice = await db
-          .select({
-            totalPaid: sql`COALESCE(SUM(${payments.amount}::numeric), 0)`.mapWith(Number)
-          })
-          .from(payments)
-          .where(eq(payments.invoiceId, invoice.id));
-        
-        const totalPaid = Number(paymentsForInvoice[0]?.totalPaid) || 0;
-        const pendingAmount = parseFloat(invoice.total) - totalPaid;
-        
-        if (pendingAmount > 0) {
-          accountsReceivable += pendingAmount;
-        }
-      }
+      const totalDebits = Number(debits[0]?.total) || 0;
+      const totalCredits = Number(credits[0]?.total) || 0;
+      const accountsReceivable = parseFloat((totalDebits - totalCredits).toFixed(2));
       
-      accountsReceivable = parseFloat(accountsReceivable.toFixed(2));
-      
-      console.log(`Total facturas pendientes: ${pendingInvoices.length}`);
+      console.log(`Total débitos (CXC): ${totalDebits}`);
+      console.log(`Total créditos (Pagos): ${totalCredits}`);
       console.log(`Cuentas por cobrar TOTAL: ${accountsReceivable}`);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
