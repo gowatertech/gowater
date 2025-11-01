@@ -1226,9 +1226,9 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
             const payment = paymentResult.rows[0];
             console.log(`✅ Pago automático #${payment.id} creado para factura #${invoice.id}`);
             console.log(`✅ Notes del pago: "${payment.notes}" (longitud: ${payment.notes ? payment.notes.length : 0})`);
-          } catch (paymentError) {
+          } catch (paymentError: any) {
             console.error(`❌ Error al crear pago automático para factura #${invoice.id}:`, paymentError);
-            console.error(`Error stack:`, paymentError.stack);
+            console.error(`Error stack:`, paymentError?.stack);
             // No fallar la creación de la factura si falla el pago
           }
         }
@@ -1284,7 +1284,24 @@ ordersRouter.patch("/api/orders/:orderId/mark-bottles-not-returned", authMiddlew
       });
     }
 
-    // Actualizar el campo bottles_not_returned a true usando SQL directo
+    // 1. Obtener los productos retornables del pedido
+    const orderItemsQuery = `
+      SELECT oi.product_id, oi.quantity, p.name, p.deposit_amount
+      FROM order_items oi
+      JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = $1 AND oi.company_id = $2 AND p.is_returnable = true
+    `;
+    
+    const itemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
+    
+    if (itemsResult.rows.length === 0) {
+      console.log(`❌ [PATCH BOTTLES] No hay productos retornables en este pedido`);
+      return res.status(400).json({ error: "Este pedido no tiene productos retornables" });
+    }
+
+    console.log(`📦 [PATCH BOTTLES] Encontrados ${itemsResult.rows.length} productos retornables`);
+
+    // 2. Actualizar el campo bottles_not_returned a true
     const updateQuery = `
       UPDATE orders 
       SET bottles_not_returned = true 
@@ -1292,17 +1309,56 @@ ordersRouter.patch("/api/orders/:orderId/mark-bottles-not-returned", authMiddlew
       RETURNING *
     `;
     
-    console.log(`🔵 [PATCH BOTTLES] Ejecutando UPDATE para order ${orderId}, company ${companyId}`);
     const result = await pool.query(updateQuery, [orderId, companyId]);
-    console.log(`🔵 [PATCH BOTTLES] Rows affected: ${result.rowCount}, Rows returned: ${result.rows.length}`);
 
     if (result.rows.length === 0) {
       console.log(`❌ [PATCH BOTTLES] Pedido no encontrado`);
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
 
+    // 3. Crear registros de bottle_returns para cada producto retornable
+    for (const item of itemsResult.rows) {
+      // Verificar si ya existe un registro de retorno para este producto
+      const existingReturnQuery = `
+        SELECT id FROM bottle_returns 
+        WHERE order_id = $1 AND product_id = $2 AND company_id = $3
+      `;
+      
+      const existingReturn = await pool.query(existingReturnQuery, [orderId, item.product_id, companyId]);
+      
+      if (existingReturn.rows.length === 0) {
+        // No existe, crear el registro
+        const createReturnQuery = `
+          INSERT INTO bottle_returns (
+            company_id, order_id, product_id, expected_quantity, 
+            returned_quantity, pending_quantity, return_date, status, 
+            deposit_amount, justification, manually_assigned
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)
+          RETURNING *
+        `;
+        
+        await pool.query(createReturnQuery, [
+          companyId,
+          orderId,
+          item.product_id,
+          item.quantity, // expected_quantity
+          0, // returned_quantity (no devueltos)
+          item.quantity, // pending_quantity (todos pendientes)
+          'incomplete', // status
+          item.deposit_amount || '0.00',
+          'Marcado manualmente como No Devuelto',
+          true // manually_assigned
+        ]);
+        
+        console.log(`✅ [PATCH BOTTLES] Registro de retorno creado para producto ${item.name}`);
+      } else {
+        console.log(`ℹ️ [PATCH BOTTLES] Ya existe registro de retorno para producto ${item.name}`);
+      }
+    }
+
     const updatedOrder = result.rows[0];
-    console.log(`✅ [PATCH BOTTLES] Pedido ${orderId} actualizado. bottles_not_returned=${updatedOrder.bottles_not_returned}`);
+    console.log(`✅ [PATCH BOTTLES] Pedido ${orderId} marcado como no devuelto con registros creados`);
     res.json({ success: true, order: updatedOrder });
   } catch (error) {
     console.error("❌ [PATCH BOTTLES] Error:", error);
