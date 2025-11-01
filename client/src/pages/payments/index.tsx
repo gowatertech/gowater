@@ -1002,7 +1002,12 @@ export default function PaymentDashboard() {
                       <TableRow key={payment.id} className="text-xs">
                         <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                         <TableCell className="py-1.5">
-                          {format(new Date(payment.date), 'dd/MM/yyyy hh:mm a', { locale: es }).toUpperCase().replace('A. M.', 'AM').replace('P. M.', 'PM')}
+                          {(() => {
+                            const date = new Date(payment.date);
+                            const dateStr = format(date, 'dd/MM/yyyy', { locale: es });
+                            const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                            return `${dateStr} ${timeStr}`;
+                          })()}
                         </TableCell>
                         <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                         <TableCell className="py-1.5">
