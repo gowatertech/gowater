@@ -30,6 +30,7 @@ import Entregas from "@/pages/entregas";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
+import EnvasesPendientes from "@/pages/envases/pendientes";
 import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
@@ -420,6 +421,7 @@ function Router() {
         <Route path="/bottles/return" component={DevolucionEnvases} />
         <Route path="/bottles/balance" component={BalanceEnvases} />
         <Route path="/bottles/missing" component={Faltantes} />
+        <Route path="/bottles/pending" component={EnvasesPendientes} />
         <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
 
         {/* Rutas para pedidos recurrentes */}
