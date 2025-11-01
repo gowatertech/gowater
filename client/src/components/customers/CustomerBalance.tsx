@@ -139,11 +139,11 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
 
   const balance = balanceData?.balance;
   const availableAdvances = balanceData?.availableAdvances || [];
-  const customerBalance = parseFloat(balance?.balance || "0");
+  const customerBalance = parseFloat(balance?.customerBalance || "0");
   const creditLimit = parseFloat(balance?.creditLimit || "0");
   const netBalance = parseFloat(balance?.netBalance || "0");
-  const pendingInvoices = parseFloat(balance?.pendingInvoices || "0");
-  const totalAdvances = parseFloat(balance?.availableAdvances || "0");
+  const pendingInvoices = parseFloat(balance?.totalPendingInvoices || "0");
+  const totalAdvances = parseFloat(balance?.totalAvailableAdvances || "0");
 
   return (
     <Card>
