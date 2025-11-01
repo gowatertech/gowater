@@ -3556,20 +3556,27 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Ventas del mes:`, monthlySales);
       
-      // 2. Cuentas por Cobrar = Sumar balance de todos los clientes
+      // 2. Cuentas por Cobrar = Sumar SOLO balances POSITIVOS (lo que los clientes deben)
       // NOTA: El balance se actualiza automáticamente mediante triggers de base de datos
       // cuando se crean/modifican/eliminan transacciones. Esto es mucho más eficiente
       // que calcular desde transacciones cada vez (O(1) vs O(n))
+      // IMPORTANTE: Solo sumamos balances > 0. Los balances negativos son saldos a favor
+      // del cliente (anticipos) y NO deben restar de las Cuentas por Cobrar
       const accountsReceivableResult = await db
         .select({
           total: sql`COALESCE(SUM(${customers.balance}::numeric), 0)`.mapWith(Number)
         })
         .from(customers)
-        .where(eq(customers.companyId, companyId));
+        .where(
+          and(
+            eq(customers.companyId, companyId),
+            sql`${customers.balance}::numeric > 0`
+          )
+        );
       
       const accountsReceivable = Number(accountsReceivableResult[0]?.total) || 0;
       
-      console.log(`Cuentas por cobrar TOTAL (desde customers.balance): ${accountsReceivable}`);
+      console.log(`Cuentas por cobrar TOTAL (solo balances positivos): ${accountsReceivable}`);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
       const donations = await db
