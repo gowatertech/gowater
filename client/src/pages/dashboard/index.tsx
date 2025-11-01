@@ -308,11 +308,11 @@ export default function Dashboard() {
             />
             <KPICard 
               title={t("Envases Pendientes")}
-              value={bottleStats?.pendingReturns || 0}
+              value={bottleStats?.totalPendingQty || 0}
               icon={<Droplet className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
-              trend={"+5"}
+              trend={`${bottleStats?.pendingReturns || 0} pedidos`}
               trendUp={false}
-              onClick={() => navigateTo("/bottles/balance")}
+              onClick={() => navigateTo("/bottles/pending")}
             />
           </div>
           
