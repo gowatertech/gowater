@@ -120,6 +120,49 @@ The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for 
 - **User Message**: "No puede realizar Anticipo. El cliente tiene facturas pendientes. Por favor, aplique un abono a su factura pendiente."
 - **Purpose**: Ensures payments are applied to outstanding invoices before accepting advances
 
+### Unreturned Bottles Tracking System
+The system provides comprehensive tracking and visualization of unreturned returnable bottles (envases retornables) to help manage bottle deposits and ensure proper inventory control.
+
+#### Features
+- **Visual Alerts**: Orange badge "Envases sin retornar" displayed on delivered orders with unreturned bottles in the orders list (`/orders/list`)
+- **Pending Bottles Report**: Dedicated page (`/bottles/pending`) showing detailed tracking of all unreturned bottles
+- **Real-time Statistics**: Dashboard cards displaying total unreturned bottles, pending amounts, and counts by category
+- **Dual Detection**: Tracks both orders without any return record and orders with incomplete returns
+
+#### API Endpoint
+- **GET `/api/bottle-returns/pending`**: Returns comprehensive data about unreturned bottles
+  - `ordersWithoutReturns`: Delivered orders with returnable products but no return record
+  - `incompleteReturns`: Registered returns with pending quantity (status: pending/incomplete)
+  - `summary`: Aggregated totals including pending bottles count and total deposit amount
+
+#### UI Components
+1. **Orders List Badge** (`/orders/list`):
+   - Appears only on delivered orders with unreturned bottles
+   - Orange badge with PackageX icon
+   - Visible in both mobile and desktop views
+
+2. **Pending Bottles Report** (`/bottles/pending`):
+   - **Statistics Cards**: Total counts and amounts at a glance
+   - **Tab 1 - Sin Registro**: Orders with no return record
+     - Shows order ID, customer, product, quantities, deposit amounts
+     - Direct navigation to order details
+   - **Tab 2 - Incompletos**: Partially returned bottles
+     - Displays expected, returned, and pending quantities
+     - Shows amount charged for unreturned bottles
+   - **Responsive Design**: Mobile-first layout with proper table overflow handling
+
+#### Technical Implementation
+- **Multi-tenant Safe**: All queries scoped by `companyId` using `AsyncLocalStorage`
+- **Efficient Queries**: Uses SQL joins to combine order, customer, and product data
+- **Real-time Data**: Integrates with TanStack Query for automatic cache invalidation
+- **Status Detection**: Identifies unreturned bottles based on order status and bottle_returns table
+
+#### Use Cases
+- Track unreturned bottles to follow up with customers
+- Calculate total pending deposit amounts
+- Identify orders requiring bottle return action
+- Monitor incomplete returns for follow-up
+
 ## External Dependencies
 
 ### Core Infrastructure
