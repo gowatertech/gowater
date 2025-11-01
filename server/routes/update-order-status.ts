@@ -4,6 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from '../db';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
+import { getNowRD } from '../date-utils';
 
 // Endpoint especializado para actualización de estado de pedidos
 export function createUpdateOrderStatusEndpoint(router: Router) {
@@ -212,12 +213,15 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
           
           // Crear la factura con subtotal, tax y total
+          // Usar fecha de República Dominicana
+          const invoiceDate = getNowRD();
+          
           const createInvoiceQuery = `
             INSERT INTO invoices (
               company_id, customer_id, subtotal, tax, total, status, payment_method, 
               date, invoice_number, notes
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
           `;
           
@@ -229,6 +233,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
             total.toFixed(2),
             invoiceStatus, // Usar el status determinado según el método de pago
             updatedOrder.payment_method,
+            invoiceDate,
             nextInvoiceNumber,
             `Factura generada automáticamente para pedido #${orderIdNum}`
           ]);
@@ -262,11 +267,13 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           if (updatedOrder.payment_method === 'cash') {
             console.log(`💵 Creando pago automático para factura en efectivo #${createdInvoice.invoice_number}...`);
             
+            const paymentDate = getNowRD();
+            
             const createPaymentQuery = `
               INSERT INTO payments (
                 company_id, invoice_id, customer_id, amount, payment_method, date, notes
               )
-              VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
               RETURNING *
             `;
             
@@ -276,6 +283,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
               updatedOrder.customer_id,
               total.toFixed(2),
               updatedOrder.payment_method, // Incluir el método de pago
+              paymentDate,
               `Pago automático en efectivo - Factura #${createdInvoice.invoice_number} - Pedido #${orderIdNum}`
             ]);
             
