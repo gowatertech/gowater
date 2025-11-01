@@ -135,6 +135,7 @@ const sidebarItems = [
       { icon: CircleDot, label: "Registrar Devolución", href: "/bottles/return" },
       { icon: BarChart3, label: "Balance de Envases", href: "/bottles/balance" },
       { icon: CircleDollarSign, label: "Cobrar Faltantes", href: "/bottles/missing" },
+      { icon: Target, label: "Pendientes de Retorno", href: "/bottles/pending" },
     ],
   },
   {
