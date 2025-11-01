@@ -8,6 +8,7 @@ import {
 import { eq, and, desc } from 'drizzle-orm';
 import { companyDb, getCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
+import { getNowRD } from '../date-utils';
 
 /**
  * Crea y registra los endpoints específicos para la aplicación móvil
@@ -602,7 +603,7 @@ export function createMobileApiEndpoints(): Router {
       const taxRate = companySettings?.tax ? parseFloat(companySettings.tax.toString()) / 100 : 0;
       
       // 4. Crear la factura para esta orden
-      const today = new Date();
+      const today = getNowRD();
       
       // Preparar datos para la factura según el esquema de validación
       // Calcular subtotal, tax y total con exactamente 2 decimales

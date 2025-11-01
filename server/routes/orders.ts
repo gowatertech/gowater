@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
-import { getTimestampRD } from '../date-utils';
+import { getTimestampRD, getNowRD } from '../date-utils';
 import { safeParseInt, safeParseFloat, isPositiveInteger } from '../utils/validation';
 
 // Router para manejar órdenes
@@ -1125,12 +1125,14 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
         
         // Crear la factura con subtotal, tax y total
+        const invoiceDate = getNowRD();
+        
         const createInvoiceQuery = `
           INSERT INTO invoices (
             company_id, customer_id, subtotal, tax, total, status, payment_method, 
             date, invoice_number, notes
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           RETURNING *
         `;
         
@@ -1142,6 +1144,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           total.toFixed(2),
           invoiceStatus, // Usar el status determinado según el método de pago
           updatedOrder.payment_method,
+          invoiceDate,
           nextInvoiceNumber,
           `Generada automáticamente desde pedido #${orderId}`
         ]);
@@ -1189,11 +1192,13 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
             const paymentNotes = `Pago automático en efectivo - Factura #${invoice.invoice_number || 'N/A'}`;
             console.log(`📝 Notes para pago: "${paymentNotes}" (longitud: ${paymentNotes.length})`);
             
+            const paymentDate = getNowRD();
+            
             const createPaymentQuery = `
               INSERT INTO payments (
                 company_id, invoice_id, customer_id, amount, payment_method, date, notes
               )
-              VALUES ($1, $2, $3, $4, $5, NOW(), $6::text)
+              VALUES ($1, $2, $3, $4, $5, $6, $7::text)
               RETURNING *
             `;
             
@@ -1203,6 +1208,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
               updatedOrder.customer_id,
               total.toFixed(2),
               'cash',
+              paymentDate,
               paymentNotes
             ]);
             
@@ -1212,6 +1218,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
               updatedOrder.customer_id,
               total.toFixed(2),
               'cash',
+              paymentDate,
               paymentNotes
             ]);
             
@@ -1363,12 +1370,14 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       const invoiceStatus = paymentMethod === 'credit' ? 'pending' : 'paid';
       
       // Crear la factura con subtotal, tax y total
+      const invoiceDate = getNowRD();
+      
       const createInvoiceQuery = `
         INSERT INTO invoices (
           company_id, customer_id, subtotal, tax, total, status, payment_method, 
           date, invoice_number, notes
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `;
       
@@ -1380,6 +1389,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
         total.toFixed(2),
         invoiceStatus,
         paymentMethod,
+        invoiceDate,
         nextInvoiceNumber,
         `Factura prepagada - Pedido #${orderId}`
       ]);
@@ -1417,11 +1427,13 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       if (paymentMethod !== 'credit') {
         console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
         
+        const paymentDate = getNowRD();
+        
         const createPaymentQuery = `
           INSERT INTO payments (
             company_id, invoice_id, customer_id, amount, payment_method, date, notes
           )
-          VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *
         `;
         
@@ -1433,6 +1445,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
           order.customer_id,
           total.toFixed(2),
           paymentMethod,
+          paymentDate,
           paymentNotes
         ]);
         
@@ -1477,12 +1490,14 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       const nextFtNumber = ftResult.rows[0].max_num + 1;
       const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
       
+      const transactionDate = getNowRD();
+      
       const createFtTransactionQuery = `
         INSERT INTO transactions (
           company_id, document_type, document_number, customer_id, invoice_id,
           amount, type, description, date
         )
-        VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, NOW())
+        VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, $7)
         RETURNING *
       `;
       
@@ -1492,7 +1507,8 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
         order.customer_id,
         invoice.id,
         total.toFixed(2),
-        `Factura #${invoice.invoice_number} - ${customerName}`
+        `Factura #${invoice.invoice_number} - ${customerName}`,
+        transactionDate
       ]);
       
       console.log(`✅ Transacción ${ftDocNumber} creada para factura #${invoice.id}`);
@@ -1513,7 +1529,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
             company_id, document_type, document_number, customer_id, invoice_id, payment_id,
             amount, type, description, date
           )
-          VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, NOW())
+          VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, $8)
           RETURNING *
         `;
         
@@ -1524,7 +1540,8 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
           invoice.id,
           payment.id,
           total.toFixed(2),
-          `Pago Factura - ${customerName}`
+          `Pago Factura - ${customerName}`,
+          transactionDate
         ]);
         
         console.log(`✅ Transacción ${riDocNumber} creada para pago #${payment.id}`);
