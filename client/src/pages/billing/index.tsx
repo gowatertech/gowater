@@ -948,7 +948,7 @@ export default function Billing() {
                             {customers.find((c) => c.id === invoice.customerId)?.businessname || "Cliente"}
                           </TableCell>
                           <TableCell>
-                            {format(new Date(invoice.date), 'dd/MM/yyyy HH:mm', { locale: es })}
+                            {format(new Date(invoice.date), 'dd/MM/yyyy hh:mm a', { locale: es }).toUpperCase().replace('A. M.', 'AM').replace('P. M.', 'PM')}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             RD$ {parseFloat(invoice.total).toFixed(2)}
