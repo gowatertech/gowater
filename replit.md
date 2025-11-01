@@ -108,6 +108,7 @@ The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for 
 - **Payment Method Lock**: System automatically sets payment method to **"Donación"** and disables selection
 - **No Manual Override**: Users cannot change payment method for charitable institutions
 - **Implementation**: Uses `useEffect` hook to detect `selectedCustomer?.isCharity` and enforces donation payment method
+- **Billing Module Restriction**: When a charitable institution is selected in the billing module, the system displays a message "Para registrar donaciones debe hacerlo por el módulo de pedidos" and prevents invoice creation. Donations must be registered through the orders module instead.
 
 #### Advance Payment (Anticipo) Validation
 - **Business Rule**: Cannot register advance payments when customer has pending invoices

@@ -733,40 +733,59 @@ export default function Billing() {
             {/* Total y Confirmar */}
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="p-4 space-y-3">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal:</span>
-                    <span>RD$ {subtotal.toFixed(2)}</span>
+                {/* Mensaje para instituciones benéficas */}
+                {selectedCustomer?.isCharity ? (
+                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                          Institución Benéfica
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Para registrar donaciones debe hacerlo por el módulo de pedidos.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>ITBIS ({settings?.tax || 0}%):</span>
-                    <span>RD$ {tax.toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span className="text-primary">RD$ {total.toFixed(2)}</span>
-                  </div>
-                </div>
-                <Button
-                  className="w-full h-12 text-base font-semibold"
-                  size="lg"
-                  onClick={() => createMutation.mutate()}
-                  disabled={!selectedCustomer || cart.length === 0 || createMutation.isPending}
-                  data-testid="button-create-invoice"
-                >
-                  {createMutation.isPending ? (
-                    <span className="flex items-center gap-2">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Procesando...
-                    </span>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5 mr-2" />
-                      Confirmar Venta
-                    </>
-                  )}
-                </Button>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>RD$ {subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>ITBIS ({settings?.tax || 0}%):</span>
+                        <span>RD$ {tax.toFixed(2)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>Total:</span>
+                        <span className="text-primary">RD$ {total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full h-12 text-base font-semibold"
+                      size="lg"
+                      onClick={() => createMutation.mutate()}
+                      disabled={!selectedCustomer || cart.length === 0 || createMutation.isPending}
+                      data-testid="button-create-invoice"
+                    >
+                      {createMutation.isPending ? (
+                        <span className="flex items-center gap-2">
+                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Procesando...
+                        </span>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          Confirmar Venta
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
