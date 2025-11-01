@@ -307,8 +307,9 @@ export default function GoWaterDriverApp() {
                   <p className="text-xs text-muted-foreground">
                     {formatTodayRD({
                       weekday: 'long',
-                      day: 'numeric',
-                      month: 'long'
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </p>
                 </div>

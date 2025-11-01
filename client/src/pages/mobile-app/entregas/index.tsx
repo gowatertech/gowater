@@ -224,8 +224,9 @@ export default function DriverDeliveries() {
           <p className="text-sm text-muted-foreground mb-4">
             {formatTodayRD({
               weekday: 'long',
-              day: 'numeric',
-              month: 'long'
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             })}
           </p>
           

@@ -25,8 +25,9 @@ export function getTimestampRD(): string {
 
 /**
  * Obtiene la fecha de hoy (sin hora) en zona horaria de República Dominicana
- * Construye un Date a las 00:00 en RD timezone
- * @returns Date object que representa medianoche en RD
+ * Retorna un Date que representa medianoche (00:00) en RD como timestamp UTC
+ * RD está en UTC-4, así que medianoche en RD es 04:00 UTC
+ * @returns Date object que representa medianoche en RD (en timestamp UTC)
  */
 export function getTodayRD(): Date {
   const now = new Date();
@@ -47,14 +48,14 @@ export function getTodayRD(): Date {
     }
   });
   
-  // Crear un Date a medianoche UTC usando las partes de la fecha en RD
-  // Esto representa "hoy" en RD
+  // Construir medianoche en RD como timestamp UTC
+  // RD está en UTC-4, así que medianoche en RD (00:00 RD) = 04:00 UTC
   const year = parseInt(dateParts.year);
   const month = parseInt(dateParts.month) - 1; // Los meses en Date van de 0-11
   const day = parseInt(dateParts.day);
   
-  // Crear fecha a medianoche en zona local, pero usando el día de RD
-  const today = new Date(year, month, day, 0, 0, 0, 0);
+  // Crear fecha a medianoche UTC + 4 horas (para RD que es UTC-4)
+  const today = new Date(Date.UTC(year, month, day, 4, 0, 0, 0));
   return today;
 }
 
