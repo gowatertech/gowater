@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type Customer, type Product, type Invoice } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -90,10 +90,19 @@ export default function Billing() {
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer'>('credit');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer' | 'donation'>('credit');
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
+
+  // Detectar si el cliente es institución benéfica y cambiar método de pago automáticamente
+  useEffect(() => {
+    if (selectedCustomer?.isCharity) {
+      setPaymentMethod("donation");
+    } else if (paymentMethod === "donation") {
+      setPaymentMethod("credit");
+    }
+  }, [selectedCustomer]);
 
   // Consultas para obtener datos
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -632,72 +641,89 @@ export default function Billing() {
               <CardContent className="p-3 space-y-2">
                 <label className="text-sm font-semibold">Método de Pago</label>
                 
-                {/* Verificar si el saldo cubre el total */}
-                {selectedCustomer && totalAdvances >= total && total > 0 ? (
-                  <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
-                    <CheckCircle className="h-8 w-8 mx-auto text-emerald-600 dark:text-emerald-400" />
-                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                      Será pagado con saldo a favor
-                    </p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                      Saldo disponible: RD$ {totalAdvances.toFixed(2)}
-                    </p>
-                    {totalAdvances > total && (
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                        Quedará RD$ {(totalAdvances - total).toFixed(2)} disponible
-                      </p>
-                    )}
+                {/* Si el cliente es institución benéfica, solo mostrar Donación */}
+                {selectedCustomer?.isCharity ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button
+                      variant="default"
+                      className="flex-col h-16"
+                      disabled
+                      data-testid="button-payment-donation"
+                    >
+                      <DollarSign className="h-5 w-5 mb-1" />
+                      <span className="text-xs">Donación</span>
+                    </Button>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                        className="flex-col h-16"
-                        onClick={() => setPaymentMethod('cash')}
-                        data-testid="button-payment-cash"
-                      >
-                        <Banknote className="h-5 w-5 mb-1" />
-                        <span className="text-xs">Efectivo</span>
-                      </Button>
-                      <Button
-                        variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                        className="flex-col h-16"
-                        onClick={() => setPaymentMethod('card')}
-                        data-testid="button-payment-card"
-                      >
-                        <CreditCard className="h-5 w-5 mb-1" />
-                        <span className="text-xs">Tarjeta</span>
-                      </Button>
-                      <Button
-                        variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                        className="flex-col h-16"
-                        onClick={() => setPaymentMethod('credit')}
-                        data-testid="button-payment-credit"
-                      >
-                        <Receipt className="h-5 w-5 mb-1" />
-                        <span className="text-xs">Crédito</span>
-                      </Button>
-                      <Button
-                        variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
-                        className="flex-col h-16"
-                        onClick={() => setPaymentMethod('transfer')}
-                        data-testid="button-payment-transfer"
-                      >
-                        <ArrowLeftRight className="h-5 w-5 mb-1" />
-                        <span className="text-xs">Transferencia</span>
-                      </Button>
-                    </div>
-                    {/* Mostrar monto pendiente si hay saldo insuficiente */}
-                    {selectedCustomer && totalAdvances > 0 && totalAdvances < total && total > 0 && (
-                      <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-center">
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                          Se aplicarán RD$ {totalAdvances.toFixed(2)} de saldo a favor
+                    {/* Verificar si el saldo cubre el total */}
+                    {selectedCustomer && totalAdvances >= total && total > 0 ? (
+                      <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-center space-y-2">
+                        <CheckCircle className="h-8 w-8 mx-auto text-emerald-600 dark:text-emerald-400" />
+                        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                          Será pagado con saldo a favor
                         </p>
-                        <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300 mt-1">
-                          Debe pagar RD$ {(total - totalAdvances).toFixed(2)} con el método seleccionado
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                          Saldo disponible: RD$ {totalAdvances.toFixed(2)}
                         </p>
+                        {totalAdvances > total && (
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                            Quedará RD$ {(totalAdvances - total).toFixed(2)} disponible
+                          </p>
+                        )}
                       </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                            className="flex-col h-16"
+                            onClick={() => setPaymentMethod('cash')}
+                            data-testid="button-payment-cash"
+                          >
+                            <Banknote className="h-5 w-5 mb-1" />
+                            <span className="text-xs">Efectivo</span>
+                          </Button>
+                          <Button
+                            variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                            className="flex-col h-16"
+                            onClick={() => setPaymentMethod('card')}
+                            data-testid="button-payment-card"
+                          >
+                            <CreditCard className="h-5 w-5 mb-1" />
+                            <span className="text-xs">Tarjeta</span>
+                          </Button>
+                          <Button
+                            variant={paymentMethod === 'credit' ? 'default' : 'outline'}
+                            className="flex-col h-16"
+                            onClick={() => setPaymentMethod('credit')}
+                            data-testid="button-payment-credit"
+                          >
+                            <Receipt className="h-5 w-5 mb-1" />
+                            <span className="text-xs">Crédito</span>
+                          </Button>
+                          <Button
+                            variant={paymentMethod === 'transfer' ? 'default' : 'outline'}
+                            className="flex-col h-16"
+                            onClick={() => setPaymentMethod('transfer')}
+                            data-testid="button-payment-transfer"
+                          >
+                            <ArrowLeftRight className="h-5 w-5 mb-1" />
+                            <span className="text-xs">Transferencia</span>
+                          </Button>
+                        </div>
+                        {/* Mostrar monto pendiente si hay saldo insuficiente */}
+                        {selectedCustomer && totalAdvances > 0 && totalAdvances < total && total > 0 && (
+                          <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-center">
+                            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                              Se aplicarán RD$ {totalAdvances.toFixed(2)} de saldo a favor
+                            </p>
+                            <p className="text-xs font-medium text-yellow-700 dark:text-yellow-300 mt-1">
+                              Debe pagar RD$ {(total - totalAdvances).toFixed(2)} con el método seleccionado
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}

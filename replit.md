@@ -97,6 +97,27 @@ The billing interface displays real-time customer balance (saldo a favor) and in
 ### Timezone Configuration (República Dominicana)
 The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend. This is achieved through centralized date utility modules on both sides, ensuring consistent and accurate date/time handling for invoicing, payments, orders, returns, settlements, production batches, and dashboard statistics, preventing date mismatch issues.
 
+### Payment Method Business Rules
+
+#### Default Payment Method
+- **Orders and Billing**: Default payment method is **"Crédito"** (Credit) for all normal customers
+- Users can manually change to other methods: Efectivo (Cash), Tarjeta (Card), Transferencia (Transfer), or Donación (Donation)
+
+#### Charitable Institutions (Instituciones Benéficas)
+- **Automatic Detection**: When a customer marked as `isCharity` is selected in orders or billing
+- **Payment Method Lock**: System automatically sets payment method to **"Donación"** and disables selection
+- **No Manual Override**: Users cannot change payment method for charitable institutions
+- **Implementation**: Uses `useEffect` hook to detect `selectedCustomer?.isCharity` and enforces donation payment method
+
+#### Advance Payment (Anticipo) Validation
+- **Business Rule**: Cannot register advance payments when customer has pending invoices
+- **Validation Points**:
+  1. Visual alert in advance payment dialog showing pending invoice amount
+  2. Submit button disabled when `totalPendingInvoices > 0`
+  3. Backend validation prevents advance registration
+- **User Message**: "No puede realizar Anticipo. El cliente tiene facturas pendientes. Por favor, aplique un abono a su factura pendiente."
+- **Purpose**: Ensures payments are applied to outstanding invoices before accepting advances
+
 ## External Dependencies
 
 ### Core Infrastructure
