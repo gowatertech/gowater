@@ -1003,7 +1003,17 @@ export default function PaymentDashboard() {
                         <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                         <TableCell className="py-1.5">
                           {(() => {
-                            const date = new Date(payment.date);
+                            // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
+                            const parts = payment.date.split(/[- :T.]/);
+                            const date = new Date(
+                              parseInt(parts[0]), // año
+                              parseInt(parts[1]) - 1, // mes (0-indexed)
+                              parseInt(parts[2]), // día
+                              parseInt(parts[3] || 0), // hora
+                              parseInt(parts[4] || 0), // minutos
+                              parseInt(parts[5] || 0)  // segundos
+                            );
+                            
                             const dateStr = format(date, 'dd/MM/yyyy', { locale: es });
                             const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                             return `${dateStr} ${timeStr}`;

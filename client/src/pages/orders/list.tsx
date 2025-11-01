@@ -573,7 +573,20 @@ export default function OrdersList() {
                           <p className="font-medium">RD$ {parseFloat(order.total.toString()).toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground flex items-center justify-end">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            {(() => {
+                              // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
+                              const parts = order.date.split(/[- :T.]/);
+                              const date = new Date(
+                                parseInt(parts[0]), // año
+                                parseInt(parts[1]) - 1, // mes (0-indexed)
+                                parseInt(parts[2]), // día
+                                parseInt(parts[3] || 0), // hora
+                                parseInt(parts[4] || 0), // minutos
+                                parseInt(parts[5] || 0)  // segundos
+                              );
+                              
+                              return date.toLocaleDateString() + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                            })()}
                           </p>
                         </div>
                       </div>
