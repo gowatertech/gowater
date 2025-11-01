@@ -11,6 +11,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { AlertCard } from "@/components/dashboard/AlertCard";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateRD } from "@/lib/date-utils";
 import {
   Activity,
   TrendingUp,
@@ -334,7 +335,10 @@ export default function Dashboard() {
                     <p className="text-xs text-blue-100">
                       {financialStats ? (
                         <>
-                          {new Date(financialStats.monthStartDate).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' })}
+                          {formatDateRD(financialStats.monthStartDate, { 
+                            month: 'long', 
+                            year: 'numeric'
+                          })}
                         </>
                       ) : (
                         t("Cargando...")

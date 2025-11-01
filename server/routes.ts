@@ -3596,8 +3596,8 @@ export async function registerRoutes(router: express.Router) {
       const totalPendingInvoices = Number(pendingInvoices[0]?.total) || 0;
       const totalAdvances = Number(availableAdvances[0]?.total) || 0;
       
-      // CXC Total = Balance Clientes + Facturas Pendientes - Anticipos
-      const accountsReceivable = totalCustomerBalance + totalPendingInvoices - totalAdvances;
+      // CXC Total = Balance Clientes (ya incluye facturas pendientes, pagos y anticipos)
+      const accountsReceivable = totalCustomerBalance;
       
       console.log(`Balance clientes: ${totalCustomerBalance}`);
       console.log(`Facturas pendientes: ${totalPendingInvoices}`);
