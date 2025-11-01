@@ -5656,6 +5656,41 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Marcar envases como no devueltos
+  router.patch("/api/orders/:id/mark-bottles-not-returned", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (!orderId) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(401).json({ error: "No autorizado" });
+      }
+
+      // Actualizar el campo bottles_not_returned a true
+      const result = await companyDb.update(orders)
+        .set({ bottlesNotReturned: true })
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ))
+        .returning();
+
+      if (result.length === 0) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+
+      console.log(`Pedido ${orderId} marcado como envases no devueltos`);
+      res.json({ success: true, order: result[0] });
+    } catch (error) {
+      console.error("Error al marcar envases como no devueltos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Este endpoint ha sido desactivado por duplicidad
   // Se usa el endpoint de server/routes/orders.ts registrado con registerRoutesEndpoints
   /*
@@ -6040,17 +6075,25 @@ export async function registerRoutes(router: express.Router) {
       console.log(`📦 Obteniendo envases pendientes de retorno para compañía ${companyId}`);
       
       // 1. Obtener pedidos entregados con productos retornables SIN retorno registrado
+      // OPCIÓN 2: Marcados explícitamente como "no devuelto" (bottles_not_returned = true)
+      // OPCIÓN 3: Entregados hace más de 15 días sin registro de devolución
       const ordersWithoutReturnsQuery = sql`
         SELECT 
           o.id as order_id,
           o.date as order_date,
+          o.actual_delivery_time,
+          o.bottles_not_returned,
           c.id as customer_id,
           c.businessname as customer_name,
           p.id as product_id,
           p.name as product_name,
           p.deposit_amount,
           oi.quantity as expected_quantity,
-          'sin_registro' as status
+          CASE 
+            WHEN o.bottles_not_returned = true THEN 'marcado_no_devuelto'
+            WHEN o.actual_delivery_time < NOW() - INTERVAL '15 days' THEN 'mas_15_dias'
+            ELSE 'sin_registro'
+          END as status
         FROM orders o
         JOIN customers c ON o.customer_id = c.id
         JOIN order_items oi ON o.id = oi.order_id
@@ -6060,6 +6103,10 @@ export async function registerRoutes(router: express.Router) {
           AND o.status = 'delivered'
           AND p.is_returnable = true
           AND br.id IS NULL
+          AND (
+            o.bottles_not_returned = true
+            OR o.actual_delivery_time < NOW() - INTERVAL '15 days'
+          )
         ORDER BY o.date DESC
       `;
       

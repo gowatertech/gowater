@@ -326,6 +326,7 @@ export const orders = pgTable("orders", {
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
   deliveredBy: integer("delivered_by"), // Usuario que procesó la entrega
+  bottlesNotReturned: boolean("bottles_not_returned").default(false), // Marca explícita de envases no devueltos
   // Campo recurrente eliminado
 });
 

@@ -62,6 +62,32 @@ export default function OrderDetails() {
   const [newStatus, setNewStatus] = useState<string>("");
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
 
+  // Mutación para marcar envases como no devueltos
+  const markBottlesNotReturnedMutation = useMutation({
+    mutationFn: async () => {
+      if (!orderId) throw new Error("No order ID");
+      return await apiRequest(`/api/orders/${orderId}/mark-bottles-not-returned`, {
+        method: "PATCH",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Marcado como No Devuelto",
+        description: "Se ha registrado que los envases no fueron devueltos",
+      });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bottle-returns/pending"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo marcar los envases",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Obtener los detalles del pedido
   const { data: order, isLoading: isOrderLoading, refetch } = useQuery<any>({
     queryKey: ["/api/orders", orderId],
@@ -667,20 +693,36 @@ export default function OrderDetails() {
           {/* Retornos de Envases */}
           {getReturnableProducts().length > 0 && (
             <div className="space-y-2 border rounded-lg p-3 sm:p-4">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center flex-wrap gap-2">
                 <h3 className="font-medium flex items-center gap-2">
                   <Recycle className="h-5 w-5 text-green-600" />
                   Retornos de Envases
                 </h3>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowBottleReturnDialog(true)}
-                  className="flex items-center gap-1"
-                >
-                  <PackagePlus className="h-4 w-4" />
-                  Registrar Retorno
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowBottleReturnDialog(true)}
+                    className="flex items-center gap-1"
+                    data-testid="button-register-return"
+                  >
+                    <PackagePlus className="h-4 w-4" />
+                    Registrar Retorno
+                  </Button>
+                  {order.status === "delivered" && !order.bottlesNotReturned && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => markBottlesNotReturnedMutation.mutate()}
+                      disabled={markBottlesNotReturnedMutation.isPending}
+                      className="flex items-center gap-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                      data-testid="button-mark-not-returned"
+                    >
+                      <CircleX className="h-4 w-4" />
+                      {markBottlesNotReturnedMutation.isPending ? "Marcando..." : "No Devuelto"}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {bottleReturns && bottleReturns.length > 0 ? (
