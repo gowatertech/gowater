@@ -529,12 +529,12 @@ export default function Billing() {
                   </PopoverContent>
                 </Popover>
 
-                {/* Mostrar saldo a favor si el cliente tiene anticipos */}
+                {/* Mostrar anticipos disponibles si el cliente tiene anticipos */}
                 {selectedCustomer && !isLoadingBalance && totalAdvances > 0 && (
                   <div className="mt-2 p-2 rounded-lg border bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                        💰 Saldo a favor
+                        💰 Anticipos Disponibles
                       </span>
                       <span className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
                         RD$ {totalAdvances.toFixed(2)}
@@ -543,7 +543,7 @@ export default function Billing() {
                     {total > 0 && (
                       <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
                         {totalAdvances >= total ? (
-                          <span>✅ El saldo cubre el total completo</span>
+                          <span>✅ Los anticipos cubren el total completo</span>
                         ) : (
                           <span>⚠️ Debe pagar RD$ {(total - totalAdvances).toFixed(2)}</span>
                         )}
