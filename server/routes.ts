@@ -3023,10 +3023,12 @@ export async function registerRoutes(router: express.Router) {
       }
 
       // PASO 2: Manejar el balance restante según el método de pago
+      let finalStatus = initialStatus;
+      
       if (remainingBalance <= 0.01) {
         // La factura está completamente cubierta con anticipos
         console.log(`✅ Factura #${invoice.id} completamente cubierta con anticipos`);
-        invoice.status = 'paid';
+        finalStatus = 'paid';
       } else if (result.data.paymentMethod === 'cash') {
         // Pago en efectivo: crear pago por el balance restante
         console.log(`💵 Creando pago en efectivo por el balance restante: $${remainingBalance.toFixed(2)}`);
@@ -3046,7 +3048,7 @@ export async function registerRoutes(router: express.Router) {
             .returning();
           
           console.log(`✅ Pago #${payment.id} creado por $${remainingBalance.toFixed(2)}`);
-          invoice.status = 'paid';
+          finalStatus = 'paid';
         } catch (paymentError) {
           console.error(`❌ ERROR al crear pago en efectivo para factura #${invoice.id}:`, paymentError);
           // No fallar la creación de la factura si falla el pago
@@ -3054,11 +3056,26 @@ export async function registerRoutes(router: express.Router) {
       } else {
         // Crédito, tarjeta o transferencia: dejar pendiente el balance restante
         console.log(`📋 Factura #${invoice.id} pendiente de pago: $${remainingBalance.toFixed(2)} (método: ${result.data.paymentMethod})`);
-        invoice.status = 'pending';
+        finalStatus = 'pending';
         
         // NO actualizar el balance del cliente (CxC)
         // El balance es un campo MANUAL de carga inicial, no debe ser calculado automáticamente
         // El Balance Total se calcula como: CxC + Facturas Pendientes - Anticipos Disponibles
+      }
+
+      // PASO 3: Actualizar el status de la factura en la base de datos si cambió
+      if (finalStatus !== initialStatus) {
+        try {
+          await db
+            .update(invoices)
+            .set({ status: finalStatus })
+            .where(eq(invoices.id, invoice.id));
+          
+          invoice.status = finalStatus;
+          console.log(`✅ Status de factura #${invoice.id} actualizado a: ${finalStatus}`);
+        } catch (statusUpdateError) {
+          console.error(`❌ ERROR al actualizar status de factura #${invoice.id}:`, statusUpdateError);
+        }
       }
 
       res.json(invoice);
