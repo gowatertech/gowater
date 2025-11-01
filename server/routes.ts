@@ -6028,6 +6028,139 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para obtener envases pendientes de retorno
+  router.get("/api/bottle-returns/pending", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
+      
+      console.log(`📦 Obteniendo envases pendientes de retorno para compañía ${companyId}`);
+      
+      // 1. Obtener pedidos entregados con productos retornables SIN retorno registrado
+      const ordersWithoutReturnsQuery = sql`
+        SELECT 
+          o.id as order_id,
+          o.date as order_date,
+          c.id as customer_id,
+          c.businessname as customer_name,
+          p.id as product_id,
+          p.name as product_name,
+          p.deposit_amount,
+          oi.quantity as expected_quantity,
+          'sin_registro' as status
+        FROM orders o
+        JOIN customers c ON o.customer_id = c.id
+        JOIN order_items oi ON o.id = oi.order_id
+        JOIN products p ON oi.product_id = p.id
+        LEFT JOIN bottle_returns br ON o.id = br.order_id AND br.product_id = p.id
+        WHERE o.company_id = ${companyId}
+          AND o.status = 'delivered'
+          AND p.is_returnable = true
+          AND br.id IS NULL
+        ORDER BY o.date DESC
+      `;
+      
+      // 2. Obtener retornos incompletos o pendientes
+      const incompleteReturnsQuery = sql`
+        SELECT 
+          br.id as bottle_return_id,
+          br.order_id,
+          o.date as order_date,
+          c.id as customer_id,
+          c.businessname as customer_name,
+          p.id as product_id,
+          p.name as product_name,
+          p.deposit_amount,
+          br.expected_quantity,
+          br.returned_quantity,
+          br.pending_quantity,
+          br.status,
+          br.amount_charged
+        FROM bottle_returns br
+        JOIN orders o ON br.order_id = o.id
+        JOIN customers c ON o.customer_id = c.id
+        JOIN products p ON br.product_id = p.id
+        WHERE br.company_id = ${companyId}
+          AND br.status IN ('pending', 'incomplete')
+        ORDER BY o.date DESC
+      `;
+      
+      const [ordersWithoutReturns, incompleteReturns] = await Promise.all([
+        db.execute(ordersWithoutReturnsQuery),
+        db.execute(incompleteReturnsQuery)
+      ]);
+      
+      // Formatear resultados
+      const formattedOrdersWithoutReturns = ordersWithoutReturns.rows.map((row: any) => ({
+        orderId: Number(row.order_id),
+        orderDate: row.order_date,
+        customerId: Number(row.customer_id),
+        customerName: row.customer_name || 'Cliente sin nombre',
+        productId: Number(row.product_id),
+        productName: row.product_name || 'Producto',
+        expectedQuantity: Number(row.expected_quantity) || 0,
+        returnedQuantity: 0,
+        pendingQuantity: Number(row.expected_quantity) || 0,
+        depositAmount: row.deposit_amount || '0.00',
+        status: 'sin_registro',
+        amountPending: (Number(row.expected_quantity) * parseFloat(row.deposit_amount || '0')).toFixed(2)
+      }));
+      
+      const formattedIncompleteReturns = incompleteReturns.rows.map((row: any) => ({
+        bottleReturnId: Number(row.bottle_return_id),
+        orderId: Number(row.order_id),
+        orderDate: row.order_date,
+        customerId: Number(row.customer_id),
+        customerName: row.customer_name || 'Cliente sin nombre',
+        productId: Number(row.product_id),
+        productName: row.product_name || 'Producto',
+        expectedQuantity: Number(row.expected_quantity) || 0,
+        returnedQuantity: Number(row.returned_quantity) || 0,
+        pendingQuantity: Number(row.pending_quantity) || 0,
+        depositAmount: row.deposit_amount || '0.00',
+        status: row.status,
+        amountCharged: row.amount_charged || '0.00'
+      }));
+      
+      // Calcular totales
+      const totalPending = formattedOrdersWithoutReturns.reduce(
+        (sum, item) => sum + item.pendingQuantity, 
+        0
+      ) + formattedIncompleteReturns.reduce(
+        (sum, item) => sum + item.pendingQuantity, 
+        0
+      );
+      
+      const totalAmountPending = formattedOrdersWithoutReturns.reduce(
+        (sum, item) => sum + parseFloat(item.amountPending), 
+        0
+      ) + formattedIncompleteReturns.reduce(
+        (sum, item) => sum + parseFloat(item.amountCharged), 
+        0
+      );
+      
+      const response = {
+        ordersWithoutReturns: formattedOrdersWithoutReturns,
+        incompleteReturns: formattedIncompleteReturns,
+        summary: {
+          totalOrdersWithoutReturns: formattedOrdersWithoutReturns.length,
+          totalIncompleteReturns: formattedIncompleteReturns.length,
+          totalPendingBottles: totalPending,
+          totalAmountPending: totalAmountPending.toFixed(2)
+        }
+      };
+      
+      console.log(`✅ Envases pendientes: ${response.summary.totalPendingBottles} envases, monto: $${response.summary.totalAmountPending}`);
+      res.json(response);
+    } catch (error) {
+      console.error("❌ Error al obtener envases pendientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Production batches endpoints
   router.get("/production-batches", async (req, res) => {
     try {
