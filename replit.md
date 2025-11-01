@@ -72,6 +72,7 @@ The system implements a comprehensive transaction ledger tracking all financial 
 - **Multi-Tenancy**: All transactions are scoped by `companyId` using `AsyncLocalStorage`
 - **Type Safety**: Full Zod validation using `insertTransactionSchema` from `drizzle-zod`
 - **Balance Calculation**: Real-time customer balance computed from transaction ledger (Debits - Credits)
+- **Automatic Balance Updates**: PostgreSQL triggers automatically update `customers.balance` when transactions are created, modified, or deleted, ensuring O(1) performance for CXC queries even with thousands of transactions
 
 #### UI Pages
 - **Initial Balance Registration**: `/transactions/initial-balance` - Interface for registering CxC Inicial with customer selection, amount input, and optional notes

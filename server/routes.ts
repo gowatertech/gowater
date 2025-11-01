@@ -3556,44 +3556,20 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Ventas del mes:`, monthlySales);
       
-      // 2. Cuentas por Cobrar = Calcular desde el sistema de transacciones
-      // CXC = (Débitos) - (Créditos)
-      // Débitos: Facturas (FT), CXC Inicial, Notas de Débito (ND)
-      // Créditos: Pagos (RI), Anticipos (ANT), Notas de Crédito (NC)
-      
-      // 2.1 Sumar todos los débitos (aumentan CXC)
-      const debits = await db
+      // 2. Cuentas por Cobrar = Sumar balance de todos los clientes
+      // NOTA: El balance se actualiza automáticamente mediante triggers de base de datos
+      // cuando se crean/modifican/eliminan transacciones. Esto es mucho más eficiente
+      // que calcular desde transacciones cada vez (O(1) vs O(n))
+      const accountsReceivableResult = await db
         .select({
-          total: sql`COALESCE(SUM(${transactions.amount}::numeric), 0)`.mapWith(Number)
+          total: sql`COALESCE(SUM(${customers.balance}::numeric), 0)`.mapWith(Number)
         })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.companyId, companyId),
-            eq(transactions.type, 'debit')
-          )
-        );
+        .from(customers)
+        .where(eq(customers.companyId, companyId));
       
-      // 2.2 Sumar todos los créditos (disminuyen CXC)
-      const credits = await db
-        .select({
-          total: sql`COALESCE(SUM(${transactions.amount}::numeric), 0)`.mapWith(Number)
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.companyId, companyId),
-            eq(transactions.type, 'credit')
-          )
-        );
+      const accountsReceivable = Number(accountsReceivableResult[0]?.total) || 0;
       
-      const totalDebits = Number(debits[0]?.total) || 0;
-      const totalCredits = Number(credits[0]?.total) || 0;
-      const accountsReceivable = parseFloat((totalDebits - totalCredits).toFixed(2));
-      
-      console.log(`Total débitos (CXC): ${totalDebits}`);
-      console.log(`Total créditos (Pagos): ${totalCredits}`);
-      console.log(`Cuentas por cobrar TOTAL: ${accountsReceivable}`);
+      console.log(`Cuentas por cobrar TOTAL (desde customers.balance): ${accountsReceivable}`);
       
       // 3. Donaciones del mes (pedidos con payment_method = 'donation')
       const donations = await db
