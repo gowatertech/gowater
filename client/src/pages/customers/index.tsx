@@ -826,7 +826,7 @@ export default function Customers() {
                   ))}
                 </div>
               ) : (
-                // Vista Lista
+                // Vista Lista Simplificada
                 <div className="space-y-2">
                   {filteredCustomers.map((customer) => (
                     <Card 
@@ -838,57 +838,44 @@ export default function Customers() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div className="relative flex-shrink-0">
-                              {customer.logo ? (
-                                <div className="w-12 h-12 rounded-lg border-2 border-muted overflow-hidden bg-white">
-                                  <img
-                                    src={`data:image/jpeg;base64,${customer.logo}`}
-                                    alt="Logo"
-                                    className="w-full h-full object-contain p-1"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center border-2 border-muted">
-                                  <Building2 className="h-6 w-6 text-primary" />
-                                </div>
-                              )}
-                              {customer.isCharity && (
-                                <div className="absolute -top-1 -right-1 bg-pink-500 rounded-full p-0.5 shadow-lg">
-                                  <Shield className="h-2.5 w-2.5 text-white" />
-                                </div>
-                              )}
+                          <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Nombre */}
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground mb-1">Nombre</p>
+                              <p className="font-semibold truncate group-hover:text-primary transition-colors">
+                                {customer.businessname}
+                              </p>
                             </div>
-                            <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-4">
-                              <div className="min-w-0">
-                                <p className="font-semibold truncate group-hover:text-primary transition-colors">
-                                  {customer.businessname}
-                                </p>
-                                <p className="text-sm text-muted-foreground truncate">
-                                  {customer.managername}
-                                </p>
+                            
+                            {/* Teléfono */}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-muted-foreground mb-1">Teléfono</p>
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <span className="truncate">{customer.phone}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-sm min-w-0">
-                                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <span className="truncate">{customer.phone}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-sm min-w-0">
-                                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <span className="truncate">
-                                  {provinces.find(p => p.id === customer.provinceid)?.name || 'N/A'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="gap-1">
-                                  <CreditCard className="h-3 w-3" />
-                                  RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
-                                </Badge>
-                                <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
-                                  {getZoneName(customer.zoneid)}
-                                </Badge>
-                              </div>
+                            </div>
+                            
+                            {/* Referencia */}
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground mb-1">Referencia</p>
+                              <p className="truncate text-sm">
+                                {customer.reference || 'Sin referencia'}
+                              </p>
+                            </div>
+                            
+                            {/* Zona */}
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground mb-1">Zona</p>
+                              <Badge className={`${getZoneColor(customer.zoneid)} text-white w-fit`}>
+                                {getZoneName(customer.zoneid)}
+                              </Badge>
                             </div>
                           </div>
+                          
+                          {/* Menú de 3 puntos */}
                           <DropdownMenu 
                             open={openDropdownId === customer.id}
                             onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
@@ -905,7 +892,7 @@ export default function Customers() {
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleCaptureOnMap(customer)}>
                                 <Map className="h-4 w-4 mr-2" />
-                                Capturar en Mapa
+                                Actualizar Posición
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleSendWhatsApp(customer)}>
