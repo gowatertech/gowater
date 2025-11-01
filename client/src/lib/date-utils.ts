@@ -141,6 +141,33 @@ export function formatTodayRD(
 }
 
 /**
+ * Formatea la fecha actual en formato compacto: "dd mm aaaa DÍA"
+ * Ejemplo: "01 11 2025 SÁBADO"
+ * @returns string formateado
+ */
+export function formatTodayCompactRD(): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('es-DO', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'long'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  const weekday = dateParts.weekday?.toUpperCase() || '';
+  return `${dateParts.day} ${dateParts.month} ${dateParts.year} ${weekday}`;
+}
+
+/**
  * Formatea una fecha/hora a string legible en español (República Dominicana)
  * @param date - Fecha/hora a formatear
  * @param options - Opciones de formateo

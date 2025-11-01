@@ -11,6 +11,7 @@ import { CustomerBalance } from "@/components/customers/CustomerBalance";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { apiRequest } from "@/lib/api";
 import type { Customer } from "@shared/schema";
 
@@ -19,6 +20,7 @@ export default function MobileAppClientesPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isCapturingLocation, setIsCapturingLocation] = useState(false);
   const { toast } = useToast();
+  const { companyName } = useCompanySettings();
   const queryClient = useQueryClient();
 
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
@@ -152,7 +154,7 @@ export default function MobileAppClientesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pb-20">
-      <MobileHeader title="Buscar Clientes" showBackButton onBackButtonClick={() => window.history.back()} />
+      <MobileHeader title="Buscar Clientes" showBackButton onBackButtonClick={() => window.history.back()} companyName={companyName} />
 
       <div className="p-4 space-y-4">
         {/* Search Bar */}

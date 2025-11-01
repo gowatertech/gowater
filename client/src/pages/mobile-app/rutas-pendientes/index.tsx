@@ -22,6 +22,7 @@ import { MobileFooter } from "../components/MobileFooter";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { useMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +86,7 @@ export default function MobilePendingRoutes() {
   const { isDarkMode } = useMobile();
   const [, setLocation] = useLocation();
   const { user, isLoading: isLoadingUser } = useCurrentUser();
+  const { companyName } = useCompanySettings();
   const { toast } = useToast();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [expandedRoutes, setExpandedRoutes] = useState<Record<number, boolean>>({});
@@ -493,7 +495,7 @@ export default function MobilePendingRoutes() {
   if (isLoadingUser || isLoadingRoutes || isLoadingOrders) {
     return (
       <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-        <MobileHeader title="Mis Rutas" darkMode={isDarkMode} />
+        <MobileHeader title="Mis Rutas" darkMode={isDarkMode} companyName={companyName} />
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
@@ -504,7 +506,7 @@ export default function MobilePendingRoutes() {
 
   return (
     <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-      <MobileHeader title="Mis Rutas" darkMode={isDarkMode} />
+      <MobileHeader title="Mis Rutas" darkMode={isDarkMode} companyName={companyName} />
       
       {showInstallPrompt && (
         <InstallPrompt onClose={() => {

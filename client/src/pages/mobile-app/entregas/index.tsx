@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { formatTodayRD } from "@/lib/date-utils";
@@ -59,6 +60,7 @@ export default function DriverDeliveries() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useCurrentUser();
+  const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -193,10 +195,12 @@ export default function DriverDeliveries() {
     return (
       <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
         <MobileHeader 
+          title="Mis Entregas"
           user={user} 
           darkMode={darkMode} 
           onToggleDarkMode={toggleDarkMode} 
           onSyncData={syncData}
+          companyName={companyName}
         />
         <div className="h-[calc(100vh-132px)] flex items-center justify-center">
           <div className="text-center">
@@ -212,24 +216,16 @@ export default function DriverDeliveries() {
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
       <MobileHeader 
+        title="Mis Entregas"
         user={user} 
         darkMode={darkMode} 
         onToggleDarkMode={toggleDarkMode} 
         onSyncData={syncData}
+        companyName={companyName}
       />
       
       <main className="container max-w-md mx-auto px-4 pb-6">
         <div className="py-4">
-          <h1 className="text-2xl font-bold mb-1">Mis Entregas</h1>
-          <p className="text-sm text-muted-foreground mb-4">
-            {formatTodayRD({
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
-          
           {/* Buscador */}
           <div className="relative mb-4">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />

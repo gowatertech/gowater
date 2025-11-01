@@ -6,6 +6,7 @@ import { FileBarChart, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useToast } from "@/hooks/use-toast";
+import { formatTodayCompactRD } from "@/lib/date-utils";
 
 interface DashboardHeaderProps {
   title: string;
@@ -66,18 +67,23 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
       <div className="flex flex-col">
         <h1 className="text-xl sm:text-2xl font-bold">{t(title)}</h1>
-        <div className="flex items-center gap-2 text-sm mt-1">
-          {(settings?.companyId || userData?.companyId) ? (
-            <Badge variant="secondary" className="px-2 py-0 font-semibold">
-              ID: {settings?.companyId || userData?.companyId}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="px-2 py-0">
-              Cargando ID...
-            </Badge>
-          )}
-          <span className="font-medium text-primary">
-            {settings?.name || userData?.companyName || 'Cargando nombre de empresa...'}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2 text-sm mt-1">
+          <div className="flex items-center gap-2">
+            {(settings?.companyId || userData?.companyId) ? (
+              <Badge variant="secondary" className="px-2 py-0 font-semibold">
+                ID: {settings?.companyId || userData?.companyId}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="px-2 py-0">
+                Cargando ID...
+              </Badge>
+            )}
+            <span className="font-medium text-primary">
+              {settings?.name || userData?.companyName || 'Cargando nombre de empresa...'}
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground font-mono">
+            {formatTodayCompactRD()}
           </span>
         </div>
       </div>

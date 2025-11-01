@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SyncIndicator, SyncStatusModal } from "@/components/sync";
 import { forceSyncNow } from "@/lib/syncService";
 import { User } from "@/hooks/use-current-user";
+import { formatTodayCompactRD } from "@/lib/date-utils";
 
 interface MobileHeaderProps {
   title?: string;
@@ -68,7 +69,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           
           <div>
             {companyName && (
-              <h2 className="text-sm font-semibold text-primary">{companyName}</h2>
+              <>
+                <h2 className="text-sm font-semibold text-primary">{companyName}</h2>
+                <p className="text-xs text-muted-foreground">{formatTodayCompactRD()}</p>
+              </>
             )}
             {isDetailView ? (
               // Modo detalle con título específico
