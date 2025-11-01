@@ -573,7 +573,7 @@ export default function OrdersList() {
                           <p className="font-medium">RD$ {parseFloat(order.total.toString()).toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground flex items-center justify-end">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {new Date(order.date).toLocaleDateString()}
+                            {new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
@@ -667,7 +667,7 @@ export default function OrdersList() {
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">#{order.id}</TableCell>
                         <TableCell>{customer?.businessname || "Cliente"}</TableCell>
-                        <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell className="text-right font-medium">
                           RD$ {parseFloat(order.total.toString()).toFixed(2)}
