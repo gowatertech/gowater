@@ -1,7 +1,7 @@
 # GoWater - Water Delivery Management System
 
 ## Overview
-GoWater is a multi-tenant water delivery management system designed to optimize water distribution operations for various companies. It provides features for customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time tracking, invoicing, and commission calculations. The system aims to significantly enhance operational efficiency in the water distribution sector, offering a full-stack TypeScript application solution.
+GoWater is a multi-tenant water delivery management system designed to optimize water distribution operations for various companies. It provides features for customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time tracking, invoicing, and commission calculations. The system aims to significantly enhance operational efficiency in the water distribution sector, offering a full-stack TypeScript application solution with significant market potential in streamlining logistics and improving customer satisfaction for water delivery businesses.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -42,126 +42,37 @@ The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for complex PDF layouts
 Adheres to **WCAG 2.1** guidelines, including `aria-label` for icon-only buttons and `data-testid` for interactive elements. Features comprehensive testing coverage (e.g., Playwright E2E tests) and a mobile-first responsive design.
 
 ### UI/UX Design Approach
-Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience across all devices, including mobile-first redesigns for key pages. A comprehensive user manual with intelligent search and PDF export functionality is also integrated.
+Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience across all devices. A comprehensive user manual with intelligent search and PDF export functionality is also integrated.
 
 ### Automatic Invoice Generation & Dynamic Tax Calculation
-The system automatically creates invoices when orders are marked as delivered, implementing robust concurrency control to guarantee exactly one invoice per delivered order. It handles dynamic tax calculation, data replication from orders, item copying, sequential numbering with company-specific unique constraints, and automatic payment processing for cash invoices within a single, atomic database transaction. Concurrency safety is ensured through row-level locking (`SELECT ... FOR UPDATE`), duplicate prevention mechanisms, and atomic invoice numbering using `LOCK TABLE`.
+The system automatically creates invoices when orders are marked as delivered, implementing robust concurrency control to guarantee exactly one invoice per delivered order. It handles dynamic tax calculation, data replication, sequential numbering with company-specific unique constraints, and automatic payment processing for cash invoices within a single, atomic database transaction. Concurrency safety is ensured through row-level locking and duplicate prevention.
 
 ### Partial Cash Payment Handling
-The mobile delivery app implements a robust partial payment system allowing drivers to accept partial cash payments. It features frontend detection of partial payments, a confirmation dialog, automatic conversion of payment method from "cash" to "credit" for outstanding balances, and backend guard rails with a 1-cent tolerance for float precision to prevent misclassification. Only actual cash amounts received are recorded as partial payments.
+The mobile delivery app implements a robust partial payment system allowing drivers to accept partial cash payments. It features frontend detection of partial payments, automatic conversion of payment method for outstanding balances, and backend guard rails with a 1-cent tolerance for float precision.
 
 ### Prepaid Invoice System
 The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It detects prepaid orders across mobile and web interfaces, updates order status without creating duplicate invoices, and uses backend guards to prevent duplicate invoice creation for prepaid orders and donations.
 
 ### Unified Transaction System
-The system implements a comprehensive transaction ledger tracking all financial documents with the following features:
-
-#### Transaction Document Types
-- **FT (Factura)**: Invoices automatically created when orders are delivered
-- **RI (Recibo)**: Payment receipts for customer payments  
-- **ANT (Anticipo)**: Customer advance payments
-- **CXC (CxC Inicial)**: Initial customer balance entries
-- **GS (Gastos)**: Business expenses
-- **NC (Nota Crédito)**: Credit notes for returns/adjustments
-- **ND (Nota Débito)**: Debit notes for additional charges
-
-#### Technical Implementation
-- **Sequential Numbering**: Each document type has independent sequential numbering (FT-0001, RI-0001, ANT-0001, etc.)
-- **Concurrency Safety**: Uses `LOCK TABLE transactions IN SHARE ROW EXCLUSIVE MODE` to prevent race conditions during number generation
-- **Automatic Creation**: Transactions are automatically created when invoices, payments, and advances are registered
-- **Multi-Tenancy**: All transactions are scoped by `companyId` using `AsyncLocalStorage`
-- **Type Safety**: Full Zod validation using `insertTransactionSchema` from `drizzle-zod`
-- **Balance Calculation**: Real-time customer balance computed from transaction ledger (Debits - Credits)
-- **Automatic Balance Updates**: PostgreSQL triggers automatically update `customers.balance` when transactions are created, modified, or deleted, ensuring O(1) performance for CXC queries even with thousands of transactions
-
-#### UI Pages
-- **Initial Balance Registration**: `/transactions/initial-balance` - Interface for registering CxC Inicial with customer selection, amount input, and optional notes
-- Form uses React Hook Form with zodResolver for validation
-- Auto-generates descriptive transaction text: "CxC Inicial - {CustomerName}"
-- Provides success feedback and automatic form reset after submission
-
-#### Testing & Validation
-- Comprehensive E2E test coverage using Playwright
-- Verified transaction creation with proper numbering (CXC-0001, CXC-0002, etc.)
-- API endpoint validation for all transaction operations
-- Customer balance calculation verified across multiple transaction types
+The system implements a comprehensive transaction ledger tracking all financial documents with independent sequential numbering for each document type (e.g., FT, RI, ANT). Transactions are automatically created on relevant events and are multi-tenant safe. Customer balances are calculated in real-time with automatic updates via PostgreSQL triggers for O(1) performance.
 
 ### Customer Advance Payments (Anticipos) System
-The system supports comprehensive advance payment tracking with automatic document numbering (ANT-XXXX), integration with the unified transaction system, multi-payment method support, and a unified payment history display. It provides secure, XSS-safe PDF receipt printing with custom formatting for advances and integrates advance balances into customer displays.
-
-#### Recent Fix (November 2025)
-Fixed critical bug in `registerAdvancePayment()` method where transaction creation failed due to using incorrect field name (`text` instead of `description`). The `description` field in the `transactions` table is `NOT NULL`, so using the wrong field name resulted in a constraint violation error (Error 500). Fix implemented in `server/storage.ts` line 939.
+The system supports comprehensive advance payment tracking with automatic document numbering, integration with the unified transaction system, multi-payment method support, and a unified payment history display. It provides secure, XSS-safe PDF receipt printing and integrates advance balances into customer displays. Advance payments are restricted if a customer has pending invoices.
 
 ### Billing Interface with Customer Balance Integration
-The billing interface displays real-time customer balance (saldo a favor) and intelligently handles mixed payment scenarios by applying available advances automatically. It ensures intelligent advance splitting, supports mixed payments, synchronizes customer balances (CxC), generates detailed transaction records, and provides context-aware toast notifications.
+The billing interface displays real-time customer balance and intelligently handles mixed payment scenarios by applying available advances automatically. It ensures intelligent advance splitting, supports mixed payments, synchronizes customer balances, generates detailed transaction records, and provides context-aware toast notifications.
 
-### Timezone Configuration (República Dominicana)
-The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend. This is achieved through centralized date utility modules on both sides, ensuring consistent and accurate date/time handling for invoicing, payments, orders, returns, settlements, production batches, and dashboard statistics, preventing date mismatch issues.
+### Timezone Configuration
+The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend, ensuring consistent and accurate date/time handling.
 
 ### Payment Method Business Rules
-
-#### Default Payment Method
-- **Orders and Billing**: Default payment method is **"Crédito"** (Credit) for all normal customers
-- Users can manually change to other methods: Efectivo (Cash), Tarjeta (Card), Transferencia (Transfer), or Donación (Donation)
-
-#### Charitable Institutions (Instituciones Benéficas)
-- **Automatic Detection**: When a customer marked as `isCharity` is selected in orders or billing
-- **Payment Method Lock**: System automatically sets payment method to **"Donación"** and disables selection
-- **No Manual Override**: Users cannot change payment method for charitable institutions
-- **Implementation**: Uses `useEffect` hook to detect `selectedCustomer?.isCharity` and enforces donation payment method
-- **Billing Module Restriction**: When a charitable institution is selected in the billing module, the system displays a message "Para registrar donaciones debe hacerlo por el módulo de pedidos" and prevents invoice creation. Donations must be registered through the orders module instead.
-
-#### Advance Payment (Anticipo) Validation
-- **Business Rule**: Cannot register advance payments when customer has pending invoices
-- **Validation Points**:
-  1. Visual alert in advance payment dialog showing pending invoice amount
-  2. Submit button disabled when `totalPendingInvoices > 0`
-  3. Backend validation prevents advance registration
-- **User Message**: "No puede realizar Anticipo. El cliente tiene facturas pendientes. Por favor, aplique un abono a su factura pendiente."
-- **Purpose**: Ensures payments are applied to outstanding invoices before accepting advances
+The system enforces specific payment method rules:
+- **Default:** "Crédito" for most customers, with manual override options.
+- **Charitable Institutions:** Automatically set to "Donación" and locked. Donations must be registered via the orders module.
+- **Advance Payment Validation:** Advance payments are blocked if a customer has pending invoices, with clear user messaging.
 
 ### Unreturned Bottles Tracking System
-The system provides comprehensive tracking and visualization of unreturned returnable bottles (envases retornables) to help manage bottle deposits and ensure proper inventory control.
-
-#### Features
-- **Visual Alerts**: Orange badge "Envases sin retornar" displayed on delivered orders with unreturned bottles in the orders list (`/orders/list`)
-- **Pending Bottles Report**: Dedicated page (`/bottles/pending`) showing detailed tracking of all unreturned bottles
-- **Real-time Statistics**: Dashboard cards displaying total unreturned bottles, pending amounts, and counts by category
-- **Dual Detection**: Tracks both orders without any return record and orders with incomplete returns
-
-#### API Endpoint
-- **GET `/api/bottle-returns/pending`**: Returns comprehensive data about unreturned bottles
-  - `ordersWithoutReturns`: Delivered orders with returnable products but no return record
-  - `incompleteReturns`: Registered returns with pending quantity (status: pending/incomplete)
-  - `summary`: Aggregated totals including pending bottles count and total deposit amount
-
-#### UI Components
-1. **Orders List Badge** (`/orders/list`):
-   - Appears only on delivered orders with unreturned bottles
-   - Orange badge with PackageX icon
-   - Visible in both mobile and desktop views
-
-2. **Pending Bottles Report** (`/bottles/pending`):
-   - **Statistics Cards**: Total counts and amounts at a glance
-   - **Tab 1 - Sin Registro**: Orders with no return record
-     - Shows order ID, customer, product, quantities, deposit amounts
-     - Direct navigation to order details
-   - **Tab 2 - Incompletos**: Partially returned bottles
-     - Displays expected, returned, and pending quantities
-     - Shows amount charged for unreturned bottles
-   - **Responsive Design**: Mobile-first layout with proper table overflow handling
-
-#### Technical Implementation
-- **Multi-tenant Safe**: All queries scoped by `companyId` using `AsyncLocalStorage`
-- **Efficient Queries**: Uses SQL joins to combine order, customer, and product data
-- **Real-time Data**: Integrates with TanStack Query for automatic cache invalidation
-- **Status Detection**: Identifies unreturned bottles based on order status and bottle_returns table
-
-#### Use Cases
-- Track unreturned bottles to follow up with customers
-- Calculate total pending deposit amounts
-- Identify orders requiring bottle return action
-- Monitor incomplete returns for follow-up
+The system provides comprehensive tracking and visualization of unreturned returnable bottles to manage deposits and inventory. Features include visual alerts on orders, a dedicated pending bottles report showing orders without return records and incomplete returns, and real-time statistics on the dashboard. An API endpoint `/api/bottle-returns/pending` provides detailed data. A new feature allows manual marking of orders as "bottles not returned".
 
 ## External Dependencies
 

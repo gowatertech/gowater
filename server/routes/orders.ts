@@ -344,6 +344,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       driverCommission: order.driver_commission || '0.00',
       assistantCommission: order.assistant_commission || '0.00',
       invoiceId: order.invoiceId ?? order.invoice_id,
+      bottlesNotReturned: order.bottles_not_returned || false,
       items: items
     };
     
@@ -1257,6 +1258,54 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
     
   } catch (error) {
     console.error(`❌ Error al actualizar estado de orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Endpoint para marcar envases como no devueltos
+ordersRouter.patch("/api/orders/:orderId/mark-bottles-not-returned", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  console.log(`🔵 [PATCH BOTTLES] Iniciando PATCH mark-bottles-not-returned para order ${orderId}`);
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    console.log(`🔵 [PATCH BOTTLES] Company ID from context: ${companyId}`);
+    
+    if (!companyId) {
+      console.log(`❌ [PATCH BOTTLES] No autorizado - sin companyId`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para marcar envases"
+      });
+    }
+
+    // Actualizar el campo bottles_not_returned a true usando SQL directo
+    const updateQuery = `
+      UPDATE orders 
+      SET bottles_not_returned = true 
+      WHERE id = $1 AND company_id = $2
+      RETURNING *
+    `;
+    
+    console.log(`🔵 [PATCH BOTTLES] Ejecutando UPDATE para order ${orderId}, company ${companyId}`);
+    const result = await pool.query(updateQuery, [orderId, companyId]);
+    console.log(`🔵 [PATCH BOTTLES] Rows affected: ${result.rowCount}, Rows returned: ${result.rows.length}`);
+
+    if (result.rows.length === 0) {
+      console.log(`❌ [PATCH BOTTLES] Pedido no encontrado`);
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+
+    const updatedOrder = result.rows[0];
+    console.log(`✅ [PATCH BOTTLES] Pedido ${orderId} actualizado. bottles_not_returned=${updatedOrder.bottles_not_returned}`);
+    res.json({ success: true, order: updatedOrder });
+  } catch (error) {
+    console.error("❌ [PATCH BOTTLES] Error:", error);
     res.status(500).json({ error: String(error) });
   }
 });
