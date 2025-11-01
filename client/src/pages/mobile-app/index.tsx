@@ -30,6 +30,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
+import { formatTodayRD } from "@/lib/date-utils";
 
 // Componentes internos
 import { MobileHeader } from "./components/MobileHeader";
@@ -304,7 +305,7 @@ export default function GoWaterDriverApp() {
                 <div>
                   <h1 className="text-xl font-bold">{`¡Bienvenido, ${user.name}!`}</h1>
                   <p className="text-xs text-muted-foreground">
-                    {new Date().toLocaleDateString('es-ES', {
+                    {formatTodayRD({
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long'

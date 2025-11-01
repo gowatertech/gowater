@@ -46,6 +46,7 @@ import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { RouteStop } from "@/types/route";
+import { formatTodayRD } from "@/lib/date-utils";
 
 // Componentes de diálogo
 import {
@@ -1125,7 +1126,7 @@ export default function DriverRoute() {
             <CardContent className="p-3 sm:p-4">
               <h2 className="text-base sm:text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
               <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                {new Date().toLocaleDateString('es-DO', {
+                {formatTodayRD({
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',

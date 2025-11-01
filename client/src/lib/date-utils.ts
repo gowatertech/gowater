@@ -6,11 +6,12 @@
  */
 
 /**
- * Obtiene la fecha y hora actual en zona horaria de República Dominicana
- * @returns Date object en zona horaria RD
+ * Obtiene la fecha y hora actual (timestamp UTC real)
+ * Para mostrar al usuario, usar formatDateRD o formatTodayRD que aplicarán la zona horaria RD
+ * @returns Date object con el timestamp UTC actual
  */
 export function getNowRD(): Date {
-  return toRD(new Date());
+  return new Date();
 }
 
 /**
@@ -24,12 +25,37 @@ export function getTimestampRD(): string {
 
 /**
  * Obtiene la fecha de hoy (sin hora) en zona horaria de República Dominicana
- * @returns Date object a las 00:00:00 en zona horaria RD
+ * Construye un Date a las 00:00 en RD timezone
+ * @returns Date object que representa medianoche en RD
  */
 export function getTodayRD(): Date {
-  const now = getNowRD();
-  now.setHours(0, 0, 0, 0);
-  return now;
+  const now = new Date();
+  
+  // Obtener la fecha actual en timezone RD
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  // Crear un Date a medianoche UTC usando las partes de la fecha en RD
+  // Esto representa "hoy" en RD
+  const year = parseInt(dateParts.year);
+  const month = parseInt(dateParts.month) - 1; // Los meses en Date van de 0-11
+  const day = parseInt(dateParts.day);
+  
+  // Crear fecha a medianoche en zona local, pero usando el día de RD
+  const today = new Date(year, month, day, 0, 0, 0, 0);
+  return today;
 }
 
 /**
@@ -50,11 +76,24 @@ export function toRD(date: Date | string): Date {
  * @returns string en formato YYYY-MM-DD
  */
 export function getTodayStringRD(): string {
-  const today = getTodayRD();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  // Obtener la fecha actual en timezone RD
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 }
 
 /**
@@ -74,6 +113,71 @@ export function formatDateRD(
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
   return inputDate.toLocaleDateString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
+}
+
+/**
+ * Formatea la fecha ACTUAL en español (República Dominicana)
+ * Equivalente a new Date().toLocaleDateString() pero con zona horaria correcta
+ * @param options - Opciones de formateo
+ * @returns string formateado con la fecha actual en RD
+ */
+export function formatTodayRD(
+  options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }
+): string {
+  // Usar new Date() directamente (timestamp UTC actual) y formatear con zona RD
+  return new Date().toLocaleDateString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
+}
+
+/**
+ * Formatea una fecha/hora a string legible en español (República Dominicana)
+ * @param date - Fecha/hora a formatear
+ * @param options - Opciones de formateo
+ * @returns string formateado con fecha y hora
+ */
+export function formatDateTimeRD(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }
+): string {
+  const inputDate = typeof date === 'string' ? new Date(date) : date;
+  return inputDate.toLocaleString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
+}
+
+/**
+ * Formatea solo la hora de una fecha en República Dominicana
+ * @param date - Fecha a formatear
+ * @param options - Opciones de formateo
+ * @returns string formateado con solo la hora
+ */
+export function formatTimeRD(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit'
+  }
+): string {
+  const inputDate = typeof date === 'string' ? new Date(date) : date;
+  return inputDate.toLocaleTimeString('es-DO', {
     ...options,
     timeZone: 'America/Santo_Domingo'
   });

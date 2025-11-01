@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getTodayStringRD, formatTodayRD } from "@/lib/date-utils";
 
 // Components
 import {
@@ -412,7 +413,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     console.log("🏢 INICIALIZANDO FORMULARIO Y COMPANYID");
     
     // 1. Establecer nombre predeterminado de la ruta con fecha actual
-    const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+    const today = getTodayStringRD();
     const defaultRouteName = `Ruta ${today}`;
     form.setValue("name", defaultRouteName);
     console.log(`📝 Nombre de ruta establecido: "${defaultRouteName}"`);
@@ -1048,7 +1049,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     
     // Prepare data for server in the format expected by the mutation function
     const routeData = {
-      name: data.name || `Ruta ${new Date().toLocaleDateString()}`,
+      name: data.name || `Ruta ${formatTodayRD({ year: 'numeric', month: '2-digit', day: '2-digit' })}`,
       date: new Date(data.date || new Date()),
       driverId: Number(data.driverId),
       assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,

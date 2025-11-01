@@ -31,6 +31,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import L from "leaflet";
+import { getTodayStringRD, formatTodayRD } from "@/lib/date-utils";
 
 import {
   Form,
@@ -342,7 +343,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Set a default route name and update companyId when form initializes
   useEffect(() => {
-    const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+    const today = getTodayStringRD();
     form.setValue("name", `Ruta ${today}`);
     
     // Asegurarnos de que companyId siempre sea un número válido
@@ -858,7 +859,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     
     // Prepare data for server in the format expected by the mutation function
     const routeData = {
-      name: data.name || `Ruta ${new Date().toLocaleDateString()}`,
+      name: data.name || `Ruta ${formatTodayRD({ year: 'numeric', month: '2-digit', day: '2-digit' })}`,
       date: new Date(data.date || new Date()),
       driverId: Number(data.driverId),
       assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,

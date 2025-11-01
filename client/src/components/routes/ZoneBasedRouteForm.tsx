@@ -30,6 +30,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import L from "leaflet";
+import { getTodayStringRD } from "@/lib/date-utils";
 
 import {
   Form,
@@ -344,7 +345,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     if (selectedZone) {
       const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === selectedZone) : null;
       if (selectedZoneObj) {
-        const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+        const today = getTodayStringRD();
         form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
       }
     }

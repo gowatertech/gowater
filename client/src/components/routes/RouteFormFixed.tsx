@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatTodayRD } from "@/lib/date-utils";
 
 // UI Components
 import {
@@ -81,7 +82,7 @@ export default function RouteFormFixed({ onRouteCreated }: RouteFormFixedProps) 
   const form = useForm<RouteFormValues>({
     resolver: zodResolver(routeSchema),
     defaultValues: {
-      name: `Ruta ${new Date().toLocaleDateString()}`,
+      name: `Ruta ${formatTodayRD({ year: 'numeric', month: '2-digit', day: '2-digit' })}`,
       driverId: 0,
       assistantId: null,
       zoneId: 0,

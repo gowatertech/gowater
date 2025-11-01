@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
+import { formatTodayRD } from "@/lib/date-utils";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -221,7 +222,7 @@ export default function DriverDeliveries() {
         <div className="py-4">
           <h1 className="text-2xl font-bold mb-1">Mis Entregas</h1>
           <p className="text-sm text-muted-foreground mb-4">
-            {new Date().toLocaleDateString('es-DO', {
+            {formatTodayRD({
               weekday: 'long',
               day: 'numeric',
               month: 'long'
