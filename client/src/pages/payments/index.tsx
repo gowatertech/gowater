@@ -41,6 +41,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toRD } from "@/lib/date-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -350,7 +351,7 @@ export default function PaymentDashboard() {
           </div>
           
           <div style="font-size: 10px; margin-bottom: 10px;">
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(toRD(payment.date), 'dd/MM/yyyy HH:mm')}</p>
             <p style="margin: 4px 0;"><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
             <p style="margin: 4px 0;"><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
             <p style="margin: 4px 0;"><strong>Método:</strong> ${
@@ -422,7 +423,7 @@ export default function PaymentDashboard() {
         // Datos del pago
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
+        doc.text(`Fecha: ${format(toRD(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
         doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
         doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
         
@@ -658,7 +659,7 @@ export default function PaymentDashboard() {
             </div>
             
             <div class="content">
-              <p><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+              <p><strong>Fecha:</strong> ${format(toRD(payment.date), 'dd/MM/yyyy HH:mm')}</p>
               <p><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
               <p><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
               <p><strong>Método:</strong> ${metodoPago}</p>
@@ -743,7 +744,7 @@ export default function PaymentDashboard() {
             <tbody>
               {filteredPayments.slice(0, 15).map(payment => (
                 <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
-                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style={{padding: "8px"}}>{format(toRD(payment.date), 'dd/MM/yyyy')}</td>
                   <td style={{padding: "8px"}}>{payment.customerName || '-'}</td>
                   <td style={{padding: "8px"}}>{payment.invoiceNumber || '-'}</td>
                   <td style={{padding: "8px"}}>
@@ -1001,7 +1002,7 @@ export default function PaymentDashboard() {
                       <TableRow key={payment.id} className="text-xs">
                         <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                         <TableCell className="py-1.5">
-                          {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                          {format(toRD(payment.date), 'dd/MM/yyyy', { locale: es })}
                         </TableCell>
                         <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                         <TableCell className="py-1.5">
@@ -1074,7 +1075,7 @@ export default function PaymentDashboard() {
                                   
                                   <div className="bg-muted/30 rounded p-2">
                                     <p className="text-xs text-muted-foreground">Fecha</p>
-                                    <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+                                    <p className="font-medium">{format(toRD(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
                                   </div>
                                   
                                   {payment.notes && (
@@ -1123,7 +1124,7 @@ export default function PaymentDashboard() {
                         <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                            {format(toRD(payment.date), 'dd/MM/yyyy', { locale: es })}
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <FileText className="h-3 w-3" />
@@ -1205,7 +1206,7 @@ export default function PaymentDashboard() {
                                   
                                   <div className="bg-muted/30 rounded p-2">
                                     <p className="text-xs text-muted-foreground">Fecha</p>
-                                    <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+                                    <p className="font-medium">{format(toRD(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
                                   </div>
                                   
                                   {payment.notes && (
