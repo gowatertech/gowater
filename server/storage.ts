@@ -933,7 +933,7 @@ export class DatabaseStorage implements IStorage {
       documentType: "ANT",
       type: "credit", // Los anticipos son CRÉDITOS (reducen la deuda)
       amount,
-      text: `Anticipo - ${customerName}`,
+      description: `Anticipo - ${customerName}`,
       reference: payment.id.toString()
     });
     

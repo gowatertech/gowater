@@ -88,6 +88,9 @@ The system implements a comprehensive transaction ledger tracking all financial 
 ### Customer Advance Payments (Anticipos) System
 The system supports comprehensive advance payment tracking with automatic document numbering (ANT-XXXX), integration with the unified transaction system, multi-payment method support, and a unified payment history display. It provides secure, XSS-safe PDF receipt printing with custom formatting for advances and integrates advance balances into customer displays.
 
+#### Recent Fix (November 2025)
+Fixed critical bug in `registerAdvancePayment()` method where transaction creation failed due to using incorrect field name (`text` instead of `description`). The `description` field in the `transactions` table is `NOT NULL`, so using the wrong field name resulted in a constraint violation error (Error 500). Fix implemented in `server/storage.ts` line 939.
+
 ### Billing Interface with Customer Balance Integration
 The billing interface displays real-time customer balance (saldo a favor) and intelligently handles mixed payment scenarios by applying available advances automatically. It ensures intelligent advance splitting, supports mixed payments, synchronizes customer balances (CxC), generates detailed transaction records, and provides context-aware toast notifications.
 
