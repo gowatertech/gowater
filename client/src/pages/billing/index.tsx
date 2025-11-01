@@ -949,7 +949,23 @@ export default function Billing() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const date = new Date(invoice.date);
+                              // DEBUG: Ver valor crudo
+                              if (invoice.invoiceNumber === 6) {
+                                console.log('Factura #6 - invoice.date:', invoice.date);
+                                console.log('Factura #6 - new Date():', new Date(invoice.date));
+                              }
+                              
+                              // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
+                              const parts = invoice.date.split(/[- :T.]/);
+                              const date = new Date(
+                                parseInt(parts[0]), // año
+                                parseInt(parts[1]) - 1, // mes (0-indexed)
+                                parseInt(parts[2]), // día
+                                parseInt(parts[3] || 0), // hora
+                                parseInt(parts[4] || 0), // minutos
+                                parseInt(parts[5] || 0)  // segundos
+                              );
+                              
                               const dateStr = format(date, 'dd/MM/yyyy', { locale: es });
                               const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                               return `${dateStr} ${timeStr}`;
