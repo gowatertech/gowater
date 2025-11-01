@@ -25,7 +25,8 @@ import {
   SearchX,
   Printer,
   Download,
-  DollarSign
+  DollarSign,
+  PackageX
 } from "lucide-react";
 
 // Componentes UI
@@ -104,6 +105,32 @@ export default function OrdersList() {
       });
     },
   });
+
+  // Obtener envases pendientes de retorno
+  const { data: pendingBottles } = useQuery<any>({
+    queryKey: ["/api/bottle-returns/pending"],
+    queryFn: async () => {
+      return await apiRequest({
+        url: `/api/bottle-returns/pending`,
+        method: "GET"
+      });
+    },
+  });
+
+  // Función para verificar si un pedido tiene envases pendientes
+  const hasUnreturnedBottles = (orderId: number) => {
+    if (!pendingBottles) return false;
+    
+    const hasOrderWithoutReturns = pendingBottles.ordersWithoutReturns?.some(
+      (item: any) => item.orderId === orderId
+    );
+    
+    const hasIncompleteReturns = pendingBottles.incompleteReturns?.some(
+      (item: any) => item.orderId === orderId
+    );
+    
+    return hasOrderWithoutReturns || hasIncompleteReturns;
+  };
 
   // Filtrar pedidos según criterios de búsqueda
   const filteredOrders = orders
@@ -592,7 +619,14 @@ export default function OrdersList() {
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <div>{getStatusBadge(order.status)}</div>
+                        <div className="flex flex-col gap-1">
+                          {getStatusBadge(order.status)}
+                          {order.status === "delivered" && hasUnreturnedBottles(order.id) && (
+                            <Badge className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 flex items-center gap-1 text-xs">
+                              <PackageX className="h-3 w-3" /> Envases sin retornar
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex gap-1 flex-wrap justify-end">
                           <Button
                             variant="outline"
@@ -681,7 +715,16 @@ export default function OrdersList() {
                         <TableCell className="font-medium">#{order.id}</TableCell>
                         <TableCell>{customer?.businessname || "Cliente"}</TableCell>
                         <TableCell>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</TableCell>
-                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            {getStatusBadge(order.status)}
+                            {order.status === "delivered" && hasUnreturnedBottles(order.id) && (
+                              <Badge className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 flex items-center gap-1 text-xs w-fit">
+                                <PackageX className="h-3 w-3" /> Envases sin retornar
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right font-medium">
                           RD$ {parseFloat(order.total.toString()).toFixed(2)}
                         </TableCell>
