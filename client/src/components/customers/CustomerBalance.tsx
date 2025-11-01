@@ -40,7 +40,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { DollarSign, Plus, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { DollarSign, Plus, TrendingUp, TrendingDown, Wallet, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const advancePaymentSchema = z.object({
   amount: z.string()
@@ -118,6 +119,16 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
   });
 
   const onSubmit = (data: AdvancePaymentFormData) => {
+    // Validar que el cliente no tenga facturas pendientes
+    if (pendingInvoices > 0) {
+      toast({
+        variant: "destructive",
+        title: "No puede realizar Anticipo",
+        description: "El cliente tiene facturas pendientes. Por favor, aplique un abono a su factura pendiente.",
+      });
+      return;
+    }
+    
     registerAdvanceMutation.mutate(data);
   };
 
@@ -172,6 +183,19 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
                   Registrar un pago adelantado de {customerName}
                 </DialogDescription>
               </DialogHeader>
+              
+              {/* Alerta si el cliente tiene facturas pendientes */}
+              {pendingInvoices > 0 && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No puede realizar Anticipo</AlertTitle>
+                  <AlertDescription>
+                    El cliente tiene <strong>RD$ {pendingInvoices.toFixed(2)}</strong> en facturas pendientes. 
+                    Por favor, aplique un abono a su factura pendiente en lugar de registrar un anticipo.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -252,7 +276,7 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
                   <DialogFooter>
                     <Button
                       type="submit"
-                      disabled={registerAdvanceMutation.isPending}
+                      disabled={registerAdvanceMutation.isPending || pendingInvoices > 0}
                       data-testid="button-submit-advance"
                     >
                       {registerAdvanceMutation.isPending ? "Registrando..." : "Registrar Anticipo"}
