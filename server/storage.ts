@@ -919,8 +919,23 @@ export class DatabaseStorage implements IStorage {
     
     const payment = await this.registerPayment(advancePayment);
     
-    // NO actualizar el balance del cliente
-    // El balance (CxC) es un campo MANUAL de carga inicial, no debe ser calculado automáticamente
+    // Obtener nombre del cliente para el texto de la transacción
+    const [customer] = await db
+      .select({ businessname: customers.businessname })
+      .from(customers)
+      .where(eq(customers.id, customerId));
+    
+    const customerName = customer?.businessname || "Cliente";
+    
+    // Crear transacción ANT (Anticipo) en el historial de transacciones
+    await this.createTransaction({
+      customerId,
+      documentType: "ANT",
+      type: "credit", // Los anticipos son CRÉDITOS (reducen la deuda)
+      amount,
+      text: `Anticipo - ${customerName}`,
+      reference: payment.id.toString()
+    });
     
     return payment;
   }
@@ -1055,10 +1070,10 @@ export class DatabaseStorage implements IStorage {
     const netBalance = balanceFromTransactions;
     
     return {
-      balance: balanceFromTransactions,
+      customerBalance: balanceFromTransactions,
       creditLimit,
-      pendingInvoices: totalPendingInvoicesStr,
-      availableAdvances: totalAvailableAdvances,
+      totalPendingInvoices: totalPendingInvoicesStr,
+      totalAvailableAdvances: totalAvailableAdvances,
       netBalance
     };
   }
@@ -1422,7 +1437,7 @@ export class DatabaseStorage implements IStorage {
           eq(transactions.customerId, customerId)
         )
       )
-      .orderBy(desc(transactions.date));
+      .orderBy(desc(transactions.date), desc(transactions.id));
   }
 
   async getAllTransactions(): Promise<Transaction[]> {
@@ -1436,7 +1451,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(transactions)
       .where(eq(transactions.companyId, companyId))
-      .orderBy(desc(transactions.date));
+      .orderBy(desc(transactions.date), desc(transactions.id));
   }
 
   async getCustomerBalanceFromTransactions(customerId: number): Promise<{
