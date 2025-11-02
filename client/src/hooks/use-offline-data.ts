@@ -29,10 +29,7 @@ export function useOfflineRoutes(options: Omit<UseOfflineDataOptions, 'queryKey'
         // Si falla, cargar desde IndexedDB
         const offlineRoutes = await getAllRoutes();
         
-        if (offlineRoutes.length === 0) {
-          throw new Error('No hay datos offline disponibles');
-        }
-        
+        // Retornar array vacío si no hay datos, no lanzar error
         return offlineRoutes;
       }
     },
@@ -63,10 +60,7 @@ export function useOfflineOrders(options: Omit<UseOfflineDataOptions, 'queryKey'
         // Si falla, cargar desde IndexedDB
         const offlineOrders = await getAllOrders();
         
-        if (offlineOrders.length === 0) {
-          throw new Error('No hay datos offline disponibles');
-        }
-        
+        // Retornar array vacío si no hay datos, no lanzar error
         return offlineOrders;
       }
     },
@@ -97,10 +91,7 @@ export function useOfflineCustomers(options: Omit<UseOfflineDataOptions, 'queryK
         // Si falla, cargar desde IndexedDB
         const offlineCustomers = await getAllCustomers();
         
-        if (offlineCustomers.length === 0) {
-          throw new Error('No hay datos offline disponibles');
-        }
-        
+        // Retornar array vacío si no hay datos, no lanzar error
         return offlineCustomers;
       }
     },
@@ -131,10 +122,7 @@ export function useOfflineProducts(options: Omit<UseOfflineDataOptions, 'queryKe
         // Si falla, cargar desde IndexedDB
         const offlineProducts = await getAllProducts();
         
-        if (offlineProducts.length === 0) {
-          throw new Error('No hay datos offline disponibles');
-        }
-        
+        // Retornar array vacío si no hay datos, no lanzar error
         return offlineProducts;
       }
     },
