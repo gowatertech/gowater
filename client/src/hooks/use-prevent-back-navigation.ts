@@ -37,7 +37,18 @@ export function usePreventBackNavigation(
         }
       } catch (error) {
         console.error(`[usePreventBackNavigation] Error verificando autenticación en ${authEndpoint}:`, error);
-        // En caso de error, también redirigir por seguridad
+        
+        // Si estamos offline, verificar si hay usuario en localStorage antes de redirigir
+        if (!navigator.onLine) {
+          const savedUser = localStorage.getItem('offlineUser');
+          if (savedUser) {
+            console.log('[usePreventBackNavigation] Sin conexión pero hay usuario offline, manteniendo sesión');
+            setIsAuthenticated(true);
+            return; // No redirigir
+          }
+        }
+        
+        // En caso de error online o sin usuario guardado, redirigir por seguridad
         setIsAuthenticated(false);
         setLocation(redirectTo, { replace: true });
       }

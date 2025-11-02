@@ -8,10 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 2, 2025 - Offline Sync Service Fix
-- **Fixed**: Offline functionality in mobile app was not working because sync service initialization was commented out in `client/src/main.tsx`
+### November 2, 2025 - Offline Functionality Fixes
+
+#### Fix #1: Sync Service Initialization
+- **Issue**: Offline functionality in mobile app was not working because sync service initialization was commented out in `client/src/main.tsx`
 - **Resolution**: Uncommented and corrected the sync service initialization to use the proper file path (`./lib/sync-service` instead of `./lib/syncService`)
 - **Impact**: Mobile offline mode now properly initializes online/offline event listeners, auto-sync interval, and connection monitoring at application startup
+
+#### Fix #2: User Authentication Offline Persistence
+- **Issue**: Main dashboard page was blank when offline because `useCurrentUser` hook had no offline fallback, causing all data queries to be disabled when user couldn't be fetched
+- **Resolution**: Added localStorage persistence and offline detection to `client/src/hooks/use-current-user.ts`:
+  - User data is now saved to localStorage when logging in or fetching user info online
+  - When offline (`navigator.onLine === false`), user is loaded IMMEDIATELY from localStorage without waiting for API timeout
+  - When API fetch fails, fallback to localStorage
+  - User data is cleared from localStorage on logout
+  - Also fixed `client/src/hooks/use-prevent-back-navigation.ts` to not redirect to login when offline if user exists in localStorage
+- **Impact**: App now works completely offline after initial login - user loads instantly, preventing "Cargando..." stuck screen, enabling all offline data queries (routes, orders, customers) to execute properly
 
 ## System Architecture
 

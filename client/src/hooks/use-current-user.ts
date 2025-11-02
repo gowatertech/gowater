@@ -43,21 +43,59 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   error: null,
   fetchUser: async () => {
     set({ isLoading: true, error: null });
+    
+    // Si estamos offline, cargar directamente de localStorage para evitar espera
+    if (!navigator.onLine) {
+      console.log('[useCurrentUser] Sin conexión detectada, cargando desde localStorage');
+      try {
+        const savedUser = localStorage.getItem('offlineUser');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          console.log('[useCurrentUser] Usuario cargado desde localStorage (modo offline):', user);
+          set({ user, isLoading: false });
+          return;
+        }
+      } catch (storageError) {
+        console.error('[useCurrentUser] Error al cargar desde localStorage:', storageError);
+      }
+    }
+    
     try {
       const result = await apiRequest({ url: '/api/authtest', method: 'GET' });
       // El endpoint authtest devuelve { user, sessionUser, companyId }
       const user = result.user || result.sessionUser;
       if (user) {
+        // Guardar usuario en localStorage para modo offline
+        localStorage.setItem('offlineUser', JSON.stringify(user));
         set({ user, isLoading: false });
       } else {
         set({ user: null, isLoading: false, error: new Error('No autenticado') });
       }
     } catch (error) {
-      set({ 
-        user: null, 
-        isLoading: false,
-        error: error as Error 
-      });
+      console.log('[useCurrentUser] Error al cargar usuario desde API, intentando localStorage', error);
+      
+      // Si falla (probablemente sin conexión), intentar cargar de localStorage
+      try {
+        const savedUser = localStorage.getItem('offlineUser');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          console.log('[useCurrentUser] Usuario cargado desde localStorage (fallback):', user);
+          set({ user, isLoading: false });
+        } else {
+          set({ 
+            user: null, 
+            isLoading: false,
+            error: error as Error 
+          });
+        }
+      } catch (storageError) {
+        console.error('[useCurrentUser] Error al cargar desde localStorage:', storageError);
+        set({ 
+          user: null, 
+          isLoading: false,
+          error: error as Error 
+        });
+      }
     }
   },
   logout: async () => {
@@ -89,7 +127,8 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
         }
       }
       
-      // Eliminar usuario del estado después de cerrar sesión
+      // Eliminar usuario del estado y localStorage después de cerrar sesión
+      localStorage.removeItem('offlineUser');
       set({ user: null, isLoading: false });
       
       // Limpiar el historial actual para prevenir navegación hacia atrás
@@ -119,6 +158,8 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       
       if (response.ok && result.success) {
         console.log('Login exitoso:', result.user);
+        // Guardar usuario en localStorage para modo offline
+        localStorage.setItem('offlineUser', JSON.stringify(result.user));
         set({ user: result.user, isLoading: false });
         return {
           success: true,
