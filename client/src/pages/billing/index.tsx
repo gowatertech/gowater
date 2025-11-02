@@ -4,7 +4,7 @@ import { type Customer, type Product, type Invoice } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PrinterService } from "@/services/PrinterService";
-import { toRD } from "@/lib/date-utils";
+import { toRD, formatDateTimeRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -948,28 +948,14 @@ export default function Billing() {
                             {customers.find((c) => c.id === invoice.customerId)?.businessname || "Cliente"}
                           </TableCell>
                           <TableCell>
-                            {(() => {
-                              // DEBUG: Ver valor crudo
-                              if (invoice.invoiceNumber === 6) {
-                                console.log('Factura #6 - invoice.date:', invoice.date);
-                                console.log('Factura #6 - new Date():', new Date(invoice.date));
-                              }
-                              
-                              // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
-                              const parts = invoice.date.split(/[- :T.]/);
-                              const date = new Date(
-                                parseInt(parts[0]), // año
-                                parseInt(parts[1]) - 1, // mes (0-indexed)
-                                parseInt(parts[2]), // día
-                                parseInt(parts[3] || 0), // hora
-                                parseInt(parts[4] || 0), // minutos
-                                parseInt(parts[5] || 0)  // segundos
-                              );
-                              
-                              const dateStr = format(date, 'dd/MM/yyyy', { locale: es });
-                              const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                              return `${dateStr} ${timeStr}`;
-                            })()}
+                            {formatDateTimeRD(invoice.date, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             RD$ {parseFloat(invoice.total).toFixed(2)}

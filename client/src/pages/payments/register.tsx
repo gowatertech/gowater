@@ -5,6 +5,7 @@ import { type Invoice } from "@shared/schema";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Extender el tipo Invoice para incluir campos adicionales del endpoint
 interface InvoiceWithDetails extends Invoice {
@@ -212,7 +213,11 @@ export default function RegisterPayment() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Fecha de Factura</p>
-                    <p className="font-medium">{new Date(selectedInvoice.date).toLocaleDateString()}</p>
+                    <p className="font-medium">{formatDateRD(selectedInvoice.date, {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Total Factura</p>

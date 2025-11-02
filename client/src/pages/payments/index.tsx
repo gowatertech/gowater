@@ -41,7 +41,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { toRD } from "@/lib/date-utils";
+import { toRD, formatDateTimeRD } from "@/lib/date-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -1002,22 +1002,14 @@ export default function PaymentDashboard() {
                       <TableRow key={payment.id} className="text-xs">
                         <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                         <TableCell className="py-1.5">
-                          {(() => {
-                            // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
-                            const parts = payment.date.split(/[- :T.]/);
-                            const date = new Date(
-                              parseInt(parts[0]), // año
-                              parseInt(parts[1]) - 1, // mes (0-indexed)
-                              parseInt(parts[2]), // día
-                              parseInt(parts[3] || 0), // hora
-                              parseInt(parts[4] || 0), // minutos
-                              parseInt(parts[5] || 0)  // segundos
-                            );
-                            
-                            const dateStr = format(date, 'dd/MM/yyyy', { locale: es });
-                            const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                            return `${dateStr} ${timeStr}`;
-                          })()}
+                          {formatDateTimeRD(payment.date, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
                         </TableCell>
                         <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                         <TableCell className="py-1.5">

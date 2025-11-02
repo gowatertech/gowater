@@ -7,6 +7,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import { formatDateRD } from "@/lib/date-utils";
 // Importamos nuestro servicio de impresión
 import { printOrderTicket, generateOrderPdf } from "./PrinterService";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
@@ -555,7 +556,11 @@ export default function OrderDetails() {
               </div>
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Fecha</div>
-                <div className="text-sm">{new Date(order.date).toLocaleDateString()}</div>
+                <div className="text-sm">{formatDateRD(order.date, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}</div>
               </div>
             </div>
 

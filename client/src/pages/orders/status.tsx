@@ -5,6 +5,7 @@ import { useLocation, useRoute } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Iconos
 import { 
@@ -328,7 +329,11 @@ export default function OrderStatus() {
               </div>
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Fecha</div>
-                <div className="text-sm">{new Date(order.date).toLocaleDateString()}</div>
+                <div className="text-sm">{formatDateRD(order.date, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}</div>
               </div>
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Estado Actual</div>

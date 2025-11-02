@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateTimeRD } from "@/lib/date-utils";
 // Importamos nuestro servicio de impresión centralizado
 import { PrinterService } from "@/services/PrinterService";
 
@@ -600,20 +601,14 @@ export default function OrdersList() {
                           <p className="font-medium">RD$ {parseFloat(order.total.toString()).toFixed(2)}</p>
                           <p className="text-xs text-muted-foreground flex items-center justify-end">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {(() => {
-                              // Interpretar la fecha como hora local (ya viene en hora de RD desde backend)
-                              const parts = order.date.split(/[- :T.]/);
-                              const date = new Date(
-                                parseInt(parts[0]), // año
-                                parseInt(parts[1]) - 1, // mes (0-indexed)
-                                parseInt(parts[2]), // día
-                                parseInt(parts[3] || 0), // hora
-                                parseInt(parts[4] || 0), // minutos
-                                parseInt(parts[5] || 0)  // segundos
-                              );
-                              
-                              return date.toLocaleDateString() + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                            })()}
+                            {formatDateTimeRD(order.date, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
                           </p>
                         </div>
                       </div>
@@ -714,7 +709,14 @@ export default function OrdersList() {
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">#{order.id}</TableCell>
                         <TableCell>{customer?.businessname || "Cliente"}</TableCell>
-                        <TableCell>{new Date(order.date).toLocaleDateString()} {new Date(order.date).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}</TableCell>
+                        <TableCell>{formatDateTimeRD(order.date, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}</TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
                             {getStatusBadge(order.status)}
