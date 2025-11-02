@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { PackageX, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { useLocation } from "wouter";
+import { formatDateRD } from "@/lib/date-utils";
 
 import {
   Table,
@@ -194,7 +195,11 @@ export default function EnvasesPendientes() {
                             RD$ {item.amountPending}
                           </TableCell>
                           <TableCell>
-                            {new Date(item.orderDate).toLocaleDateString('es-DO')}
+                            {formatDateRD(item.orderDate, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
@@ -281,7 +286,11 @@ export default function EnvasesPendientes() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {new Date(item.orderDate).toLocaleDateString('es-DO')}
+                            {formatDateRD(item.orderDate, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button

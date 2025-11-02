@@ -5,6 +5,7 @@ import { type BottleReturn } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, AlertTriangle, Plus } from "lucide-react";
+import { formatDateRD } from "@/lib/date-utils";
 
 import {
   Table,
@@ -162,7 +163,11 @@ export default function Faltantes() {
                       <TableCell>#{bottle.orderId}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
-                      <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDateRD(bottle.returnDate, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}</TableCell>
                       <TableCell>
                         <DetectionTypeBadge type={bottle.detectionType} />
                       </TableCell>
