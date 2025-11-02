@@ -45,6 +45,18 @@ export function useOfflineSync() {
         console.error('[useOfflineSync] Error loading initial sync status:', err);
       });
 
+      // Auto-download data on first load if online
+      if (getOnlineStatus()) {
+        downloadTodayRouteData().then(() => {
+          console.log('[useOfflineSync] Auto-downloaded initial data');
+          loadSyncStatus().catch(err => {
+            console.error('[useOfflineSync] Error loading sync status after download:', err);
+          });
+        }).catch(err => {
+          console.error('[useOfflineSync] Error auto-downloading data:', err);
+        });
+      }
+
       return () => {
         removeConnectionListener(handleConnectionChange);
       };
