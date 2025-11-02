@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateRD } from "@/lib/date-utils";
 import {
   Card,
   CardContent,
@@ -353,7 +354,11 @@ export function CustomerBalance({ customerId, customerName }: CustomerBalancePro
                         {advance.paymentMethod === "transfer" && "Transferencia"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(advance.date).toLocaleDateString()}
+                        {formatDateRD(advance.date, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
                       </span>
                     </div>
                     <span className="font-semibold text-green-600">

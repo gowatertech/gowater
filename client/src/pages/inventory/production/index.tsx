@@ -20,6 +20,7 @@ import {
   CircleDollarSign
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { formatDateRD } from "@/lib/date-utils";
 import {
   Select,
   SelectContent,
@@ -471,7 +472,11 @@ export default function ProductionRegistration() {
                         filteredBatches.map((batch: any) => (
                           <TableRow key={batch.id} className="text-xs">
                             <TableCell className="py-2">{batch.batchNumber}</TableCell>
-                            <TableCell className="py-2">{new Date(batch.date).toLocaleDateString()}</TableCell>
+                            <TableCell className="py-2">{formatDateRD(batch.date, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}</TableCell>
                             <TableCell className="py-2 font-medium">{batch.warehouseName}</TableCell>
                             <TableCell className="py-2 text-right">RD$ {parseFloat(batch.totalCost).toFixed(2)}</TableCell>
                             <TableCell className="py-2 text-center">
@@ -778,7 +783,11 @@ export default function ProductionRegistration() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div className="text-sm">
                       <span className="text-muted-foreground">Fecha: </span>
-                      <span className="font-medium">{new Date(selectedBatch.date).toLocaleDateString()}</span>
+                      <span className="font-medium">{formatDateRD(selectedBatch.date, {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

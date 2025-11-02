@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Componentes
 import {
@@ -360,7 +361,11 @@ export default function ZonesPage() {
                 <div>
                   <h3 className="text-sm font-semibold">Fecha de Creación</h3>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(selectedZone.createdAt).toLocaleDateString()}
+                    {formatDateRD(selectedZone.createdAt, {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
                   </p>
                 </div>
               </div>

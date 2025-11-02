@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { formatTimeRD } from '@/lib/date-utils';
 import { 
   Card, 
   CardHeader, 
@@ -595,7 +596,7 @@ export default function DriverView() {
                       <div className="border rounded p-1 text-center">
                         <div className="text-gray-500">Hora</div>
                         <div className="font-medium">
-                          {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {formatTimeRD(delivery.estimatedTime, {hour: '2-digit', minute:'2-digit'})}
                         </div>
                       </div>
                       <div className="border rounded p-1 text-center">
@@ -1028,7 +1029,7 @@ export default function DriverView() {
                     <div className="flex gap-4 text-xs my-1">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-blue-600" /> 
-                        {new Date(nextDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {formatTimeRD(nextDelivery.estimatedTime, {hour: '2-digit', minute:'2-digit'})}
                       </span>
                       <span className="flex items-center gap-1">
                         <DollarSign className="h-3.5 w-3.5 text-green-600" /> 
@@ -1087,7 +1088,7 @@ export default function DriverView() {
                           <div className="border rounded p-1 text-center">
                             <div className="text-gray-500">Hora</div>
                             <div className="font-medium">
-                              {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              {formatTimeRD(delivery.estimatedTime, {hour: '2-digit', minute:'2-digit'})}
                             </div>
                           </div>
                           <div className="border rounded p-1 text-center">
@@ -1177,7 +1178,7 @@ export default function DriverView() {
                       <div>
                         <h4 className="text-sm font-medium mb-1">Hora Estimada</h4>
                         <p className="text-sm text-gray-600">
-                          {new Date(selectedDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {formatTimeRD(selectedDelivery.estimatedTime, {hour: '2-digit', minute:'2-digit'})}
                         </p>
                       </div>
                     </div>

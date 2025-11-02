@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
+import { formatDateRD } from "@/lib/date-utils";
 import {
   Select,
   SelectContent,
@@ -106,12 +107,19 @@ export default function SalesReports() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="date" 
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tickFormatter={(value) => formatDateRD(value, {
+                      day: '2-digit',
+                      month: '2-digit'
+                    })}
                     tick={{ fontSize: 8 }}
                   />
                   <YAxis tick={{ fontSize: 8 }} />
                   <Tooltip 
-                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    labelFormatter={(value) => formatDateRD(value, {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Ventas"]}
                   />
                   <Legend wrapperStyle={{ fontSize: '8px' }} />
@@ -147,12 +155,19 @@ export default function SalesReports() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="date" 
-                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tickFormatter={(value) => formatDateRD(value, {
+                      day: '2-digit',
+                      month: '2-digit'
+                    })}
                     tick={{ fontSize: 8 }}
                   />
                   <YAxis tick={{ fontSize: 8 }} />
                   <Tooltip 
-                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    labelFormatter={(value) => formatDateRD(value, {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Monto"]}
                   />
                   <Legend wrapperStyle={{ fontSize: '8px' }} />
