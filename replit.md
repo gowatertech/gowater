@@ -74,6 +74,48 @@ The system enforces specific payment method rules:
 ### Unreturned Bottles Tracking System
 The system provides comprehensive tracking and visualization of unreturned returnable bottles to manage deposits and inventory. Features include visual alerts on orders, a dedicated pending bottles report showing orders without return records and incomplete returns, and real-time statistics on the dashboard. An API endpoint `/api/bottle-returns/pending` provides detailed data. A new feature allows manual marking of orders as "bottles not returned".
 
+### Offline-First Mobile Architecture
+The mobile driver app implements a comprehensive **offline-first architecture** enabling full functionality without internet connectivity:
+
+#### IndexedDB Persistent Storage
+- **Local Database**: Uses IndexedDB (via `idb` library) for client-side data persistence
+- **Stores**: Separate object stores for routes, orders, customers, products, pending actions, and sync metadata
+- **Indexed Queries**: Efficient lookups by driver, date, route, customer, and sync status
+- **Bulk Operations**: Optimized bulk save operations for initial data synchronization
+
+#### Intelligent Sync Service
+- **Automatic Download**: Downloads today's route data (routes, orders, customers, products) when online
+- **Pending Actions Queue**: Queues all offline actions (deliveries, payments, bottle returns, status updates) with retry logic
+- **Auto-Sync**: Automatically syncs pending actions every 30 seconds when connection is available
+- **Connection Monitoring**: Real-time detection of online/offline status with event-driven synchronization
+- **Sync Metadata**: Tracks last sync times and status for audit and debugging
+
+#### Enhanced Service Worker
+- **Multi-Cache Strategy**: Separate caches for static resources, dynamic content, and map tiles
+- **Cache-First for Maps**: OpenStreetMap tiles cached with cache-first strategy for offline map viewing
+- **Cache-First for Static Assets**: CSS, JS, fonts, and images served from cache for instant loading
+- **Network-First for HTML**: Dynamic pages fetched from network with cache fallback
+- **Offline Fallback**: Graceful degradation to cached content when offline
+
+#### Conflict Resolution System
+- **Conflict Detection**: Compares client and server timestamps to identify data conflicts
+- **Smart Resolution**: Driver-authoritative strategy for deliveries/payments, server-authoritative for master data
+- **Merge Logic**: Intelligent data merging that preserves critical field updates from both sources
+- **Manual Resolution**: UI for resolving complex conflicts when automatic resolution isn't appropriate
+
+#### User Experience Features
+- **Visual Indicators**: Real-time online/offline status badge in mobile header
+- **Sync Status Display**: Shows pending action count and last sync timestamp
+- **Manual Controls**: Buttons to download data for offline use and trigger immediate sync
+- **Toast Notifications**: User-friendly messages for sync progress, success, and errors
+- **Airplane Mode Testing**: Full functionality verified in airplane mode for field reliability
+
+#### Technical Implementation
+- **Files**: `client/src/lib/offline-db.ts`, `client/src/lib/sync-service.ts`, `client/src/lib/conflict-resolution.ts`
+- **React Hook**: `useOfflineSync` provides easy integration with React components
+- **UI Component**: `OfflineSyncIndicator` shows connection status and sync controls
+- **Service Worker**: Enhanced `client/public/sw.js` with v4 multi-cache architecture
+
 ## External Dependencies
 
 ### Core Infrastructure

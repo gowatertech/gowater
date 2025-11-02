@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ArrowLeft, Bell, Sun, Moon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SyncIndicator, SyncStatusModal } from "@/components/sync";
+import { OfflineSyncIndicator } from "@/components/OfflineSyncIndicator";
 import { forceSyncNow } from "@/lib/syncService";
 import { User } from "@/hooks/use-current-user";
 import { formatTodayCompactRD } from "@/lib/date-utils";
@@ -99,6 +100,12 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               )}
             </Button>
           )}
+          
+          {/* Indicador de Sincronización Offline */}
+          <OfflineSyncIndicator 
+            driverId={user?.id}
+            darkMode={darkMode}
+          />
           
           {/* Botón de Sincronización */}
           <SyncStatusModal>
