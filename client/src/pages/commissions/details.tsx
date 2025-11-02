@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useLocation } from 'wouter';
-import { format, parseISO, eachDayOfInterval, isSameDay, startOfDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { parseISO, eachDayOfInterval, isSameDay, startOfDay } from 'date-fns';
+import { formatDateRD } from '@/lib/date-utils';
 import {
   ArrowLeft,
   Clock,
@@ -405,7 +405,7 @@ export default function CommissionDetailsPage() {
                   Período
                 </div>
                 <div>
-                  {format(parseISO(commission.weekStartDate), 'dd MMM', { locale: es })} - {format(parseISO(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}
+                  {formatDateRD(commission.weekStartDate, { day: '2-digit', month: 'short' })} - {formatDateRD(commission.weekEndDate, { day: '2-digit', month: 'short', year: 'numeric' })}
                 </div>
               </div>
               {commission.routeName && (
@@ -454,7 +454,7 @@ export default function CommissionDetailsPage() {
                     <Calendar className="mr-2 h-4 w-4" />
                     Fecha de Pago
                   </div>
-                  <div>{format(parseISO(commission.paymentDate), 'dd MMM yyyy', { locale: es })}</div>
+                  <div>{formatDateRD(commission.paymentDate, { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                 </div>
               )}
               {commission.status === 'paid' && commission.paymentReference && (
@@ -499,8 +499,8 @@ export default function CommissionDetailsPage() {
             
             return dailyBreakdown.map((day, index) => {
             const progressPercent = rawMax > 0 ? (day.totalAmount / rawMax) * 100 : 0;
-            const dayName = format(day.date, 'EEEE', { locale: es });
-            const dayDate = format(day.date, 'dd MMM', { locale: es });
+            const dayName = formatDateRD(day.date, { weekday: 'long' });
+            const dayDate = formatDateRD(day.date, { day: '2-digit', month: 'short' });
             const isToday = isSameDay(day.date, new Date());
             
             return (
@@ -582,7 +582,7 @@ export default function CommissionDetailsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {format(parseISO(item.deliveryDate), 'dd MMM yyyy', { locale: es })}
+                    {formatDateRD(item.deliveryDate, { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>${parseFloat(item.commissionValue).toFixed(2)}</TableCell>

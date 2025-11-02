@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type { Route } from "@shared/schema";
-import { format } from "date-fns";
+import { formatDateRD } from "@/lib/date-utils";
 import { Package, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import {
@@ -95,7 +95,7 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
             <p className="font-medium">Punto de inicio (Almacén)</p>
             {route.date && (
               <p className="text-sm text-muted-foreground">
-                {format(new Date(route.date), "dd MMM yyyy")}
+                {formatDateRD(route.date, { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
             )}
           </div>

@@ -41,7 +41,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { toRD, formatDateTimeRD } from "@/lib/date-utils";
+import { toRD, formatDateTimeRD, getTodayStringRD } from "@/lib/date-utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -298,7 +298,7 @@ export default function PaymentDashboard() {
         totalCount: filteredPayments.length
       };
       
-      const fileName = `pagos_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const fileName = `pagos_${getTodayStringRD()}.pdf`;
       
       // Generar PDF usando el servicio centralizado
       await PrinterService.generatePDFDirect(

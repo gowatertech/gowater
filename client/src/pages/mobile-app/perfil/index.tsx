@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { formatDateRD } from '@/lib/date-utils';
 
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { useToast } from '@/hooks/use-toast';
@@ -55,7 +54,7 @@ export default function MobileProfile() {
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'No disponible';
     try {
-      return format(new Date(dateString), 'dd MMMM yyyy', { locale: es });
+      return formatDateRD(dateString, { day: '2-digit', month: 'long', year: 'numeric' });
     } catch {
       return dateString;
     }

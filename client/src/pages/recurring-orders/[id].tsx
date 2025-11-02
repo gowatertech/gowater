@@ -7,6 +7,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { getTodayStringRD, formatDateRD } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -185,7 +186,7 @@ export default function RecurringOrderForm() {
       customerId: 0,
       name: "",
       frequency: "monthly",
-      startDate: format(new Date(), "yyyy-MM-dd"),
+      startDate: getTodayStringRD(),
       paymentMethod: "cash",
       status: "active",
       notes: "",
@@ -296,7 +297,7 @@ export default function RecurringOrderForm() {
     if (!isNew && recurringOrder && orderItems) {
       const startDate = recurringOrder.startDate 
         ? format(new Date(recurringOrder.startDate), "yyyy-MM-dd")
-        : format(new Date(), "yyyy-MM-dd");
+        : getTodayStringRD();
         
       const endDate = recurringOrder.endDate
         ? format(new Date(recurringOrder.endDate), "yyyy-MM-dd")
@@ -596,7 +597,7 @@ export default function RecurringOrderForm() {
                                     )}
                                   >
                                     {field.value ? (
-                                      format(new Date(field.value), "PPP", { locale: es })
+                                      formatDateRD(field.value, { day: 'numeric', month: 'long', year: 'numeric' })
                                     ) : (
                                       <span>{t("Selecciona una fecha")}</span>
                                     )}
@@ -635,7 +636,7 @@ export default function RecurringOrderForm() {
                                     )}
                                   >
                                     {field.value ? (
-                                      format(new Date(field.value), "PPP", { locale: es })
+                                      formatDateRD(field.value, { day: 'numeric', month: 'long', year: 'numeric' })
                                     ) : (
                                       <span>{t("Sin fecha de fin")}</span>
                                     )}

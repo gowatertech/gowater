@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
-import { format } from "date-fns";
+import { formatDateRD, getTodayStringRD } from "@/lib/date-utils";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -1186,7 +1186,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                             </div>
                             <div className="flex items-center text-xs text-muted-foreground mt-1">
                               <Clock className="h-3 w-3 mr-1" />
-                              {order.date ? format(new Date(order.date), 'dd/MM/yyyy') : 'Sin fecha'}
+                              {order.date ? formatDateRD(order.date, { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Sin fecha'}
                               <DollarSign className="h-3 w-3 ml-2 mr-1" />
                               ${typeof order.total === 'number' ? order.total.toFixed(2) : 
                                  order.total ? String(order.total) : '0.00'}
@@ -1460,7 +1460,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                           {...field} 
                           placeholder="Ej: Ruta Norte 30/04/2025"
                           className="h-8 text-xs"
-                          defaultValue={`Ruta ${format(new Date(), 'dd/MM/yyyy')}`}
+                          defaultValue={`Ruta ${getTodayStringRD()}`}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1578,7 +1578,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                         <FormControl>
                           <div className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background file:border-0 file:bg-transparent file:text-foreground file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {format(field.value, 'dd/MM/yyyy')}
+                            {formatDateRD(field.value, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                           </div>
                         </FormControl>
                         <FormMessage />

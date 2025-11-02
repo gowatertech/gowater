@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocation } from "wouter";
 import { PrinterService, DocumentType } from "@/services/PrinterService";
-import { toRD } from "@/lib/date-utils";
+import { toRD, getTodayStringRD } from "@/lib/date-utils";
 import { 
   CheckCircle, 
   XCircle, 
@@ -340,7 +340,7 @@ export default function PaymentsHistory() {
       const docIdentifier = payment.isAdvance 
         ? payment.documentNumber || `anticipo-${payment.id}`
         : `pago-factura-${payment.invoiceNumber}`;
-      const fileName = `recibo_${docIdentifier}_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const fileName = `recibo_${docIdentifier}_${getTodayStringRD()}.pdf`;
       
       // Generar PDF usando el servicio centralizado
       await PrinterService.generatePDFDirect(
@@ -420,7 +420,7 @@ export default function PaymentsHistory() {
         totalCount: paymentsStats.totalCount
       };
       
-      const fileName = `pagos_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      const fileName = `pagos_${getTodayStringRD()}.pdf`;
       
       // Generar PDF usando el servicio centralizado
       await PrinterService.generatePDFDirect(

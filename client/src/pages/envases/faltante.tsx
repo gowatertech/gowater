@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getTodayStringRD } from "@/lib/date-utils";
 
 import {
   Form,
@@ -61,7 +62,7 @@ export default function Faltante({ onCreated }: FaltanteProps) {
       expectedQuantity: 0,
       returnedQuantity: 0,
       pendingQuantity: 0,
-      returnDate: new Date().toISOString().split('T')[0],
+      returnDate: getTodayStringRD(),
       notes: "",
       chargeType: "direct", // direct, commission
       commissionPercentage: 0,

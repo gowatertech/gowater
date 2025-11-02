@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { formatDateRD } from '@/lib/date-utils';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -90,8 +89,8 @@ export default function SimpleCommissionsPage() {
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold">Fecha:</span>{' '}
-                {format(new Date(commission.weekStartDate), 'dd MMM', { locale: es })} -{' '}
-                {format(new Date(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}
+                {formatDateRD(commission.weekStartDate, { day: '2-digit', month: 'short' })} -{' '}
+                {formatDateRD(commission.weekEndDate, { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold">Productos:</span> {commission.productCount}

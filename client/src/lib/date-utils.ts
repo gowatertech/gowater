@@ -210,3 +210,102 @@ export function formatTimeRD(
     timeZone: 'America/Santo_Domingo'
   });
 }
+
+/**
+ * Obtiene el inicio de la semana (lunes) para la fecha actual en RD timezone
+ * @param weekStartsOn - Día de inicio de semana (0=domingo, 1=lunes)
+ * @returns string en formato YYYY-MM-DD
+ */
+export function getStartOfWeekRD(weekStartsOn: 0 | 1 = 1): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  // Obtener el día de la semana actual (0=domingo, 1=lunes, ..., 6=sábado)
+  const dayOfWeek = now.getDay();
+  
+  // Calcular cuántos días restar para llegar al inicio de la semana
+  let daysToSubtract = dayOfWeek - weekStartsOn;
+  if (daysToSubtract < 0) {
+    daysToSubtract += 7;
+  }
+  
+  // Crear una nueva fecha restando los días necesarios
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - daysToSubtract);
+  
+  // Formatear la fecha de inicio en RD timezone
+  const startFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const startParts = startFormatter.formatToParts(startDate);
+  const startDateParts: Record<string, string> = {};
+  startParts.forEach(part => {
+    if (part.type !== 'literal') {
+      startDateParts[part.type] = part.value;
+    }
+  });
+  
+  return `${startDateParts.year}-${startDateParts.month}-${startDateParts.day}`;
+}
+
+/**
+ * Obtiene el fin de la semana (domingo) para la fecha actual en RD timezone
+ * @param weekStartsOn - Día de inicio de semana (0=domingo, 1=lunes)
+ * @returns string en formato YYYY-MM-DD
+ */
+export function getEndOfWeekRD(weekStartsOn: 0 | 1 = 1): string {
+  const now = new Date();
+  
+  // Obtener el día de la semana actual (0=domingo, 1=lunes, ..., 6=sábado)
+  const dayOfWeek = now.getDay();
+  
+  // Calcular cuántos días sumar para llegar al final de la semana
+  let daysToAdd = (weekStartsOn === 1 ? 7 : 6) - dayOfWeek;
+  if (weekStartsOn === 1 && dayOfWeek === 0) {
+    // Si es domingo y la semana empieza en lunes, el domingo es el último día
+    daysToAdd = 0;
+  }
+  if (daysToAdd < 0) {
+    daysToAdd += 7;
+  }
+  
+  // Crear una nueva fecha sumando los días necesarios
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() + daysToAdd);
+  
+  // Formatear la fecha de fin en RD timezone
+  const endFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const endParts = endFormatter.formatToParts(endDate);
+  const endDateParts: Record<string, string> = {};
+  endParts.forEach(part => {
+    if (part.type !== 'literal') {
+      endDateParts[part.type] = part.value;
+    }
+  });
+  
+  return `${endDateParts.year}-${endDateParts.month}-${endDateParts.day}`;
+}

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { getStartOfWeekRD, getEndOfWeekRD } from '@/lib/date-utils';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,14 +21,10 @@ export default function GenerateCommissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
   
-  // Configurar fechas iniciales (semana actual)
-  const now = new Date();
-  const startOfCurrentWeek = startOfWeek(now, { weekStartsOn: 1 }); // Lunes
-  const endOfCurrentWeek = endOfWeek(now, { weekStartsOn: 1 }); // Domingo
-  
+  // Configurar fechas iniciales (semana actual en RD timezone)
   const [formData, setFormData] = useState({
-    weekStartDate: format(startOfCurrentWeek, 'yyyy-MM-dd'),
-    weekEndDate: format(endOfCurrentWeek, 'yyyy-MM-dd'),
+    weekStartDate: getStartOfWeekRD(1),
+    weekEndDate: getEndOfWeekRD(1),
     userRole: 'driver',
     userId: ''
   });

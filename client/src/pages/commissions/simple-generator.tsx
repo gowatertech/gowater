@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { startOfWeek, endOfWeek } from 'date-fns';
+import { getStartOfWeekRD, getEndOfWeekRD } from '@/lib/date-utils';
 
 // Componente simple sin dependencias complejas
 const SimpleCommissionGenerator = () => {
   // Estado básico para el formulario
   const [startDate, setStartDate] = useState(() => {
-    const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    return format(start, 'yyyy-MM-dd');
+    return getStartOfWeekRD(1);
   });
   
   const [endDate, setEndDate] = useState(() => {
-    const now = new Date();
-    const end = endOfWeek(now, { weekStartsOn: 1 });
-    return format(end, 'yyyy-MM-dd');
+    return getEndOfWeekRD(1);
   });
   
   const [userRole, setUserRole] = useState('driver');
