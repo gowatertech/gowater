@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { type RecurringOrder } from "@shared/schema";
+import { formatDateRD } from "@/lib/date-utils";
 
 interface Props {
   orderId: number;
@@ -73,7 +74,11 @@ export default function RecurringOrderManager({
             <div>
               <label className="text-sm font-medium">Próxima Entrega</label>
               <p className="text-sm text-muted-foreground">
-                {new Date(nextDelivery).toLocaleDateString()}
+                {formatDateRD(nextDelivery, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}
               </p>
             </div>
           )}

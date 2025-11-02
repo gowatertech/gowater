@@ -9,6 +9,7 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Iconos
 import { 
@@ -607,7 +608,11 @@ export default function OrdersPage() {
                             {customer?.businessname || "Cliente"}
                           </TableCell>
                           <TableCell className="hidden md:table-cell p-1 text-[10px]">
-                            {new Date(order.date).toLocaleDateString()}
+                            {formatDateRD(order.date, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
                           </TableCell>
                           <TableCell className="p-1">${parseFloat(order.total.toString()).toFixed(2)}</TableCell>
                           <TableCell className="p-1">{getStatusBadge(order.status)}</TableCell>
@@ -836,7 +841,11 @@ export default function OrdersPage() {
                   Detalles del Pedido #{selectedOrder.id}
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  {new Date(selectedOrder.date).toLocaleDateString()} - {getStatusBadge(selectedOrder.status)}
+                  {formatDateRD(selectedOrder.date, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })} - {getStatusBadge(selectedOrder.status)}
                 </CardDescription>
               </CardHeader>
               

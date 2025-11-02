@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toast } from '@/hooks/use-toast';
+import { formatDateRD } from '@/lib/date-utils';
 
 /**
  * Opciones de impresión y generación de PDF
@@ -323,7 +324,11 @@ export class PrinterService {
     // Fecha
     let formattedDate = '';
     try {
-      formattedDate = new Date(invoice.date).toLocaleDateString();
+      formattedDate = formatDateRD(invoice.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
@@ -492,7 +497,11 @@ export class PrinterService {
     // Fecha
     let formattedDate = '';
     try {
-      formattedDate = new Date(order.date).toLocaleDateString();
+      formattedDate = formatDateRD(order.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
@@ -672,7 +681,11 @@ export class PrinterService {
     // Fecha
     let formattedDate = '';
     try {
-      formattedDate = new Date(safePayment.date).toLocaleDateString();
+      formattedDate = formatDateRD(safePayment.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
@@ -813,7 +826,11 @@ export class PrinterService {
     // Fecha
     let formattedDate = '';
     try {
-      formattedDate = new Date(payment.date).toLocaleDateString();
+      formattedDate = formatDateRD(payment.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
@@ -934,7 +951,11 @@ export class PrinterService {
       // Información del cliente y factura
       printContent.innerHTML += `
         <div style="margin-bottom: 10px; font-size: 12px;">
-          <div><strong>Fecha:</strong> ${new Date(invoice.date).toLocaleDateString()}</div>
+          <div><strong>Fecha:</strong> ${formatDateRD(invoice.date, {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          })}</div>
           <div><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
           <div><strong>Dirección:</strong> ${customer?.address || ''}, ${customer?.municipality || ''}</div>
           <div><strong>Provincia:</strong> ${customer?.province || ''}</div>
@@ -1101,7 +1122,11 @@ export class PrinterService {
         pdfContent.innerHTML += `
           <div style="margin-bottom: 20px; font-size: 14px;">
             <div style="margin-bottom: 8px;"><strong>Factura #:</strong> ${invoice.id}</div>
-            <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${new Date(invoice.date).toLocaleDateString()}</div>
+            <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${formatDateRD(invoice.date, {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            })}</div>
             <div style="margin-bottom: 8px;"><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
             <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${customer?.address || ''}, ${customer?.municipality || ''}</div>
             <div style="margin-bottom: 8px;"><strong>Provincia:</strong> ${customer?.province || ''}</div>
@@ -1540,7 +1565,11 @@ export class PrinterService {
       // Información del pago
       let formattedDate = '';
       try {
-        formattedDate = new Date(paymentData.date).toLocaleDateString();
+        formattedDate = formatDateRD(paymentData.date, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
       } catch (e) {
         formattedDate = 'Fecha no disponible';
       }

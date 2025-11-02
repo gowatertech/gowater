@@ -2,6 +2,8 @@
 // Este servicio implementa la funcionalidad de impresión usando el enfoque iframe
 // que funciona consistentemente tanto en móviles como en escritorio
 
+import { formatDateRD } from "@/lib/date-utils";
+
 /**
  * Genera un ticket de pedido e invoca la impresión
  * @param order Datos del pedido
@@ -79,7 +81,11 @@ export const printOrderTicket = (
     // Asegurarse de que la fecha es válida
     let formattedDate = '';
     try {
-      formattedDate = new Date(order.date).toLocaleDateString();
+      formattedDate = formatDateRD(order.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
@@ -402,7 +408,11 @@ export const generateOrderPdf = (
     // Asegurarse de que la fecha es válida
     let formattedDate = '';
     try {
-      formattedDate = new Date(order.date).toLocaleDateString();
+      formattedDate = formatDateRD(order.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
