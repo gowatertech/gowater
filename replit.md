@@ -65,6 +65,21 @@ The billing interface displays real-time customer balance and intelligently hand
 ### Timezone Configuration
 The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend, ensuring consistent and accurate date/time handling.
 
+**Date Formatting Utilities**: All date display across the application uses dedicated RD timezone-aware utility functions from `client/src/lib/date-utils.ts`:
+- `formatDateRD()` - Formats dates without time (e.g., "02/11/2024")
+- `formatDateTimeRD()` - Formats dates with time in 12-hour format (e.g., "02/11/2024 3:45 PM")
+- `formatTimeRD()` - Formats time only (e.g., "3:45 PM")
+
+**Recent Timezone Fixes (Nov 2025)**: Standardized date formatting across billing, payments, and orders modules:
+- `client/src/pages/billing/index.tsx` - Invoice list dates
+- `client/src/pages/payments/index.tsx` - Payment history dates
+- `client/src/pages/payments/register.tsx` - Payment registration dates
+- `client/src/pages/orders/list.tsx` - Order list dates (mobile and desktop views)
+- `client/src/pages/orders/details.tsx` - Order detail dates
+- `client/src/pages/orders/status.tsx` - Order status dates
+
+**Best Practice**: Always use these utility functions instead of manual date parsing or browser-default `toLocaleDateString()` to ensure consistent RD timezone handling throughout the application.
+
 ### Payment Method Business Rules
 The system enforces specific payment method rules:
 - **Default:** "Crédito" for most customers, with manual override options.
