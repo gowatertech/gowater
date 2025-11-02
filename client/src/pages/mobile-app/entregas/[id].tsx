@@ -52,6 +52,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
 import { getTimestampRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
+import { getDB } from "@/lib/offline-db";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -177,32 +178,88 @@ export default function DeliveryDetails() {
     setIsLoading(true);
     
     try {
-      // Obtener orden específica
-      const orderData = await apiRequest({
-        url: `/api/orders/${deliveryId}`,
-        method: 'GET'
-      });
-      
-      // Obtener retornos de botellas para esta orden
+      let orderData: any = null;
       let bottleReturnsData: BottleReturn[] = [];
-      try {
-        bottleReturnsData = await apiRequest({
-          url: `/api/orders/${deliveryId}/bottle-returns`,
-          method: 'GET'
-        });
-      } catch (error) {
-        console.log('No se pudieron obtener retornos de botellas:', error);
-      }
       
-      // Obtener configuración de la empresa para la impresión y PDF
+      // Intentar cargar desde el servidor primero
       try {
-        const settingsData = await apiRequest({
-          url: '/api/settings',
+        orderData = await apiRequest({
+          url: `/api/orders/${deliveryId}`,
           method: 'GET'
         });
-        setCompanySettings(settingsData);
+        
+        // Obtener retornos de botellas para esta orden
+        try {
+          bottleReturnsData = await apiRequest({
+            url: `/api/orders/${deliveryId}/bottle-returns`,
+            method: 'GET'
+          });
+        } catch (error) {
+          console.log('[DeliveryDetails] No se pudieron obtener retornos de botellas:', error);
+        }
+        
+        // Obtener configuración de la empresa para la impresión y PDF
+        try {
+          const settingsData = await apiRequest({
+            url: '/api/settings',
+            method: 'GET'
+          });
+          setCompanySettings(settingsData);
+        } catch (error) {
+          console.error('[DeliveryDetails] No se pudo cargar la configuración de la empresa:', error);
+        }
       } catch (error) {
-        console.error('No se pudo cargar la configuración de la empresa:', error);
+        // Si falla la carga online, intentar desde IndexedDB
+        console.log('[DeliveryDetails] Error de red, cargando desde IndexedDB', error);
+        
+        try {
+          const db = await getDB();
+          const offlineOrder = await db.get('orders', deliveryId);
+          
+          if (!offlineOrder) {
+            throw new Error('Orden no encontrada en caché offline');
+          }
+          
+          console.log('[DeliveryDetails] Orden cargada desde IndexedDB:', offlineOrder);
+          
+          // Mapear el formato de IndexedDB al formato esperado
+          orderData = {
+            id: offlineOrder.id,
+            customerId: offlineOrder.customerId,
+            customerName: offlineOrder.customerName,
+            customerIsCharity: offlineOrder.customerIsCharity,
+            customerAddress: offlineOrder.address || offlineOrder.customerAddress,
+            customerStreet: offlineOrder.address || offlineOrder.customerAddress,
+            paymentMethod: offlineOrder.paymentMethod,
+            invoiceId: offlineOrder.invoiceId,
+            status: offlineOrder.status,
+            date: offlineOrder.date,
+            total: offlineOrder.total,
+            items: (offlineOrder.products || []).map((p: any) => ({
+              productId: p.id ?? p.productId,
+              quantity: p.quantity,
+              unitPrice: p.price,
+              price: p.price,
+              product: {
+                name: p.name,
+                isReturnable: p.isReturnable,
+                bottleDeposit: p.bottleDeposit || '0.00'
+              }
+            }))
+          };
+          
+          // En offline, los bottle returns estarán vacíos
+          bottleReturnsData = [];
+          
+          toast({
+            title: "Modo offline",
+            description: "Cargando datos desde caché local",
+            variant: "default"
+          });
+        } catch (offlineError) {
+          console.error('[DeliveryDetails] Error cargando desde IndexedDB:', offlineError);
+          throw offlineError;
+        }
       }
       
       // Convertir los datos al formato necesario
@@ -234,9 +291,9 @@ export default function DeliveryDetails() {
       
       setDelivery(deliveryData);
     } catch (error) {
-      console.error('Error al cargar detalles de la entrega:', error);
+      console.error('[DeliveryDetails] Error al cargar detalles de la entrega:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Detalles del error:', errorMessage);
+      console.error('[DeliveryDetails] Detalles del error:', errorMessage);
       toast({
         title: "Error",
         description: `No se pudieron cargar los detalles de la entrega: ${errorMessage}`,
