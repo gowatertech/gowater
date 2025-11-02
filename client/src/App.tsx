@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
@@ -459,15 +460,17 @@ export default function App() {
   const shouldShowLogo = false; // Logo centrado desactivado en todas las páginas
   
   return (
-    <AuthProvider>
-      <I18nextProvider i18n={i18n}>
-        <QueryClientProvider client={queryClient}>
-          <Router />
-          <Toaster />
-          {shouldShowLogo && <CenteredLogo size="medium" showName={true} companyName="GoWater" />}
-          {/* Componentes personalizados desactivados para el panel de administración */}
-        </QueryClientProvider>
-      </I18nextProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <I18nextProvider i18n={i18n}>
+          <QueryClientProvider client={queryClient}>
+            <Router />
+            <Toaster />
+            {shouldShowLogo && <CenteredLogo size="medium" showName={true} companyName="GoWater" />}
+            {/* Componentes personalizados desactivados para el panel de administración */}
+          </QueryClientProvider>
+        </I18nextProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
