@@ -31,6 +31,7 @@ import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 import { formatTodayRD } from "@/lib/date-utils";
+import { useOfflineRoutes, useOfflineOrders, useOfflineCustomers } from "@/hooks/use-offline-data";
 
 // Componentes internos
 import { MobileHeader } from "./components/MobileHeader";
@@ -90,24 +91,18 @@ export default function GoWaterDriverApp() {
   // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
   usePreventBackNavigation('/mobile-app/login', '/api/user');
   
-  // Consulta para obtener rutas pendientes (compatible con multitenant)
-  const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useQuery<Route[]>({
-    queryKey: ["/api/mobile/routes"],
-    retry: 2,
+  // Consulta para obtener rutas pendientes con fallback offline
+  const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useOfflineRoutes({
     enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
 
-  // Consulta para obtener pedidos (compatible con multitenant)
-  const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery<Order[]>({
-    queryKey: ["/api/mobile/orders"],
-    retry: 2,
+  // Consulta para obtener pedidos con fallback offline
+  const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useOfflineOrders({
     enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
 
-  // Consulta para obtener clientes (compatible con multitenant)
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
-    queryKey: ["/api/mobile/customers"],
-    retry: 2,
+  // Consulta para obtener clientes con fallback offline
+  const { data: customers = [], isLoading: isLoadingCustomers } = useOfflineCustomers({
     enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
   
