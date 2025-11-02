@@ -14,6 +14,7 @@ import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/
 import { VehicleLoadingForm } from "./VehicleLoadingForm";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatDateRD } from "@/lib/date-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -378,7 +379,11 @@ export default function VehicleLoadingPage() {
                           <Calendar className="h-3 w-3 mr-1 text-blue-500" />
                           Fecha
                         </p>
-                        <p className="font-medium text-sm">{new Date(selectedLoading.date).toLocaleDateString()}</p>
+                        <p className="font-medium text-sm">{formatDateRD(selectedLoading.date, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}</p>
                       </div>
                       <div className="border-l-4 border-l-yellow-500 pl-2">
                         <p className="text-xs text-gray-500 flex items-center">
@@ -547,7 +552,11 @@ export default function VehicleLoadingPage() {
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600">{new Date(loading.date).toLocaleDateString()}</span>
+                              <span className="text-gray-600">{formatDateRD(loading.date, {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}</span>
                             </div>
                             <div className="flex items-center">
                               <UserIcon className="h-3 w-3 mr-1 text-gray-500" />

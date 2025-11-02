@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard, Calculator, MapPin } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn, Route, Order } from "@shared/schema";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Esquema para validar formulario de cuadre
 const settlementSchema = z.object({
@@ -613,7 +614,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
               <p className="text-sm text-gray-600">Fecha</p>
-              <p className="font-medium">{new Date(loading.date).toLocaleDateString()}</p>
+              <p className="font-medium">{formatDateRD(loading.date, {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Conductor</p>

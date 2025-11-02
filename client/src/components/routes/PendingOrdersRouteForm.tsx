@@ -31,7 +31,7 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import L from "leaflet";
-import { getTodayStringRD, formatTodayRD } from "@/lib/date-utils";
+import { getTodayStringRD, formatTodayRD, formatDateRD } from "@/lib/date-utils";
 
 import {
   Form,
@@ -1172,7 +1172,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                     {formatCurrency(Number(order.total))}
                                   </Badge>
                                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                                    {new Date(order.date).toLocaleDateString()}
+                                    {formatDateRD(order.date, {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric'
+                                    })}
                                   </div>
                                 </div>
                               </div>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VehicleLoading, User, Truck } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { AlertCircle } from "lucide-react";
+import { formatDateRD } from "@/lib/date-utils";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: Truck;
@@ -68,7 +69,11 @@ export default function RouteSettlementPage() {
                   Vehículo: {loading.truck?.plate}
                 </p>
                 <p className="text-muted-foreground">
-                  Fecha: {new Date(loading.date).toLocaleDateString()}
+                  Fecha: {formatDateRD(loading.date, {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}
                 </p>
                 <p className="text-muted-foreground">
                   Efectivo inicial: RD$ {loading.initialCash}

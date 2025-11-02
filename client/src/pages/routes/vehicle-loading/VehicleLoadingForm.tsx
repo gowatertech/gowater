@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { Plus, X, Truck as TruckIcon, Route as RouteIcon, Info, RefreshCw } from "lucide-react";
+import { formatDateRD } from "@/lib/date-utils";
 
 import {
   Form,
@@ -290,7 +291,11 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                   <SelectContent>
                     {routes.map((route) => (
                       <SelectItem key={route.id} value={route.id.toString()} className="text-xs py-1">
-                        {route.name} ({new Date(route.date).toLocaleDateString()})
+                        {route.name} ({formatDateRD(route.date, {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })})
                       </SelectItem>
                     ))}
                   </SelectContent>

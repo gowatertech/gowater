@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { VehicleLoading, Product, User, Truck } from "@shared/schema";
+import { formatDateRD } from "@/lib/date-utils";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: Truck;
@@ -48,7 +49,11 @@ export function VehicleLoadingDetails({ loadingId }: VehicleLoadingDetailsProps)
             <div>
               <span className="text-sm font-medium">Fecha:</span>
               <span className="ml-2">
-                {new Date(loading.date).toLocaleDateString()}
+                {formatDateRD(loading.date, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}
               </span>
             </div>
             <div>

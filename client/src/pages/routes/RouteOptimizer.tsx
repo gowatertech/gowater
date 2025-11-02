@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { MobileOnly, DesktopOnly } from "@/components/ui/responsive-display";
 import "@/styles/map-responsive.css";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -181,7 +182,11 @@ export default function RouteOptimizer() {
                           <TableCell>#{order.id}</TableCell>
                           <TableCell>{order.customerId}</TableCell>
                           <TableCell>{order.deliveryCoordinates || "N/A"}</TableCell>
-                          <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{formatDateRD(order.date, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

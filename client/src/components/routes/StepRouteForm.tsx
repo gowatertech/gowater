@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { getTodayStringRD, formatTodayRD } from "@/lib/date-utils";
+import { getTodayStringRD, formatTodayRD, formatDateRD } from "@/lib/date-utils";
 
 // Components
 import {
@@ -1383,7 +1383,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                                     {formatCurrency(Number(order.total))}
                                   </Badge>
                                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                                    {new Date(order.date).toLocaleDateString()}
+                                    {formatDateRD(order.date, {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric'
+                                    })}
                                   </div>
                                 </div>
                               </div>

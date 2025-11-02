@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { type User } from "@shared/schema";
 import "@/styles/map-responsive.css";
+import { formatTimeRD } from "@/lib/date-utils";
 
 // Added basic implementation of useIsMobile hook
 const useIsMobile = () => {
@@ -103,7 +104,11 @@ export default function DeliveryTracking() {
                   <div className="p-2">
                     <h3 className="font-medium">{driver.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Última actualización: {new Date(location.timestamp).toLocaleTimeString()}
+                      Última actualización: {formatTimeRD(location.timestamp, {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                      })}
                     </p>
                   </div>
                 </Popup>
