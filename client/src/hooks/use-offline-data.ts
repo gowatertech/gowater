@@ -136,8 +136,11 @@ export function useOfflineDeliveries(options: Omit<UseOfflineDataOptions, 'query
   return useQuery({
     queryKey: ["/api/mobile/deliveries"],
     queryFn: async () => {
+      console.log('[useOfflineDeliveries] Starting to load deliveries...');
+      
       try {
         // Intentar cargar del servidor
+        console.log('[useOfflineDeliveries] Attempting to fetch from server...');
         const response = await fetch('/api/mobile/deliveries', {
           credentials: 'include'
         });
@@ -146,12 +149,19 @@ export function useOfflineDeliveries(options: Omit<UseOfflineDataOptions, 'query
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return await response.json();
+        const data = await response.json();
+        console.log('[useOfflineDeliveries] Successfully loaded', data.length, 'deliveries from server');
+        return data;
       } catch (error) {
-        console.log('[useOfflineDeliveries] Error de red, cargando desde IndexedDB', error);
+        console.log('[useOfflineDeliveries] Network error, loading from IndexedDB:', error);
         
         // Si falla, cargar desde IndexedDB y mapear al formato correcto
         const offlineOrders = await getAllOrders();
+        console.log('[useOfflineDeliveries] Loaded', offlineOrders.length, 'orders from IndexedDB');
+        
+        if (offlineOrders.length > 0) {
+          console.log('[useOfflineDeliveries] Sample order from IndexedDB:', offlineOrders[0]);
+        }
         
         // Mapear los orders de IndexedDB al formato de deliveries esperado
         const mappedDeliveries = offlineOrders.map((order: any) => ({
@@ -174,8 +184,13 @@ export function useOfflineDeliveries(options: Omit<UseOfflineDataOptions, 'query
             isReturnable: p.isReturnable
           })),
           // bottleReturns viene del servidor, en offline estará vacío
-          bottleReturns: []
+          bottleReturns: order.bottleReturns || []
         }));
+        
+        console.log('[useOfflineDeliveries] Mapped', mappedDeliveries.length, 'deliveries for display');
+        if (mappedDeliveries.length > 0) {
+          console.log('[useOfflineDeliveries] Sample mapped delivery:', mappedDeliveries[0]);
+        }
         
         return mappedDeliveries;
       }
