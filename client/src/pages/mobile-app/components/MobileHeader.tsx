@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { ArrowLeft, Bell, Sun, Moon, RefreshCw } from "lucide-react";
+import React from "react";
+import { ArrowLeft, Bell, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SyncIndicator, SyncStatusModal } from "@/components/sync";
 import { OfflineSyncIndicator } from "@/components/OfflineSyncIndicator";
-import { forceSyncNow } from "@/lib/syncService";
 import { User } from "@/hooks/use-current-user";
 import { formatTodayCompactRD } from "@/lib/date-utils";
 
@@ -31,27 +29,6 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
 }) => {
   // Determinar qué modo de cabecera mostrar
   const isDetailView = !!title;
-  const [isSyncing, setIsSyncing] = useState(false);
-  
-  // Función para sincronizar manualmente
-  const handleSync = async () => {
-    if (isSyncing) return;
-    
-    setIsSyncing(true);
-    try {
-      // Primero sincronizar los datos pendientes
-      await forceSyncNow();
-      
-      // Luego actualizar los datos desde el servidor
-      if (onSyncData) {
-        await onSyncData();
-      }
-    } catch (error) {
-      console.error("Error al sincronizar:", error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
   
   return (
     <header className={`sticky top-0 z-10 p-4 shadow-sm border-b ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
@@ -106,24 +83,6 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             driverId={user?.id}
             darkMode={darkMode}
           />
-          
-          {/* Botón de Sincronización */}
-          <SyncStatusModal>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 relative"
-              onClick={handleSync}
-              disabled={isSyncing}
-            >
-              <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <SyncIndicator 
-                size="sm" 
-                showTooltip={false} 
-                className="absolute -top-1 -right-1"
-              />
-            </Button>
-          </SyncStatusModal>
           
           <Button
             variant="ghost"

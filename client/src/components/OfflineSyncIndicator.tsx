@@ -46,7 +46,9 @@ export function OfflineSyncIndicator({
   // Refresh status periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      refreshStatus();
+      refreshStatus().catch(err => {
+        console.error('[OfflineSyncIndicator] Error refreshing status:', err);
+      });
     }, 10000); // Every 10 seconds
 
     return () => clearInterval(interval);

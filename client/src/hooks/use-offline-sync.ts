@@ -24,25 +24,33 @@ export function useOfflineSync() {
 
   // Initialize sync service on mount
   useEffect(() => {
-    initSyncService();
+    try {
+      initSyncService();
 
-    const handleConnectionChange = (online: boolean) => {
-      setIsOnline(online);
-      
-      if (online) {
-        // When connection is restored, trigger sync
-        syncNow();
-      }
-    };
+      const handleConnectionChange = (online: boolean) => {
+        setIsOnline(online);
+        
+        if (online) {
+          // When connection is restored, trigger sync
+          syncNow().catch(err => {
+            console.error('[useOfflineSync] Error during auto-sync:', err);
+          });
+        }
+      };
 
-    addConnectionListener(handleConnectionChange);
+      addConnectionListener(handleConnectionChange);
 
-    // Load initial sync status
-    loadSyncStatus();
+      // Load initial sync status
+      loadSyncStatus().catch(err => {
+        console.error('[useOfflineSync] Error loading initial sync status:', err);
+      });
 
-    return () => {
-      removeConnectionListener(handleConnectionChange);
-    };
+      return () => {
+        removeConnectionListener(handleConnectionChange);
+      };
+    } catch (error) {
+      console.error('[useOfflineSync] Error initializing sync service:', error);
+    }
   }, []);
 
   // Load sync status from IndexedDB
