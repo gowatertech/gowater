@@ -71,18 +71,22 @@ The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for 
 - `formatTimeRD()` - Formats time only (e.g., "3:45 PM")
 
 **Recent Timezone Fixes (Nov 2025)**: Comprehensive standardization of date formatting across the entire application:
-- **Mobile App**: `client/src/pages/mobile-app/entregas/[id].tsx`, `client/src/pages/mobile-app/ruta/index.tsx`
-- **Envases (Bottle Returns)**: `client/src/pages/envases-pendientes/index.tsx`, `client/src/pages/envases-faltantes/index.tsx`
-- **Routes**: `client/src/pages/routes/vehicle-loading/VehicleLoadingForm.tsx`, `client/src/pages/routes/vehicle-settlement/VehicleSettlementForm.tsx`, `client/src/pages/routes/RouteOptimizer.tsx`, `client/src/components/routes/PendingOrdersRouteForm.tsx`
-- **Orders & Invoices**: `client/src/components/orders/RecurringOrderManager.tsx`, `client/src/pages/orders/OrdersPage.tsx`, `client/src/pages/orders/PrinterService.tsx`, `client/src/services/PrinterService.ts`
+- **Mobile App**: `client/src/pages/mobile-app/entregas/[id].tsx`, `client/src/pages/mobile-app/ruta/index.tsx`, `client/src/pages/mobile-app/perfil/index.tsx`
+- **Envases (Bottle Returns)**: `client/src/pages/envases-pendientes/index.tsx`, `client/src/pages/envases-faltantes/index.tsx`, `client/src/pages/envases/faltante.tsx`
+- **Routes**: `client/src/pages/routes/vehicle-loading/VehicleLoadingForm.tsx`, `client/src/pages/routes/vehicle-settlement/VehicleSettlementForm.tsx`, `client/src/pages/routes/RouteOptimizer.tsx`, `client/src/components/routes/PendingOrdersRouteForm.tsx`, `client/src/components/routes/RouteTimeline.tsx`, `client/src/components/routes/StepRouteFormOptimized.tsx`
+- **Orders & Invoices**: `client/src/components/orders/RecurringOrderManager.tsx`, `client/src/pages/orders/OrdersPage.tsx`, `client/src/pages/orders/PrinterService.tsx`, `client/src/services/PrinterService.ts`, `client/src/pages/orders/details.tsx`, `client/src/pages/recurring-orders/[id].tsx`
 - **Dashboard & Reports**: `client/src/pages/dashboard/index.tsx`, `client/src/pages/reports/components/SalesReports.tsx`
 - **Inventory**: `client/src/pages/inventory/production/index.tsx`
 - **Drivers**: `client/src/pages/drivers/DriverView.tsx`
 - **Zones**: `client/src/pages/zones/index.tsx`
 - **Customers**: `client/src/components/customers/CustomerBalance.tsx`
 - **Vehicle Management**: `client/src/pages/vehicle-settlement/index.tsx`, `client/src/pages/vehicle-settlement/VehicleSettlementForm.tsx`, `client/src/pages/vehicle-loading/index.tsx`, `client/src/pages/vehicle-loading/VehicleLoadingDetails.tsx`, `client/src/pages/vehicle-loading/VehicleLoadingForm.tsx`
+- **Commissions**: `client/src/pages/commissions/simple-generator.tsx`, `client/src/pages/commissions/generate.tsx`, `client/src/pages/commissions/details.tsx`, `client/src/pages/commissions/simple.tsx`
+- **Payments**: `client/src/pages/payments/index.tsx`, `client/src/pages/payments/history-new.tsx`
 
 **Best Practice**: Always use these utility functions instead of manual date parsing or browser-default `toLocaleDateString()` or `toLocaleTimeString()` to ensure consistent RD timezone handling throughout the application.
+
+**Timezone Standardization Completion (Nov 2025)**: All instances of `format(new Date(), ...)` have been eliminated from the codebase and replaced with RD timezone-aware utility functions. This ensures that all date displays, PDF file names, and date-related UI elements consistently show Dominican Republic time (UTC-4), regardless of the user's browser or system timezone settings. The application now uses a unified approach to date formatting through the centralized date-utils.ts module.
 
 ### Payment Method Business Rules
 The system enforces specific payment method rules:
