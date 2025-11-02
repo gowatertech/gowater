@@ -8,10 +8,44 @@
  * - Gestión de conflictos
  */
 
-import { SyncOperationType, SyncQueueItem, STORES, 
-  saveItem, getItem, deleteItem, getAllItems, 
-  getPendingSyncItems, updateSyncItemStatus, addToSyncQueue 
-} from './offlineDb';
+// DEPRECATED: Este archivo usa el viejo sistema de sync
+// El nuevo sistema está en sync-service.ts y offline-db.ts
+// Este archivo se mantiene solo para compatibilidad con código legacy
+
+const STORES = {
+  SYNC_QUEUE: 'sync_queue'
+};
+
+enum SyncOperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete'
+}
+
+// Stub functions para compatibilidad
+async function getPendingSyncItems(): Promise<any[]> {
+  return [];
+}
+
+async function updateSyncItemStatus(id: number, status: string, error?: string): Promise<void> {
+  // No-op
+}
+
+async function deleteItem(store: string, id: number): Promise<void> {
+  // No-op
+}
+
+async function saveItem(store: string, item: any): Promise<void> {
+  // No-op
+}
+
+async function getAllItems(store: string): Promise<any[]> {
+  return [];
+}
+
+async function addToSyncQueue(item: any): Promise<void> {
+  // No-op
+}
 
 // Estado inicial
 let isOnline = navigator.onLine;
