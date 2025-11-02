@@ -30,7 +30,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
-import { formatTodayRD } from "@/lib/date-utils";
+import { formatTodayRD, formatDateRD } from "@/lib/date-utils";
 import { useOfflineRoutes, useOfflineOrders, useOfflineCustomers } from "@/hooks/use-offline-data";
 
 // Componentes internos
@@ -381,7 +381,7 @@ export default function GoWaterDriverApp() {
                 <div className="flex items-center text-xs text-muted-foreground mb-2">
                   <Calendar className="h-3 w-3 mr-1" />
                   <span>
-                    {new Date(pendingRoutes[0].date).toLocaleDateString('es-ES', {
+                    {formatDateRD(pendingRoutes[0].date, {
                       day: 'numeric',
                       month: 'short'
                     })}

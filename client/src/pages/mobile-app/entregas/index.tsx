@@ -24,7 +24,7 @@ import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflineDeliveries } from "@/hooks/use-offline-data";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
-import { formatTodayRD } from "@/lib/date-utils";
+import { formatTodayRD, formatTimeRD } from "@/lib/date-utils";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -112,7 +112,7 @@ export default function DriverDeliveries() {
     customerName: delivery.customerName,
     address: delivery.address || '',
     status: delivery.status as "pending" | "in_progress" | "delivered" | "cancelled",
-    scheduledTime: new Date(delivery.date).toLocaleTimeString('es-DO', {
+    scheduledTime: formatTimeRD(delivery.date, {
       hour: '2-digit',
       minute: '2-digit'
     }),

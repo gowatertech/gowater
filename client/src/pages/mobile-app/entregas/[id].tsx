@@ -50,7 +50,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
-import { getTimestampRD } from "@/lib/date-utils";
+import { getTimestampRD, formatTimeRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { getDB } from "@/lib/offline-db";
 
@@ -273,7 +273,7 @@ export default function DeliveryDetails() {
         invoiceId: orderData.invoiceId,
         address: orderData.customerStreet || orderData.customerAddress || 'Dirección no disponible',
         status: orderData.status as "pending" | "in_progress" | "delivered" | "cancelled",
-        scheduledTime: new Date(orderData.date).toLocaleTimeString('es-DO', {
+        scheduledTime: formatTimeRD(orderData.date, {
           hour: '2-digit',
           minute: '2-digit'
         }),

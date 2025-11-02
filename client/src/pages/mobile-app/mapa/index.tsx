@@ -13,6 +13,7 @@ import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { formatDateRD } from "@/lib/date-utils";
 
 // Componente para ajustar automáticamente el zoom del mapa para mostrar todos los puntos
 const AutoZoom = ({ points }: { points: [number, number][] }) => {
@@ -493,7 +494,11 @@ export default function MobileMap() {
                         
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
-                            {new Date(route.date).toLocaleDateString()}
+                            {formatDateRD(route.date, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
                           </span>
                           <span className="text-xs text-primary font-medium flex items-center gap-1">
                             Ver detalles <ChevronRight className="h-3 w-3" />
