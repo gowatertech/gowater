@@ -6,47 +6,6 @@ GoWater is a multi-tenant water delivery management system designed to optimize 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### November 2, 2025 - Offline Functionality Fixes
-
-#### Fix #1: Sync Service Initialization
-- **Issue**: Offline functionality in mobile app was not working because sync service initialization was commented out in `client/src/main.tsx`
-- **Resolution**: Uncommented and corrected the sync service initialization to use the proper file path (`./lib/sync-service` instead of `./lib/syncService`)
-- **Impact**: Mobile offline mode now properly initializes online/offline event listeners, auto-sync interval, and connection monitoring at application startup
-
-#### Fix #2: User Authentication Offline Persistence
-- **Issue**: Main dashboard page was blank when offline because `useCurrentUser` hook had no offline fallback, causing all data queries to be disabled when user couldn't be fetched
-- **Resolution**: Added localStorage persistence and offline detection to `client/src/hooks/use-current-user.ts`:
-  - User data is now saved to localStorage when logging in or fetching user info online
-  - When offline (`navigator.onLine === false`), user is loaded IMMEDIATELY from localStorage without waiting for API timeout
-  - When API fetch fails, fallback to localStorage
-  - User data is cleared from localStorage on logout
-  - Also fixed `client/src/hooks/use-prevent-back-navigation.ts` to not redirect to login when offline if user exists in localStorage
-- **Impact**: App now works completely offline after initial login - user loads instantly, preventing "Cargando..." stuck screen, enabling all offline data queries (routes, orders, customers) to execute properly
-
-#### Fix #3: Offline Deliveries (Entregas) Page Navigation
-- **Issue**: When navigating away from Entregas page (to Perfil, Rutas, etc.) and returning offline, the page would get stuck on "Cargando..." because it attempted manual fetch() which failed offline
-- **Root Cause**: The Entregas page was using manual fetch with useEffect instead of offline-aware hooks like other pages, causing component re-mount to trigger failed API calls
-- **Resolution**: 
-  - Created `useOfflineDeliveries()` hook in `client/src/hooks/use-offline-data.ts` that tries online first, then falls back to IndexedDB
-  - Replaced manual fetch logic in `client/src/pages/mobile-app/entregas/index.tsx` with the hook
-  - Added proper data mapping from IndexedDB orders format to deliveries format (customerAddress → address, productId → id, etc.)
-  - TanStack Query now handles caching and offline fallback automatically
-- **Impact**: Entregas page now works completely offline with navigation - users can navigate to other pages and return without getting stuck on loading screen, data persists correctly from IndexedDB
-
-#### Fix #4: Complete Deliveries Download for Offline Use
-- **Issue**: Deliveries not appearing offline even after downloading data because `downloadTodayRouteData()` only fetched orders from routes, missing standalone deliveries not assigned to routes
-- **Root Cause**: Sync service only downloaded route-based orders from `/api/routes/{id}/orders`, but drivers have deliveries from `/api/mobile/deliveries` that aren't in routes
-- **Resolution**: 
-  - Modified `downloadTodayRouteData()` in `client/src/lib/sync-service.ts` to also fetch from `/api/mobile/deliveries` endpoint
-  - All deliveries (both route-based and standalone) are now saved to IndexedDB during offline data download
-  - Fixed data mapping in `useOfflineDeliveries()` to handle both data formats:
-    - Address field: Checks `order.address` (from deliveries) || `order.customerAddress` (from routes)
-    - Product ID: Uses `p.id ?? p.productId` to handle both formats
-  - Added customer fetching for any new customers from deliveries endpoint
-- **Impact**: All pending deliveries now download correctly for offline use. Deliveries persist across page navigation with complete data (addresses, customer names, products, totals). Field-tested with navigation flow: Entregas → Perfil → Rutas → Entregas, all data persists correctly.
-
 ## System Architecture
 
 ### Multi-Tenancy Design
@@ -59,7 +18,7 @@ The system employs a **shared database, shared schema** multi-tenancy model, iso
 **Drizzle ORM** with PostgreSQL provides type-safe queries, migrations, soft deletes, audit fields, composite keys, and denormalization. PostgreSQL is chosen for ACID compliance, geospatial capabilities, and native multi-tenancy.
 
 ### Frontend Architecture
-Built with **React 18** and TypeScript, it uses **Wouter** for routing, **TanStack Query** for server state, and **React Hook Form + Zod** for validation. UI is **shadcn/ui + Tailwind CSS**, following a **mobile-first design** with responsive breakpoints. The application is also configured as a **Progressive Web App (PWA)** for mobile installation, including manifest, icons, and iOS support, enabling standalone mode.
+Built with **React 18** and TypeScript, it uses **Wouter** for routing, **TanStack Query** for server state, and **React Hook Form + Zod** for validation. UI is **shadcn/ui + Tailwind CSS**, following a **mobile-first design** with responsive breakpoints. The application is configured as a **Progressive Web App (PWA)** for mobile installation, enabling standalone mode.
 
 ### Backend Architecture
 Provides **RESTful API endpoints** with modular routing. Key services include a **Route Optimization Service** (using Turf.js), a **Recurring Orders Service**, and a **Storage Service** for company-scoped operations.
@@ -86,7 +45,7 @@ Adheres to **WCAG 2.1** guidelines, including `aria-label` for icon-only buttons
 Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience across all devices. A comprehensive user manual with intelligent search and PDF export functionality is also integrated.
 
 ### Automatic Invoice Generation & Dynamic Tax Calculation
-The system automatically creates invoices when orders are marked as delivered, implementing robust concurrency control to guarantee exactly one invoice per delivered order. It handles dynamic tax calculation, data replication, sequential numbering with company-specific unique constraints, and automatic payment processing for cash invoices within a single, atomic database transaction. Concurrency safety is ensured through row-level locking and duplicate prevention.
+The system automatically creates invoices when orders are marked as delivered, implementing robust concurrency control to guarantee exactly one invoice per delivered order. It handles dynamic tax calculation, data replication, sequential numbering with company-specific unique constraints, and automatic payment processing for cash invoices within a single, atomic database transaction.
 
 ### Partial Cash Payment Handling
 The mobile delivery app implements a robust partial payment system allowing drivers to accept partial cash payments. It features frontend detection of partial payments, automatic conversion of payment method for outstanding balances, and backend guard rails with a 1-cent tolerance for float precision.
@@ -95,7 +54,7 @@ The mobile delivery app implements a robust partial payment system allowing driv
 The system supports prepaid invoices for office payments before delivery, eliminating redundant payment collection during delivery. It detects prepaid orders across mobile and web interfaces, updates order status without creating duplicate invoices, and uses backend guards to prevent duplicate invoice creation for prepaid orders and donations.
 
 ### Unified Transaction System
-The system implements a comprehensive transaction ledger tracking all financial documents with independent sequential numbering for each document type (e.g., FT, RI, ANT). Transactions are automatically created on relevant events and are multi-tenant safe. Customer balances are calculated in real-time with automatic updates via PostgreSQL triggers for O(1) performance.
+The system implements a comprehensive transaction ledger tracking all financial documents with independent sequential numbering for each document type. Transactions are automatically created on relevant events and are multi-tenant safe. Customer balances are calculated in real-time with automatic updates via PostgreSQL triggers for O(1) performance.
 
 ### Customer Advance Payments (Anticipos) System
 The system supports comprehensive advance payment tracking with automatic document numbering, integration with the unified transaction system, multi-payment method support, and a unified payment history display. It provides secure, XSS-safe PDF receipt printing and integrates advance balances into customer displays. Advance payments are restricted if a customer has pending invoices.
@@ -119,44 +78,26 @@ The system provides comprehensive tracking and visualization of unreturned retur
 The mobile driver app implements a comprehensive **offline-first architecture** enabling full functionality without internet connectivity:
 
 #### IndexedDB Persistent Storage
-- **Local Database**: Uses IndexedDB (via `idb` library) for client-side data persistence
-- **Stores**: Separate object stores for routes, orders, customers, products, pending actions, and sync metadata
-- **Indexed Queries**: Efficient lookups by driver, date, route, customer, and sync status
-- **Bulk Operations**: Optimized bulk save operations for initial data synchronization
+- **Local Database**: Uses IndexedDB (via `idb` library) for client-side data persistence with separate object stores for routes, orders, customers, products, pending actions, and sync metadata. Efficient lookups and bulk save operations are supported.
 
 #### Intelligent Sync Service
-- **Automatic Download**: Downloads today's route data (routes, orders, customers, products) when online
-- **Pending Actions Queue**: Queues all offline actions (deliveries, payments, bottle returns, status updates) with retry logic
-- **Auto-Sync**: Automatically syncs pending actions every 30 seconds when connection is available
-- **Connection Monitoring**: Real-time detection of online/offline status with event-driven synchronization
-- **Sync Metadata**: Tracks last sync times and status for audit and debugging
+- **Automatic Download**: Downloads today's route data (routes, orders, customers, products) when online.
+- **Pending Actions Queue**: Queues all offline actions (deliveries, payments, bottle returns, status updates) with retry logic.
+- **Auto-Sync**: Automatically syncs pending actions every 30 seconds when connection is available.
+- **Connection Monitoring**: Real-time detection of online/offline status with event-driven synchronization.
 
 #### Enhanced Service Worker
-- **Multi-Cache Strategy**: Separate caches for static resources, dynamic content, and map tiles
-- **Cache-First for Maps**: OpenStreetMap tiles cached with cache-first strategy for offline map viewing
-- **Cache-First for Static Assets**: CSS, JS, fonts, and images served from cache for instant loading
-- **Network-First for HTML**: Dynamic pages fetched from network with cache fallback
-- **Offline Fallback**: Graceful degradation to cached content when offline
+- **Multi-Cache Strategy**: Separate caches for static resources, dynamic content, and map tiles.
+- **Cache-First for Maps & Static Assets**: OpenStreetMap tiles and static assets are cached with a cache-first strategy.
+- **Network-First for HTML**: Dynamic pages fetched from network with cache fallback.
+- **Offline Fallback**: Graceful degradation to cached content when offline.
 
 #### Conflict Resolution System
-- **Conflict Detection**: Compares client and server timestamps to identify data conflicts
-- **Smart Resolution**: Driver-authoritative strategy for deliveries/payments, server-authoritative for master data
-- **Merge Logic**: Intelligent data merging that preserves critical field updates from both sources
-- **Manual Resolution**: UI for resolving complex conflicts when automatic resolution isn't appropriate
+- **Conflict Detection**: Compares client and server timestamps to identify data conflicts.
+- **Smart Resolution**: Driver-authoritative strategy for deliveries/payments, server-authoritative for master data, with intelligent data merging.
 
 #### User Experience Features
-- **Visual Indicators**: Real-time online/offline status badge in mobile header
-- **Sync Status Display**: Shows pending action count and last sync timestamp
-- **Manual Controls**: Buttons to download data for offline use and trigger immediate sync
-- **Toast Notifications**: User-friendly messages for sync progress, success, and errors
-- **Airplane Mode Testing**: Full functionality verified in airplane mode for field reliability
-
-#### Technical Implementation
-- **Files**: `client/src/lib/offline-db.ts`, `client/src/lib/sync-service.ts`, `client/src/lib/conflict-resolution.ts`
-- **React Hook**: `useOfflineSync` provides easy integration with React components
-- **UI Component**: `OfflineSyncIndicator` shows connection status and sync controls
-- **Service Worker**: Enhanced `client/public/sw.js` with v4 multi-cache architecture
-- **Initialization**: Sync service is initialized in `client/src/main.tsx` at application startup to ensure offline/online event listeners are registered early
+- **Visual Indicators**: Real-time online/offline status badge, sync status display, manual controls for data download and immediate sync, and toast notifications for sync progress.
 
 ## External Dependencies
 
