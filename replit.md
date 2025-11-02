@@ -6,6 +6,13 @@ GoWater is a multi-tenant water delivery management system designed to optimize 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### November 2, 2025 - Offline Sync Service Fix
+- **Fixed**: Offline functionality in mobile app was not working because sync service initialization was commented out in `client/src/main.tsx`
+- **Resolution**: Uncommented and corrected the sync service initialization to use the proper file path (`./lib/sync-service` instead of `./lib/syncService`)
+- **Impact**: Mobile offline mode now properly initializes online/offline event listeners, auto-sync interval, and connection monitoring at application startup
+
 ## System Architecture
 
 ### Multi-Tenancy Design
@@ -115,6 +122,7 @@ The mobile driver app implements a comprehensive **offline-first architecture** 
 - **React Hook**: `useOfflineSync` provides easy integration with React components
 - **UI Component**: `OfflineSyncIndicator` shows connection status and sync controls
 - **Service Worker**: Enhanced `client/public/sw.js` with v4 multi-cache architecture
+- **Initialization**: Sync service is initialized in `client/src/main.tsx` at application startup to ensure offline/online event listeners are registered early
 
 ## External Dependencies
 
