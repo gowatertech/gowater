@@ -46,7 +46,7 @@ import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { RouteStop } from "@/types/route";
-import { formatTodayRD } from "@/lib/date-utils";
+import { formatTodayRD, formatDateRD } from "@/lib/date-utils";
 
 // Componentes de diálogo
 import {
@@ -1083,7 +1083,7 @@ export default function DriverRoute() {
                 <div className="flex-1">
                   <h2 className="text-base sm:text-lg font-bold">{routeDetails.name}</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    {new Date(routeDetails.date).toLocaleDateString('es-DO', {
+                    {formatDateRD(routeDetails.date, {
                       weekday: 'long',
                       day: 'numeric',
                       month: 'long'

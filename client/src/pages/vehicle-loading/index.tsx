@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { formatDateRD } from "@/lib/date-utils";
 import { 
   Plus, 
   Truck, 
@@ -237,7 +238,11 @@ export default function VehicleLoadingPage() {
                           <div>
                             <p className="font-semibold text-sm">Carga #{loading.loadingNumber}</p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(loading.date).toLocaleDateString()}
+                              {formatDateRD(loading.date, {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
                             </p>
                           </div>
                         </div>
@@ -357,7 +362,11 @@ export default function VehicleLoadingPage() {
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <Calendar className="h-3 w-3" />
                               <span className="text-sm">
-                                {new Date(loading.date).toLocaleDateString()}
+                                {formatDateRD(loading.date, {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}
                               </span>
                             </div>
                           </td>

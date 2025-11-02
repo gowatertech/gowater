@@ -50,7 +50,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
-import { getTimestampRD, formatTimeRD } from "@/lib/date-utils";
+import { getTimestampRD, formatTimeRD, formatDateRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { getDB } from "@/lib/offline-db";
 
@@ -698,7 +698,11 @@ export default function DeliveryDetails() {
       // Información del pedido
       printContent.innerHTML += `
         <div style="text-align: center; font-weight: bold; margin: 10px 0; font-size: 14px;">PEDIDO #${delivery.orderId}</div>
-        <div style="margin-bottom: 5px;">Fecha: ${new Date(orderData.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 5px;">Fecha: ${formatDateRD(orderData.date, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        })}</div>
         <div style="margin-bottom: 5px;">Cliente: ${orderData.customerName || "Cliente"}</div>
         <div style="margin-bottom: 5px;">Teléfono: ${orderData.customerPhone || ""}</div>
         <div style="margin-bottom: 5px;">Dirección: ${orderData.customerAddress}</div>
@@ -887,7 +891,11 @@ export default function DeliveryDetails() {
       
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Fecha: ${new Date(orderData.date).toLocaleDateString()}`, 5, 43);
+      doc.text(`Fecha: ${formatDateRD(orderData.date, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })}`, 5, 43);
       doc.text(`Cliente: ${orderData.customerName || "Cliente"}`, 5, 47);
       doc.text(`Teléfono: ${orderData.customerPhone || ""}`, 5, 51);
       doc.text(`Dirección: ${orderData.customerAddress}`, 5, 55);

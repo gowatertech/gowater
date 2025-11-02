@@ -1287,7 +1287,11 @@ export class PrinterService {
       // Información del pedido
       let formattedDate = '';
       try {
-        formattedDate = new Date(order.date).toLocaleDateString();
+        formattedDate = formatDateRD(order.date, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
       } catch (e) {
         formattedDate = 'Fecha no disponible';
       }

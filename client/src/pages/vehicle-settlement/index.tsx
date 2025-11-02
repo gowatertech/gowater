@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDateRD } from "@/lib/date-utils";
 import { 
   Calculator, Truck, AlertCircle, Calendar, Clock, 
   User as UserIcon, // Renombrar el icono para evitar conflicto
@@ -280,7 +281,11 @@ export default function VehicleSettlementPage() {
                   <Calendar className="h-3 w-3 mr-1 text-blue-500" />
                   Fecha
                 </p>
-                <p className="font-medium text-xs sm:text-sm">{new Date(selectedLoading.date).toLocaleDateString()}</p>
+                <p className="font-medium text-xs sm:text-sm">{formatDateRD(selectedLoading.date, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}</p>
               </div>
               <div className="border-l-4 border-l-green-500 pl-1.5 sm:pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
@@ -350,7 +355,11 @@ export default function VehicleSettlementPage() {
                             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                               <div className="flex items-center">
                                 <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                                <span className="text-gray-600">{new Date(loading.date).toLocaleDateString()}</span>
+                                <span className="text-gray-600">{formatDateRD(loading.date, {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}</span>
                               </div>
                               <div className="flex items-center">
                                 <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
@@ -407,13 +416,21 @@ export default function VehicleSettlementPage() {
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600">{new Date(settlement.date).toLocaleDateString()}</span>
+                              <span className="text-gray-600">{formatDateRD(settlement.date, {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}</span>
                             </div>
                             <div className="flex items-center">
                               <Clock className="h-3 w-3 mr-1 text-gray-500" />
                               <span className="text-gray-600 truncate">
                                 {settlement.completedAt 
-                                  ? new Date(settlement.completedAt).toLocaleDateString() 
+                                  ? formatDateRD(settlement.completedAt, {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric'
+                                    })
                                   : 'Sin fecha de cuadre'}
                               </span>
                             </div>

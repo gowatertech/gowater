@@ -5,6 +5,7 @@ import type { InsertVehicleLoading, Product, User, Truck, Route, Order } from "@
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { formatDateRD } from "@/lib/date-utils";
 import { 
   Plus, 
   Minus, 
@@ -337,7 +338,11 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                             <div className="flex items-center gap-2">
                               <span>{route.name}</span>
                               <Badge variant="outline" className="text-xs">
-                                {new Date(route.date).toLocaleDateString()}
+                                {formatDateRD(route.date, {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}
                               </Badge>
                             </div>
                           </SelectItem>
