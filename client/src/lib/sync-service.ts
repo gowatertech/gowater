@@ -214,6 +214,47 @@ export async function downloadTodayRouteData(driverId?: number): Promise<boolean
       console.error('[Sync] Error fetching products:', error);
     }
 
+    // Fetch ALL deliveries/orders from mobile endpoint (not just route orders)
+    try {
+      const deliveriesResponse = await fetch('/api/mobile/deliveries', {
+        credentials: 'include'
+      });
+
+      if (deliveriesResponse.ok) {
+        const deliveries = await deliveriesResponse.json();
+        console.log('[Sync] Downloaded', deliveries.length, 'deliveries from /api/mobile/deliveries');
+        
+        // Save each delivery as an order in IndexedDB
+        // The deliveries endpoint returns data in deliveries format, need to save as orders
+        await bulkSaveOrders(deliveries);
+        
+        // Collect customer IDs from deliveries too
+        deliveries.forEach((delivery: any) => {
+          if (delivery.customerId) {
+            allCustomerIds.add(delivery.customerId);
+          }
+        });
+        
+        // Fetch any additional customers from deliveries
+        if (allCustomerIds.size > 0) {
+          const customersResponse = await fetch('/api/customers', {
+            credentials: 'include'
+          });
+
+          if (customersResponse.ok) {
+            const allCustomers = await customersResponse.json();
+            const relevantCustomers = allCustomers.filter((c: any) => 
+              allCustomerIds.has(c.id)
+            );
+            console.log('[Sync] Saving additional', relevantCustomers.length, 'customers from deliveries');
+            await bulkSaveCustomers(relevantCustomers);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Sync] Error fetching deliveries:', error);
+    }
+
     // Update sync metadata
     await setSyncMetadata('lastFullSync', 'success');
 

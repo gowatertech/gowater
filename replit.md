@@ -25,6 +25,28 @@ Preferred communication style: Simple, everyday language.
   - Also fixed `client/src/hooks/use-prevent-back-navigation.ts` to not redirect to login when offline if user exists in localStorage
 - **Impact**: App now works completely offline after initial login - user loads instantly, preventing "Cargando..." stuck screen, enabling all offline data queries (routes, orders, customers) to execute properly
 
+#### Fix #3: Offline Deliveries (Entregas) Page Navigation
+- **Issue**: When navigating away from Entregas page (to Perfil, Rutas, etc.) and returning offline, the page would get stuck on "Cargando..." because it attempted manual fetch() which failed offline
+- **Root Cause**: The Entregas page was using manual fetch with useEffect instead of offline-aware hooks like other pages, causing component re-mount to trigger failed API calls
+- **Resolution**: 
+  - Created `useOfflineDeliveries()` hook in `client/src/hooks/use-offline-data.ts` that tries online first, then falls back to IndexedDB
+  - Replaced manual fetch logic in `client/src/pages/mobile-app/entregas/index.tsx` with the hook
+  - Added proper data mapping from IndexedDB orders format to deliveries format (customerAddress → address, productId → id, etc.)
+  - TanStack Query now handles caching and offline fallback automatically
+- **Impact**: Entregas page now works completely offline with navigation - users can navigate to other pages and return without getting stuck on loading screen, data persists correctly from IndexedDB
+
+#### Fix #4: Complete Deliveries Download for Offline Use
+- **Issue**: Deliveries not appearing offline even after downloading data because `downloadTodayRouteData()` only fetched orders from routes, missing standalone deliveries not assigned to routes
+- **Root Cause**: Sync service only downloaded route-based orders from `/api/routes/{id}/orders`, but drivers have deliveries from `/api/mobile/deliveries` that aren't in routes
+- **Resolution**: 
+  - Modified `downloadTodayRouteData()` in `client/src/lib/sync-service.ts` to also fetch from `/api/mobile/deliveries` endpoint
+  - All deliveries (both route-based and standalone) are now saved to IndexedDB during offline data download
+  - Fixed data mapping in `useOfflineDeliveries()` to handle both data formats:
+    - Address field: Checks `order.address` (from deliveries) || `order.customerAddress` (from routes)
+    - Product ID: Uses `p.id ?? p.productId` to handle both formats
+  - Added customer fetching for any new customers from deliveries endpoint
+- **Impact**: All pending deliveries now download correctly for offline use. Deliveries persist across page navigation with complete data (addresses, customer names, products, totals). Field-tested with navigation flow: Entregas → Perfil → Rutas → Entregas, all data persists correctly.
+
 ## System Architecture
 
 ### Multi-Tenancy Design

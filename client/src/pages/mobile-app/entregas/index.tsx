@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { useOfflineDeliveries } from "@/hooks/use-offline-data";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { formatTodayRD } from "@/lib/date-utils";
@@ -62,13 +63,11 @@ export default function DriverDeliveries() {
   const { user } = useCurrentUser();
   const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("pendientes");
   
-  // Guard para evitar llamadas concurrentes a loadDeliveries
-  const isFetchingRef = useRef(false);
+  // Usar el hook offline para cargar entregas (funciona online y offline)
+  const { data: deliveriesData = [], isLoading, refetch } = useOfflineDeliveries();
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
@@ -87,8 +86,8 @@ export default function DriverDeliveries() {
     });
     
     try {
-      // Llamar directamente a loadDeliveries (sin setTimeout para evitar bucles)
-      await loadDeliveries();
+      // Refetch usa el hook offline que intenta online primero, luego offline
+      await refetch();
       
       toast({
         title: "Entregas actualizadas",
@@ -96,73 +95,31 @@ export default function DriverDeliveries() {
         variant: "default"
       });
     } catch (error) {
-      // El error ya se maneja en loadDeliveries, no mostrar toast de éxito
       console.error('[Entregas] Error en syncData:', error);
+      toast({
+        title: "Error al actualizar",
+        description: "No se pudieron actualizar las entregas",
+        variant: "destructive"
+      });
     }
   };
 
-  // Cargar datos de entregas usando el endpoint optimizado
-  const loadDeliveries = async () => {
-    // Guard: evitar llamadas concurrentes
-    if (isFetchingRef.current) {
-      console.log('[Entregas] Ya hay una carga en progreso, ignorando llamada duplicada');
-      return;
-    }
-    
-    isFetchingRef.current = true;
-    console.log('[Entregas] Iniciando carga de entregas...');
-    setIsLoading(true);
-    
-    try {
-      // Usar el nuevo endpoint optimizado que trae todo en una sola llamada
-      console.log('[Entregas] Llamando a /api/mobile/deliveries');
-      const response = await fetch('/api/mobile/deliveries', {
-        credentials: 'include'
-      });
-      
-      console.log('[Entregas] Respuesta recibida:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const deliveriesData = await response.json();
-      console.log('[Entregas] Datos recibidos:', deliveriesData.length, 'entregas');
-      
-      // Mapear los datos al formato esperado por la interfaz
-      const mappedDeliveries = deliveriesData.map((delivery: any) => ({
-        id: delivery.id,
-        orderId: delivery.id,
-        customerId: delivery.customerId,
-        customerName: delivery.customerName,
-        address: delivery.address || '',
-        status: delivery.status as "pending" | "in_progress" | "delivered" | "cancelled",
-        scheduledTime: new Date(delivery.date).toLocaleTimeString('es-DO', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        products: delivery.products || [],
-        total: parseFloat(delivery.total),
-        bottleReturns: delivery.bottleReturns || []
-      }));
-      
-      setDeliveries(mappedDeliveries);
-      console.log('[Entregas] Entregas cargadas exitosamente');
-    } catch (error) {
-      console.error('[Entregas] ERROR al cargar entregas:', error);
-      toast({
-        title: "Error al cargar datos",
-        description: error instanceof Error ? error.message : "No se pudieron obtener las entregas",
-        variant: "destructive"
-      });
-      // Establecer array vacío para evitar errores en el render
-      setDeliveries([]);
-    } finally {
-      console.log('[Entregas] Finalizando carga, setIsLoading(false)');
-      setIsLoading(false);
-      isFetchingRef.current = false;
-    }
-  };
+  // Mapear los datos al formato esperado por la interfaz
+  const deliveries: Delivery[] = deliveriesData.map((delivery: any) => ({
+    id: delivery.id,
+    orderId: delivery.id,
+    customerId: delivery.customerId,
+    customerName: delivery.customerName,
+    address: delivery.address || '',
+    status: delivery.status as "pending" | "in_progress" | "delivered" | "cancelled",
+    scheduledTime: new Date(delivery.date).toLocaleTimeString('es-DO', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    products: delivery.products || [],
+    total: parseFloat(delivery.total),
+    bottleReturns: delivery.bottleReturns || []
+  }));
 
   // Filtrar entregas por estado y término de búsqueda
   const filteredDeliveries = deliveries.filter(delivery => {
@@ -184,11 +141,6 @@ export default function DriverDeliveries() {
     
     return statusFilter && searchFilter;
   });
-
-  // Cargar datos al montar el componente
-  useEffect(() => {
-    loadDeliveries();
-  }, []);
 
   // Si está cargando, mostrar spinner
   if (isLoading) {

@@ -131,3 +131,57 @@ export function useOfflineProducts(options: Omit<UseOfflineDataOptions, 'queryKe
     ...options
   });
 }
+
+export function useOfflineDeliveries(options: Omit<UseOfflineDataOptions, 'queryKey'> = {}) {
+  return useQuery({
+    queryKey: ["/api/mobile/deliveries"],
+    queryFn: async () => {
+      try {
+        // Intentar cargar del servidor
+        const response = await fetch('/api/mobile/deliveries', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.log('[useOfflineDeliveries] Error de red, cargando desde IndexedDB', error);
+        
+        // Si falla, cargar desde IndexedDB y mapear al formato correcto
+        const offlineOrders = await getAllOrders();
+        
+        // Mapear los orders de IndexedDB al formato de deliveries esperado
+        const mappedDeliveries = offlineOrders.map((order: any) => ({
+          id: order.id,
+          customerId: order.customerId,
+          customerName: order.customerName,
+          // Preferir address (del endpoint deliveries) con fallback a customerAddress (de routes)
+          address: order.address || order.customerAddress || '',
+          status: order.status,
+          date: order.date,
+          total: order.total,
+          paymentMethod: order.paymentMethod,
+          // Mapear products al formato esperado
+          products: (order.products || []).map((p: any) => ({
+            // Preferir id (del endpoint deliveries) con fallback a productId (de routes)
+            id: p.id ?? p.productId,
+            name: p.name,
+            quantity: p.quantity,
+            price: p.price,
+            isReturnable: p.isReturnable
+          })),
+          // bottleReturns viene del servidor, en offline estará vacío
+          bottleReturns: []
+        }));
+        
+        return mappedDeliveries;
+      }
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    ...options
+  });
+}
