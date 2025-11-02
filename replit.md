@@ -70,15 +70,19 @@ The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for 
 - `formatDateTimeRD()` - Formats dates with time in 12-hour format (e.g., "02/11/2024 3:45 PM")
 - `formatTimeRD()` - Formats time only (e.g., "3:45 PM")
 
-**Recent Timezone Fixes (Nov 2025)**: Standardized date formatting across billing, payments, and orders modules:
-- `client/src/pages/billing/index.tsx` - Invoice list dates
-- `client/src/pages/payments/index.tsx` - Payment history dates
-- `client/src/pages/payments/register.tsx` - Payment registration dates
-- `client/src/pages/orders/list.tsx` - Order list dates (mobile and desktop views)
-- `client/src/pages/orders/details.tsx` - Order detail dates
-- `client/src/pages/orders/status.tsx` - Order status dates
+**Recent Timezone Fixes (Nov 2025)**: Comprehensive standardization of date formatting across the entire application:
+- **Mobile App**: `client/src/pages/mobile-app/entregas/[id].tsx`, `client/src/pages/mobile-app/ruta/index.tsx`
+- **Envases (Bottle Returns)**: `client/src/pages/envases-pendientes/index.tsx`, `client/src/pages/envases-faltantes/index.tsx`
+- **Routes**: `client/src/pages/routes/vehicle-loading/VehicleLoadingForm.tsx`, `client/src/pages/routes/vehicle-settlement/VehicleSettlementForm.tsx`, `client/src/pages/routes/RouteOptimizer.tsx`, `client/src/components/routes/PendingOrdersRouteForm.tsx`
+- **Orders & Invoices**: `client/src/components/orders/RecurringOrderManager.tsx`, `client/src/pages/orders/OrdersPage.tsx`, `client/src/pages/orders/PrinterService.tsx`, `client/src/services/PrinterService.ts`
+- **Dashboard & Reports**: `client/src/pages/dashboard/index.tsx`, `client/src/pages/reports/components/SalesReports.tsx`
+- **Inventory**: `client/src/pages/inventory/production/index.tsx`
+- **Drivers**: `client/src/pages/drivers/DriverView.tsx`
+- **Zones**: `client/src/pages/zones/index.tsx`
+- **Customers**: `client/src/components/customers/CustomerBalance.tsx`
+- **Vehicle Management**: `client/src/pages/vehicle-settlement/index.tsx`, `client/src/pages/vehicle-settlement/VehicleSettlementForm.tsx`, `client/src/pages/vehicle-loading/index.tsx`, `client/src/pages/vehicle-loading/VehicleLoadingDetails.tsx`, `client/src/pages/vehicle-loading/VehicleLoadingForm.tsx`
 
-**Best Practice**: Always use these utility functions instead of manual date parsing or browser-default `toLocaleDateString()` to ensure consistent RD timezone handling throughout the application.
+**Best Practice**: Always use these utility functions instead of manual date parsing or browser-default `toLocaleDateString()` or `toLocaleTimeString()` to ensure consistent RD timezone handling throughout the application.
 
 ### Payment Method Business Rules
 The system enforces specific payment method rules:
