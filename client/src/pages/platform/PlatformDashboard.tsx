@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { apiRequest } from "@/lib/queryClient";
 import { User, LogOut, Building2, Users, Package, Clock, CreditCard, Loader2 } from "lucide-react";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
-import { formatTodayFullRD } from "@/lib/date-utils";
+import { formatTodayRD } from "@/lib/date-utils";
 
 import { PlatformLayout } from "./_components/PlatformLayout";
 
@@ -206,7 +206,7 @@ export default function PlatformDashboard() {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                   <span className="text-sm font-medium">Actualizado:</span>
-                  <span className="text-sm">{formatTodayFullRD()}</span>
+                  <span className="text-sm">{formatTodayRD()}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                   <span className="text-sm font-medium">Base de datos:</span>

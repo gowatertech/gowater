@@ -192,29 +192,6 @@ export function formatDateTimeRD(
 }
 
 /**
- * Formatea la fecha y hora ACTUAL en español (República Dominicana)
- * Equivalente a new Date().toLocaleString() pero con zona horaria correcta
- * @param options - Opciones de formateo
- * @returns string formateado con la fecha y hora actual en RD
- */
-export function formatTodayFullRD(
-  options: Intl.DateTimeFormatOptions = {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  }
-): string {
-  return new Date().toLocaleString('es-DO', {
-    ...options,
-    timeZone: 'America/Santo_Domingo'
-  });
-}
-
-/**
  * Formatea solo la hora de una fecha en República Dominicana
  * @param date - Fecha a formatear
  * @param options - Opciones de formateo
