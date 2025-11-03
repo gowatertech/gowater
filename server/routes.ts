@@ -4819,6 +4819,253 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para obtener facturas pendientes de un cliente con saldo calculado
+  router.get("/customers/:id/pending-invoices", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      const customerId = parseInt(req.params.id);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado" });
+      }
+      
+      if (isNaN(customerId)) {
+        return res.status(400).json({ error: "ID de cliente inválido" });
+      }
+      
+      // Obtener todas las facturas del cliente (incluyendo parcialmente pagadas)
+      const customerInvoices = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.customerId, customerId),
+            eq(invoices.companyId, companyId)
+          )
+        )
+        .orderBy(invoices.date); // Ordenar por fecha (más antigua primero)
+      
+      // Calcular saldo pendiente para cada factura
+      const invoicesWithBalance = await Promise.all(
+        customerInvoices.map(async (invoice) => {
+          // Obtener pagos aplicados a esta factura
+          const paymentsForInvoice = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.invoiceId, invoice.id));
+          
+          const totalPaid = paymentsForInvoice.reduce(
+            (sum, payment) => sum + parseFloat(payment.amount.toString()),
+            0
+          );
+          
+          const pendingAmount = parseFloat(invoice.total) - totalPaid;
+          
+          return {
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            total: invoice.total,
+            date: invoice.date,
+            status: invoice.status,
+            paid: totalPaid.toFixed(2),
+            pending: pendingAmount.toFixed(2),
+          };
+        })
+      );
+      
+      // Filtrar solo las que tienen saldo pendiente
+      const pendingInvoices = invoicesWithBalance.filter(
+        inv => parseFloat(inv.pending) > 0
+      );
+      
+      res.json(pendingInvoices);
+    } catch (error) {
+      console.error("Error al obtener facturas pendientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para aplicar pago a cuenta (distribuido automáticamente)
+  router.post("/payments/account-payment", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado" });
+      }
+      
+      const { customerId, amount, paymentMethod, reference, notes } = req.body;
+      
+      if (!customerId || !amount || !paymentMethod) {
+        return res.status(400).json({ 
+          error: "Faltan datos requeridos: customerId, amount, paymentMethod" 
+        });
+      }
+      
+      let remainingAmount = parseFloat(amount);
+      
+      if (remainingAmount <= 0) {
+        return res.status(400).json({ error: "El monto debe ser mayor a 0" });
+      }
+      
+      // Obtener facturas pendientes del cliente ordenadas por fecha (más antigua primero)
+      const customerInvoices = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.customerId, customerId),
+            eq(invoices.companyId, companyId)
+          )
+        )
+        .orderBy(invoices.date);
+      
+      const paymentsCreated = [];
+      const invoicesUpdated = [];
+      
+      // Aplicar el pago a cada factura desde la más antigua
+      for (const invoice of customerInvoices) {
+        if (remainingAmount <= 0.01) break; // Tolerancia de 1 centavo
+        
+        // Calcular saldo pendiente de esta factura
+        const paymentsForInvoice = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.invoiceId, invoice.id));
+        
+        const totalPaid = paymentsForInvoice.reduce(
+          (sum, p) => sum + parseFloat(p.amount.toString()),
+          0
+        );
+        
+        const pendingAmount = parseFloat(invoice.total) - totalPaid;
+        
+        if (pendingAmount <= 0.01) continue; // Ya está pagada
+        
+        // Determinar cuánto aplicar a esta factura
+        const amountToApply = Math.min(remainingAmount, pendingAmount);
+        
+        // Crear el pago
+        const [payment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            invoiceId: invoice.id,
+            amount: amountToApply.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || `Abono a cuenta - Factura #${invoice.invoiceNumber}`,
+            isAdvance: false,
+            date: getTimestampRD(),
+          })
+          .returning();
+        
+        paymentsCreated.push(payment);
+        
+        // Crear transacción RI
+        await storage.createTransaction({
+          companyId,
+          documentType: 'RI',
+          customerId,
+          invoiceId: invoice.id,
+          paymentId: payment.id,
+          amount: amountToApply.toFixed(2),
+          type: 'credit',
+          description: `Pago a cuenta - Factura #${invoice.invoiceNumber}`,
+          notes: notes || null,
+          date: payment.date,
+        });
+        
+        remainingAmount -= amountToApply;
+        
+        // Actualizar estado de la factura si quedó completamente pagada
+        const newTotalPaid = totalPaid + amountToApply;
+        if (newTotalPaid >= parseFloat(invoice.total) - 0.01) {
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(eq(invoices.id, invoice.id));
+          
+          invoicesUpdated.push({
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            status: 'paid'
+          });
+        }
+      }
+      
+      // Si queda dinero sobrante, crear un anticipo
+      let advancePayment = null;
+      if (remainingAmount > 0.01) {
+        // Generar número de anticipo
+        const lastAdvance = await db
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.companyId, companyId),
+              eq(payments.isAdvance, true),
+              isNotNull(payments.documentNumber)
+            )
+          )
+          .orderBy(desc(payments.id))
+          .limit(1);
+        
+        let documentNumber = "ANT-001";
+        if (lastAdvance.length > 0 && lastAdvance[0].documentNumber) {
+          const match = lastAdvance[0].documentNumber.match(/ANT-(\d+)/);
+          if (match) {
+            const nextNumber = parseInt(match[1]) + 1;
+            documentNumber = `ANT-${nextNumber.toString().padStart(3, '0')}`;
+          }
+        }
+        
+        [advancePayment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            amount: remainingAmount.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || "Anticipo - Sobrante de abono a cuenta",
+            isAdvance: true,
+            invoiceId: null,
+            documentNumber,
+            date: getTimestampRD(),
+          })
+          .returning();
+        
+        // Crear transacción ANT
+        await storage.createTransaction({
+          companyId,
+          documentType: 'ANT',
+          customerId,
+          paymentId: advancePayment.id,
+          amount: remainingAmount.toFixed(2),
+          type: 'credit',
+          description: `Anticipo - ${documentNumber}`,
+          notes: notes || null,
+          date: advancePayment.date,
+        });
+      }
+      
+      res.json({
+        success: true,
+        paymentsCreated,
+        invoicesUpdated,
+        advancePayment,
+        totalApplied: (parseFloat(amount) - remainingAmount).toFixed(2),
+        remainingAsAdvance: remainingAmount > 0.01 ? remainingAmount.toFixed(2) : '0.00',
+      });
+      
+    } catch (error) {
+      console.error("Error al aplicar pago a cuenta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   router.get("/customers/:id/transactions", async (req, res) => {
     try {
       const companyId = getCurrentCompanyId();
