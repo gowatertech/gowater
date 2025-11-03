@@ -64,17 +64,30 @@ export function toRD(date: Date): Date {
  * @returns String en formato ISO pero SIN 'Z' (hora local RD)
  */
 export function getTimestampRD(): string {
-  const rdDate = getNowRD();
+  const now = new Date();
   
-  // Obtener partes de la fecha
-  const year = rdDate.getFullYear();
-  const month = String(rdDate.getMonth() + 1).padStart(2, '0');
-  const day = String(rdDate.getDate()).padStart(2, '0');
-  const hour = String(rdDate.getHours()).padStart(2, '0');
-  const minute = String(rdDate.getMinutes()).padStart(2, '0');
-  const second = String(rdDate.getSeconds()).padStart(2, '0');
-  const ms = String(rdDate.getMilliseconds()).padStart(3, '0');
+  // Obtener las partes de la fecha/hora en timezone RD directamente
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+    hour12: false
+  });
   
+  const parts = formatter.formatToParts(now);
+  const dateParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      dateParts[part.type] = part.value;
+    }
+  });
+  
+  // Construir string directamente SIN usar Date object
   // CRÍTICO: NO añadir 'Z' para evitar conversión a UTC
-  return `${year}-${month}-${day}T${hour}:${minute}:${second}.${ms}`;
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.${dateParts.fractionalSecond || '000'}`;
 }
