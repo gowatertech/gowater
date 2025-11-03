@@ -3535,10 +3535,14 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/dashboard/financial-stats - CompanyId: ${companyId}`);
       
-      const now = new Date();
+      // Obtener la fecha actual en zona horaria de República Dominicana
+      const now = getNowRD();
+      
+      // Primer día del mes (00:00:00)
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       monthStart.setHours(0, 0, 0, 0);
       
+      // Último día del mes (23:59:59.999)
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       monthEnd.setHours(23, 59, 59, 999);
       
