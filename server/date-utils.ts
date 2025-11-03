@@ -58,9 +58,23 @@ export function toRD(date: Date): Date {
 }
 
 /**
- * Obtiene un timestamp ISO en UTC para PostgreSQL
- * @returns String en formato ISO (UTC)
+ * Obtiene un timestamp string en zona horaria RD para PostgreSQL
+ * Retorna string sin 'Z' para que se guarde como timestamp local
+ * Ejemplo: si en RD son 31-oct 22:24, retorna "2025-10-31T22:24:00.000"
+ * @returns String en formato ISO pero SIN 'Z' (hora local RD)
  */
 export function getTimestampRD(): string {
-  return new Date().toISOString();
+  const rdDate = getNowRD();
+  
+  // Obtener partes de la fecha
+  const year = rdDate.getFullYear();
+  const month = String(rdDate.getMonth() + 1).padStart(2, '0');
+  const day = String(rdDate.getDate()).padStart(2, '0');
+  const hour = String(rdDate.getHours()).padStart(2, '0');
+  const minute = String(rdDate.getMinutes()).padStart(2, '0');
+  const second = String(rdDate.getSeconds()).padStart(2, '0');
+  const ms = String(rdDate.getMilliseconds()).padStart(3, '0');
+  
+  // CRÍTICO: NO añadir 'Z' para evitar conversión a UTC
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.${ms}`;
 }
