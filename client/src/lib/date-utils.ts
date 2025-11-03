@@ -113,10 +113,8 @@ export function formatDateRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  return inputDate.toLocaleDateString('es-DO', {
-    ...options,
-    timeZone: 'America/Santo_Domingo'
-  });
+  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
+  return inputDate.toLocaleDateString('es-DO', options);
 }
 
 /**
@@ -185,10 +183,9 @@ export function formatDateTimeRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  return inputDate.toLocaleString('es-DO', {
-    ...options,
-    timeZone: 'America/Santo_Domingo'
-  });
+  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
+  // Si usamos timeZone, JavaScript intentará convertir desde la zona del navegador a RD
+  return inputDate.toLocaleString('es-DO', options);
 }
 
 /**
@@ -205,10 +202,8 @@ export function formatTimeRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  return inputDate.toLocaleTimeString('es-DO', {
-    ...options,
-    timeZone: 'America/Santo_Domingo'
-  });
+  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
+  return inputDate.toLocaleTimeString('es-DO', options);
 }
 
 /**
