@@ -729,7 +729,7 @@ export default function PaymentsHistory() {
               variant="outline" 
               onClick={() => {
                 setSearchTerm("");
-                setFilters({method: "all", customer: ""});
+                setFilters({method: "all", customer: "", type: "all"});
                 setDateRange({});
                 setActiveTab("all");
               }}
