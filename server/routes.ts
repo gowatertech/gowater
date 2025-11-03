@@ -4833,6 +4833,26 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de cliente inválido" });
       }
       
+      // Obtener el balance del cliente desde la tabla customers
+      const [customer] = await db
+        .select({
+          balance: customers.balance,
+          name: customers.name
+        })
+        .from(customers)
+        .where(
+          and(
+            eq(customers.id, customerId),
+            eq(customers.companyId, companyId)
+          )
+        );
+      
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      const customerBalance = parseFloat(customer.balance.toString()).toFixed(2);
+      
       // Obtener todas las facturas del cliente (incluyendo parcialmente pagadas)
       const customerInvoices = await db
         .select()
@@ -4878,10 +4898,15 @@ export async function registerRoutes(router: express.Router) {
         inv => parseFloat(inv.pending) > 0
       );
       
+      console.log(`[Account Payment] Customer: ${customer.name}, Balance: ${customerBalance}`);
       console.log(`[Account Payment] Returning ${pendingInvoices.length} pending invoices for customer ${customerId}`);
       console.log(`[Account Payment] Sample invoice:`, JSON.stringify(pendingInvoices[0], null, 2));
       
-      res.json(pendingInvoices);
+      // Devolver el balance del cliente y las facturas pendientes
+      res.json({
+        customerBalance,
+        pendingInvoices
+      });
     } catch (error) {
       console.error("Error al obtener facturas pendientes:", error);
       res.status(500).json({ error: String(error) });

@@ -44,6 +44,11 @@ interface PendingInvoice {
   pending: string;
 }
 
+interface PendingInvoicesResponse {
+  customerBalance: string;
+  pendingInvoices: PendingInvoice[];
+}
+
 interface AccountPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,11 +69,14 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
     enabled: open,
   });
 
-  // Cargar facturas pendientes del cliente seleccionado
-  const { data: pendingInvoices = [], isLoading: loadingInvoices } = useQuery<PendingInvoice[]>({
+  // Cargar facturas pendientes y balance del cliente seleccionado
+  const { data: invoicesData, isLoading: loadingInvoices } = useQuery<PendingInvoicesResponse>({
     queryKey: ["/api/customers", selectedCustomerId, "pending-invoices"],
     enabled: !!selectedCustomerId,
   });
+  
+  const pendingInvoices = invoicesData?.pendingInvoices || [];
+  const customerBalance = invoicesData?.customerBalance || "0.00";
 
   // Filtrar clientes por búsqueda
   const filteredCustomers = useMemo(() => {
@@ -297,7 +305,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                           {pendingInvoices.length} factura(s) pendiente(s)
                         </span>
                         <span className="text-sm font-semibold text-red-600">
-                          Total Deuda: ${totalDebt.toFixed(2)}
+                          Balance Cliente: ${parseFloat(customerBalance).toFixed(2)}
                         </span>
                       </div>
                       <Separator />
