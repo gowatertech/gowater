@@ -27,7 +27,8 @@ import {
   Printer,
   Download,
   DollarSign,
-  PackageX
+  PackageX,
+  Edit
 } from "lucide-react";
 
 // Componentes UI
@@ -623,6 +624,19 @@ export default function OrdersList() {
                           )}
                         </div>
                         <div className="flex gap-1 flex-wrap justify-end">
+                          {/* Bot\u00f3n Editar - solo para pedidos editables */}
+                          {(['pending', 'in_transit'].includes(order.status) && !order.invoiceId) && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => setLocation(`/orders/edit/${order.id}`)}
+                              data-testid={`button-edit-order-${order.id}`}
+                            >
+                              <Edit className="h-3.5 w-3.5 mr-1" />
+                              Editar
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -732,6 +746,19 @@ export default function OrdersList() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            {/* Bot\u00f3n Editar - solo para pedidos editables */}
+                            {(['pending', 'in_transit'].includes(order.status) && !order.invoiceId) && (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-8"
+                                onClick={() => setLocation(`/orders/edit/${order.id}`)}
+                                data-testid={`button-edit-order-${order.id}`}
+                              >
+                                <Edit className="h-3.5 w-3.5 mr-1" />
+                                Editar
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"

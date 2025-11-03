@@ -13,6 +13,7 @@ import Customers from "@/pages/customers";
 import Orders from "@/pages/orders";
 import OrdersList from "@/pages/orders/list";
 import NewOrder from "@/pages/orders/new";
+import EditOrder from "@/pages/orders/edit";
 import OrderDetails from "@/pages/orders/details";
 import OrderStatus from "@/pages/orders/status";
 import Routes from "@/pages/routes";
@@ -403,6 +404,7 @@ function Router() {
         <Route path="/orders" component={Orders} />
         <Route path="/orders/list" component={OrdersList} />
         <Route path="/orders/new" component={NewOrder} />
+        <Route path="/orders/edit/:id" component={EditOrder} />
         <Route path="/orders/details/:id" component={OrderDetails} />
         <Route path="/orders/status/:id" component={OrderStatus} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
