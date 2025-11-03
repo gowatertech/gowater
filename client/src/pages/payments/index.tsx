@@ -351,7 +351,7 @@ export default function PaymentDashboard() {
           </div>
           
           <div style="font-size: 10px; margin-bottom: 10px;">
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}</p>
             <p style="margin: 4px 0;"><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
             <p style="margin: 4px 0;"><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
             <p style="margin: 4px 0;"><strong>Método:</strong> ${
@@ -423,7 +423,7 @@ export default function PaymentDashboard() {
         // Datos del pago
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
+        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}`, 5, 35);
         doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
         doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
         
@@ -659,7 +659,7 @@ export default function PaymentDashboard() {
             </div>
             
             <div class="content">
-              <p><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+              <p><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}</p>
               <p><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
               <p><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
               <p><strong>Método:</strong> ${metodoPago}</p>
@@ -744,7 +744,7 @@ export default function PaymentDashboard() {
             <tbody>
               {filteredPayments.slice(0, 15).map(payment => (
                 <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
-                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</td>
+                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}</td>
                   <td style={{padding: "8px"}}>{payment.customerName || '-'}</td>
                   <td style={{padding: "8px"}}>{payment.invoiceNumber || '-'}</td>
                   <td style={{padding: "8px"}}>
