@@ -30,7 +30,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
-import { formatTodayRD, formatDateRD } from "@/lib/date-utils";
+import { formatTodayRD, formatDateRD, formatTodayFullRD } from "@/lib/date-utils";
 import { useOfflineRoutes, useOfflineOrders, useOfflineCustomers } from "@/hooks/use-offline-data";
 
 // Componentes internos
@@ -300,12 +300,7 @@ export default function GoWaterDriverApp() {
                 <div>
                   <h1 className="text-xl font-bold">{`¡Bienvenido, ${user.name}!`}</h1>
                   <p className="text-xs text-muted-foreground">
-                    {formatTodayRD({
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatTodayFullRD()}
                   </p>
                 </div>
                 <Button

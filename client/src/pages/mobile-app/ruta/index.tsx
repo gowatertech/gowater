@@ -46,7 +46,7 @@ import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { RouteStop } from "@/types/route";
-import { formatTodayRD, formatDateRD } from "@/lib/date-utils";
+import { formatTodayRD, formatDateRD, formatTodayFullRD, formatDateTimeRD } from "@/lib/date-utils";
 
 // Componentes de diálogo
 import {
@@ -1083,11 +1083,7 @@ export default function DriverRoute() {
                 <div className="flex-1">
                   <h2 className="text-base sm:text-lg font-bold">{routeDetails.name}</h2>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    {formatDateRD(routeDetails.date, {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long'
-                    })}
+                    {formatDateTimeRD(routeDetails.date)}
                   </p>
                 </div>
                 <Badge 
@@ -1126,12 +1122,7 @@ export default function DriverRoute() {
             <CardContent className="p-3 sm:p-4">
               <h2 className="text-base sm:text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
               <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                {formatTodayRD({
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+                {formatTodayFullRD()}
               </p>
               
               {/* Componente de cronograma de paradas mejorado */}
