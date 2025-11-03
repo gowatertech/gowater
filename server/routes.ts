@@ -2,7 +2,7 @@ import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
 import { getNowRD, getTimestampRD } from "./date-utils";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions, insertTransactionSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions, transactions, insertTransactionSchema } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
@@ -112,21 +112,21 @@ export async function registerRoutes(router: express.Router) {
     });
   });
   // Registrar las rutas de carga de vehículo y cuadre
-  await registerVehicleLoadingRoutes(router);
-  await registerRouteSettlements(router);
-  await registerDriverRoutes(router);
+  await registerVehicleLoadingRoutes(router as any);
+  await registerRouteSettlements(router as any);
+  await registerDriverRoutes(router as any);
   
   // Registrar endpoint para ubicaciones de conductores
-  registerDriversLocationsEndpoint(router);
+  registerDriversLocationsEndpoint(router as any);
   
   // Registrar endpoint para iniciar rutas (validación para chofer con ruta activa)
-  registerStartRouteEndpoint(router);
+  registerStartRouteEndpoint(router as any);
   
   // Registrar endpoints de la API móvil
-  registerMobileApiEndpoints(router);
+  registerMobileApiEndpoints(router as any);
   
   // Registrar endpoint de prueba para multi-tenant
-  registerMultiTenantTestEndpoint(router);
+  registerMultiTenantTestEndpoint(router as any);
 
   // Registrar nuevo endpoint para actualización de estado de pedidos
   createUpdateOrderStatusEndpoint(router);
@@ -281,7 +281,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(zones.id, zoneId),
-            eq(zones.companyId, companyId)
+            eq(zones.companyId, companyId as number)
           )
         );
       
@@ -318,8 +318,8 @@ export async function registerRoutes(router: express.Router) {
             eq(customers.zoneid, zoneId), // Clientes de la zona especificada
             eq(orders.status, "pending"), // Pedidos pendientes
             sql`${orders.routeId} IS NULL`, // No asignados a una ruta
-            eq(orders.companyId, companyId), // De la compañía correcta
-            eq(customers.companyId, companyId) // Cliente de la compañía correcta
+            eq(orders.companyId, companyId as number), // De la compañía correcta
+            eq(customers.companyId, companyId as number) // Cliente de la compañía correcta
           )
         )
         .orderBy(orders.date);
@@ -335,7 +335,7 @@ export async function registerRoutes(router: express.Router) {
           .where(
             and(
               eq(customers.zoneid, zoneId),
-              eq(customers.companyId, companyId)
+              eq(customers.companyId, companyId as number)
             )
           );
           
@@ -347,7 +347,7 @@ export async function registerRoutes(router: express.Router) {
             and(
               eq(orders.status, "pending"),
               sql`${orders.routeId} IS NULL`,
-              eq(orders.companyId, companyId)
+              eq(orders.companyId, companyId as number)
             )
           );
           
@@ -791,7 +791,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(zones.id, zoneId),
-            eq(zones.companyId, companyId)
+            eq(zones.companyId, companyId as number)
           )
         );
       
@@ -828,8 +828,8 @@ export async function registerRoutes(router: express.Router) {
             eq(customers.zoneid, zoneId), // Clientes de la zona especificada
             eq(orders.status, "pending"), // Pedidos pendientes
             sql`${orders.routeId} IS NULL`, // No asignados a una ruta
-            eq(orders.companyId, companyId), // De la compañía correcta
-            eq(customers.companyId, companyId) // Cliente de la compañía correcta
+            eq(orders.companyId, companyId as number), // De la compañía correcta
+            eq(customers.companyId, companyId as number) // Cliente de la compañía correcta
           )
         )
         .orderBy(orders.date);
@@ -845,7 +845,7 @@ export async function registerRoutes(router: express.Router) {
           .where(
             and(
               eq(customers.zoneid, zoneId),
-              eq(customers.companyId, companyId)
+              eq(customers.companyId, companyId as number)
             )
           );
           
@@ -857,7 +857,7 @@ export async function registerRoutes(router: express.Router) {
             and(
               eq(orders.status, "pending"),
               sql`${orders.routeId} IS NULL`,
-              eq(orders.companyId, companyId)
+              eq(orders.companyId, companyId as number)
             )
           );
           
@@ -1308,7 +1308,7 @@ export async function registerRoutes(router: express.Router) {
       console.log("Tipo de statusFilter:", typeof statusFilter, "Valor:", statusFilter);
       
       // Construir la consulta filtrando por companyId primero
-      let query = db.select().from(routes).where(eq(routes.companyId, companyId));
+      let whereConditions: any[] = [eq(routes.companyId, companyId)];
       
       // Aplicar filtro si se especificó
       if (statusFilter) {
@@ -1316,22 +1316,26 @@ export async function registerRoutes(router: express.Router) {
         if (Array.isArray(statusFilter)) {
           // Es un array de estados (por ejemplo: ["pending", "in_progress"])
           console.log(`GET /api/routes - Filtrando por estados: ${statusFilter.join(', ')}`);
-          query = query.where(inArray(routes.status, statusFilter as any[]));
+          whereConditions.push(inArray(routes.status, statusFilter as any[]));
         } else if (typeof statusFilter === 'string' && statusFilter.includes(',')) {
           // Es una string con valores separados por comas - convertir a array
           const statusArray = statusFilter.split(',');
           console.log(`GET /api/routes - Filtrando por estados: ${statusArray.join(', ')}`);
-          query = query.where(inArray(routes.status, statusArray as any[]));
+          whereConditions.push(inArray(routes.status, statusArray as any[]));
         } else {
           // Es un solo estado (string)
           statusFilter = statusFilter.toString();
           console.log(`GET /api/routes - Filtrando por estado: ${statusFilter}`);
-          query = query.where(eq(routes.status, statusFilter as any));
+          whereConditions.push(eq(routes.status, statusFilter as any));
         }
       }
       
       // Ordenar por fecha, más recientes primero
-      const allRoutes = await query.orderBy(desc(routes.date));
+      const allRoutes = await db
+        .select()
+        .from(routes)
+        .where(and(...whereConditions))
+        .orderBy(desc(routes.date));
       
       // Para cada ruta, obtener los IDs de pedidos asociados
       const routesWithOrders = await Promise.all(

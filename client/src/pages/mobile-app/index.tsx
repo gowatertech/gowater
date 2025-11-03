@@ -417,7 +417,7 @@ export default function GoWaterDriverApp() {
                 <div className="divide-y">
                   {pendingOrders.slice(0, 3).map(order => {
                     // Encontrar el cliente correspondiente
-                    const customer = customers.find(c => c.id === order.customerId);
+                    const customer = customers.find((c: any) => c.id === order.customerId);
                     
                     return (
                       <div key={order.id} className="p-3">
@@ -432,7 +432,7 @@ export default function GoWaterDriverApp() {
                           <span className="line-clamp-1">{customer?.street} {customer?.streetnumber}</span>
                         </div>
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {order.products && order.products.map((product, idx) => (
+                          {order.products && order.products.map((product: any, idx: number) => (
                             <Badge key={idx} variant="secondary" className="text-[10px] h-5">
                               {product.quantity}x {product.name}
                             </Badge>

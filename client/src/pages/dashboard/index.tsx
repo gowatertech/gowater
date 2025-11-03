@@ -337,8 +337,7 @@ export default function Dashboard() {
                         <>
                           {formatDateRD(financialStats.monthStartDate, { 
                             month: 'long', 
-                            year: 'numeric',
-                            timeZone: 'UTC'
+                            year: 'numeric'
                           })}
                         </>
                       ) : (
