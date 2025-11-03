@@ -3061,15 +3061,15 @@ export async function registerRoutes(router: express.Router) {
           try {
             const transactionData = {
               companyId,
-              documentType: 'RI',
+              documentType: 'RI' as const,
               customerId: invoice.customer_id,
               invoiceId: invoice.id,
               paymentId: payment.id,
               amount: remainingBalance.toFixed(2),
-              type: 'credit',
+              type: 'credit' as const,
               description: `Pago en efectivo - Factura #${invoice.invoice_number}`,
               notes: payment.notes || null,
-              date: getTimestampRD(),
+              date: getNowRD(),
             };
             console.log(`🔍 DEBUG - Transaction data:`, transactionData);
             
