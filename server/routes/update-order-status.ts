@@ -267,7 +267,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           if (updatedOrder.payment_method === 'cash') {
             console.log(`💵 Creando pago automático para factura en efectivo #${createdInvoice.invoice_number}...`);
             
-            const paymentDate = getNowRD();
+            const paymentDate = getTimestampRD(); // Misma función que pedidos
             
             const createPaymentQuery = `
               INSERT INTO payments (

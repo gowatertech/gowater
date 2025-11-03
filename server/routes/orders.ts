@@ -1193,7 +1193,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
             const paymentNotes = `Pago automático en efectivo - Factura #${invoice.invoice_number || 'N/A'}`;
             console.log(`📝 Notes para pago: "${paymentNotes}" (longitud: ${paymentNotes.length})`);
             
-            const paymentDate = getNowRD();
+            const paymentDate = getTimestampRD(); // Misma función que pedidos
             
             const createPaymentQuery = `
               INSERT INTO payments (
@@ -1532,7 +1532,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       if (paymentMethod !== 'credit') {
         console.log(`💵 Creando pago prepagado para factura #${invoice.id}`);
         
-        const paymentDate = getNowRD();
+        const paymentDate = getTimestampRD(); // Misma función que pedidos
         
         const createPaymentQuery = `
           INSERT INTO payments (
