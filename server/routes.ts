@@ -3107,13 +3107,31 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/dashboard/stats - Obteniendo estadísticas del dashboard para empresa ${companyId}`);
       
-      // Obtener el año actual y fechas
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Obtener el año, mes y día actual en zona horaria de República Dominicana
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Santo_Domingo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
       
-      console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
+      const parts = formatter.formatToParts(now);
+      const dateParts: Record<string, string> = {};
+      parts.forEach(part => {
+        if (part.type !== 'literal') {
+          dateParts[part.type] = part.value;
+        }
+      });
+      
+      const currentYear = parseInt(dateParts.year);
+      const currentMonth = parseInt(dateParts.month);
+      const currentDay = parseInt(dateParts.day);
+      
+      // Medianoche de hoy en RD = 04:00 UTC
+      const today = new Date(Date.UTC(currentYear, currentMonth - 1, currentDay, 4, 0, 0, 0));
+      
+      console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}, Día: ${currentDay}`);
       
       // Consulta para obtener el total de ventas (sin filtro de año para ver todos los datos)
       const totalSales = await db
@@ -3251,9 +3269,24 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos para empresa ${companyId}`);
       
-      // Obtener el año actual y mes
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
+      // Obtener el año y mes actual en zona horaria de República Dominicana
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Santo_Domingo',
+        year: 'numeric',
+        month: '2-digit'
+      });
+      
+      const parts = formatter.formatToParts(now);
+      const dateParts: Record<string, string> = {};
+      parts.forEach(part => {
+        if (part.type !== 'literal') {
+          dateParts[part.type] = part.value;
+        }
+      });
+      
+      const currentYear = parseInt(dateParts.year);
+      const currentMonth = parseInt(dateParts.month);
       
       console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
       
@@ -3323,11 +3356,31 @@ export async function registerRoutes(router: express.Router) {
           )
         );
       
-      // Obtener rutas completadas hoy
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Obtener rutas completadas hoy en zona horaria de República Dominicana
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Santo_Domingo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
       
-      console.log(`Buscando rutas completadas hoy: ${today.toISOString().split('T')[0]}`);
+      const parts = formatter.formatToParts(now);
+      const dateParts: Record<string, string> = {};
+      parts.forEach(part => {
+        if (part.type !== 'literal') {
+          dateParts[part.type] = part.value;
+        }
+      });
+      
+      const currentYear = parseInt(dateParts.year);
+      const currentMonth = parseInt(dateParts.month) - 1; // 0-indexed
+      const currentDay = parseInt(dateParts.day);
+      
+      // Medianoche de hoy en RD = 04:00 UTC
+      const today = new Date(Date.UTC(currentYear, currentMonth, currentDay, 4, 0, 0, 0));
+      
+      console.log(`Buscando rutas completadas hoy: ${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`);
       
       const completedTodayRoutes = await db
         .select({
