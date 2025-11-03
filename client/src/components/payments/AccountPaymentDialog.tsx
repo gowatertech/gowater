@@ -130,13 +130,13 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
       return apiRequest({
         method: "POST",
         url: "/api/payments/account-payment",
-        body: JSON.stringify({
+        data: {
           customerId: selectedCustomerId,
           amount: parseFloat(amount).toFixed(2),
           paymentMethod,
           reference: reference || undefined,
           notes: notes || undefined,
-        }),
+        },
       });
     },
     onSuccess: (data) => {
