@@ -7,7 +7,7 @@ import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from './company-db';
-import { eq, and, sql, inArray, desc, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, inArray, desc, gte, lte, isNotNull } from 'drizzle-orm';
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { Resend } from 'resend';
