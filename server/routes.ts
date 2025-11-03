@@ -4985,7 +4985,7 @@ export async function registerRoutes(router: express.Router) {
             reference: reference || null,
             notes: notes || `Abono a cuenta - Factura #${invoice.invoiceNumber}`,
             isAdvance: false,
-            date: getTimestampRD(),
+            date: getNowRD(),
           })
           .returning();
         
@@ -5002,7 +5002,7 @@ export async function registerRoutes(router: express.Router) {
           type: 'credit',
           description: `Pago a cuenta - Factura #${invoice.invoiceNumber}`,
           notes: notes || null,
-          date: payment.date,
+          date: getNowRD(),
         });
         
         remainingAmount -= amountToApply;
@@ -5061,7 +5061,7 @@ export async function registerRoutes(router: express.Router) {
             isAdvance: true,
             invoiceId: null,
             documentNumber,
-            date: getTimestampRD(),
+            date: getNowRD(),
           })
           .returning();
         
@@ -5075,7 +5075,7 @@ export async function registerRoutes(router: express.Router) {
           type: 'credit',
           description: `Anticipo - ${documentNumber}`,
           notes: notes || null,
-          date: advancePayment.date,
+          date: getNowRD(),
         });
       }
       
