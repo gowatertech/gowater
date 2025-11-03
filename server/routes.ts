@@ -4837,7 +4837,7 @@ export async function registerRoutes(router: express.Router) {
       const [customer] = await db
         .select({
           balance: customers.balance,
-          name: customers.name
+          businessname: customers.businessname
         })
         .from(customers)
         .where(
@@ -4898,7 +4898,7 @@ export async function registerRoutes(router: express.Router) {
         inv => parseFloat(inv.pending) > 0
       );
       
-      console.log(`[Account Payment] Customer: ${customer.name}, Balance: ${customerBalance}`);
+      console.log(`[Account Payment] Customer: ${customer.businessname}, Balance: ${customerBalance}`);
       console.log(`[Account Payment] Returning ${pendingInvoices.length} pending invoices for customer ${customerId}`);
       console.log(`[Account Payment] Sample invoice:`, JSON.stringify(pendingInvoices[0], null, 2));
       

@@ -24,7 +24,6 @@ import {
   FileDown,
   DollarSign
 } from "lucide-react";
-import { AccountPaymentDialog } from "@/components/payments/AccountPaymentDialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +89,6 @@ export default function PaymentDashboard() {
   const [location, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [accountPaymentOpen, setAccountPaymentOpen] = useState(false);
   const [filters, setFilters] = useState({
     method: "all" as "all" | "cash" | "card" | "transfer"
   });
@@ -860,7 +858,7 @@ export default function PaymentDashboard() {
 
           <Card 
             className="hover:bg-muted/10 transition-colors cursor-pointer" 
-            onClick={() => setAccountPaymentOpen(true)}
+            onClick={() => setLocation("/payments/account-payment")}
             data-testid="button-account-payment"
           >
             <CardContent className="p-3 sm:p-4 flex items-center gap-3">
@@ -890,12 +888,6 @@ export default function PaymentDashboard() {
           </Card>
         </div>
         
-        {/* Diálogo de Abono a Cuenta */}
-        <AccountPaymentDialog 
-          open={accountPaymentOpen} 
-          onOpenChange={setAccountPaymentOpen}
-        />
-
         {/* Panel de historial de pagos recientes */}
         <Card>
           <CardHeader className="p-3 sm:p-4 border-b">
