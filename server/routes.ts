@@ -3536,15 +3536,32 @@ export async function registerRoutes(router: express.Router) {
       console.log(`GET /api/dashboard/financial-stats - CompanyId: ${companyId}`);
       
       // Obtener la fecha actual en zona horaria de República Dominicana
-      const now = getNowRD();
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Santo_Domingo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
       
-      // Primer día del mes (00:00:00)
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      monthStart.setHours(0, 0, 0, 0);
+      const parts = formatter.formatToParts(now);
+      const dateParts: Record<string, string> = {};
+      parts.forEach(part => {
+        if (part.type !== 'literal') {
+          dateParts[part.type] = part.value;
+        }
+      });
       
-      // Último día del mes (23:59:59.999)
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      monthEnd.setHours(23, 59, 59, 999);
+      const year = parseInt(dateParts.year);
+      const month = parseInt(dateParts.month) - 1; // 0-indexed
+      
+      // Primer día del mes en RD (00:00:00 RD) = 04:00:00 UTC (RD es UTC-4)
+      const monthStart = new Date(Date.UTC(year, month, 1, 4, 0, 0, 0));
+      
+      // Último día del mes: obtener cuántos días tiene el mes
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      // Último segundo del mes en RD (23:59:59.999 RD) = día siguiente 03:59:59.999 UTC
+      const monthEnd = new Date(Date.UTC(year, month, lastDay + 1, 3, 59, 59, 999));
       
       console.log(`Rango de fechas: ${monthStart.toISOString()} - ${monthEnd.toISOString()}`);
       
