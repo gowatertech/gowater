@@ -878,6 +878,16 @@ export default function Billing() {
                           <span className="text-muted-foreground">Factura:</span> #{invoice.invoiceNumber || invoice.id}
                         </div>
                         <div>
+                          <span className="text-muted-foreground">Fecha:</span> {formatDateTimeRD(invoice.date, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </div>
+                        <div>
                           <span className="text-muted-foreground">Total:</span> RD$ {parseFloat(invoice.total).toFixed(2)}
                         </div>
                       </div>
@@ -1029,7 +1039,7 @@ export default function Billing() {
                     <div>
                       <p className="text-muted-foreground">Fecha</p>
                       <p className="font-medium">
-                        {format(toRD(selectedInvoice.date), 'dd/MM/yyyy', { locale: es })}
+                        {format(toRD(selectedInvoice.date), 'dd/MM/yyyy HH:mm', { locale: es })}
                       </p>
                     </div>
                     <div>

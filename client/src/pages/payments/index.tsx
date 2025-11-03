@@ -744,7 +744,7 @@ export default function PaymentDashboard() {
             <tbody>
               {filteredPayments.slice(0, 15).map(payment => (
                 <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
-                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</td>
                   <td style={{padding: "8px"}}>{payment.customerName || '-'}</td>
                   <td style={{padding: "8px"}}>{payment.invoiceNumber || '-'}</td>
                   <td style={{padding: "8px"}}>
@@ -1131,7 +1131,7 @@ export default function PaymentDashboard() {
                         <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                            {format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}
                           </div>
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <FileText className="h-3 w-3" />

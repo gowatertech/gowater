@@ -379,7 +379,7 @@ export default function PaymentsList() {
                     <TableRow key={payment.id} className="text-xs hover:bg-muted/30">
                       <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
                       <TableCell className="py-1.5">
-                        {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                        {format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}
                       </TableCell>
                       <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                       <TableCell className="py-1.5">
