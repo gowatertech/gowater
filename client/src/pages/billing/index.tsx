@@ -439,8 +439,8 @@ export default function Billing() {
 
         {/* Nueva Venta - Estilo POS */}
         <TabsContent value="new" className="flex-1 mt-3 data-[state=active]:flex flex-col lg:flex-row gap-3">
-          {/* Productos (Izquierda en desktop, segundo en mobile) */}
-          <div className="flex-1 flex flex-col space-y-3 order-2 lg:order-1">
+          {/* Productos (Izquierda en desktop) */}
+          <div className="flex-1 flex flex-col space-y-3">
             <Card>
               <CardContent className="p-3 space-y-3">
                 <div className="relative">
@@ -476,8 +476,8 @@ export default function Billing() {
             </Card>
           </div>
 
-          {/* Carrito (Derecha en desktop, primero en mobile) */}
-          <div className="lg:w-96 flex flex-col space-y-3 order-1 lg:order-2">
+          {/* Carrito (Derecha en desktop) */}
+          <div className="lg:w-96 flex flex-col space-y-3">
             {/* Selector de Cliente */}
             <Card>
               <CardContent className="p-3 space-y-2">
