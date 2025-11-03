@@ -59,7 +59,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
-import { AccountPaymentDialog } from "@/components/payments/AccountPaymentDialog";
 
 // Tipo para los pagos con detalles adicionales
 interface PaymentWithDetails {
@@ -100,7 +99,6 @@ export default function PaymentsHistory() {
   const [activeTab, setActiveTab] = useState("all");
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [accountPaymentOpen, setAccountPaymentOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{
     from?: Date;
     to?: Date;
@@ -513,16 +511,6 @@ export default function PaymentsHistory() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button 
-              variant="default" 
-              size="sm" 
-              className="flex items-center gap-1 text-xs"
-              onClick={() => setAccountPaymentOpen(true)}
-              data-testid="button-account-payment"
-            >
-              <DollarSign className="h-3.5 w-3.5" />
-              <span>Abono a Cuenta</span>
-            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -1025,12 +1013,6 @@ export default function PaymentsHistory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Diálogo de Abono a Cuenta */}
-      <AccountPaymentDialog 
-        open={accountPaymentOpen}
-        onOpenChange={setAccountPaymentOpen}
-      />
     </div>
   );
 }

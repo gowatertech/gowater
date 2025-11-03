@@ -21,8 +21,10 @@ import {
   ArrowUpDown,
   Filter,
   Printer,
-  FileDown
+  FileDown,
+  DollarSign
 } from "lucide-react";
+import { AccountPaymentDialog } from "@/components/payments/AccountPaymentDialog";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +90,7 @@ export default function PaymentDashboard() {
   const [location, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [accountPaymentOpen, setAccountPaymentOpen] = useState(false);
   const [filters, setFilters] = useState({
     method: "all" as "all" | "cash" | "card" | "transfer"
   });
@@ -839,7 +842,7 @@ export default function PaymentDashboard() {
         </div>
 
         {/* Tarjetas para Navegación */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card 
             className="hover:bg-muted/10 transition-colors cursor-pointer" 
             onClick={() => setLocation("/payments/register")}
@@ -851,6 +854,22 @@ export default function PaymentDashboard() {
               <div>
                 <h3 className="font-bold text-base sm:text-lg">Registrar Pago</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground">Añadir un nuevo pago al sistema</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="hover:bg-muted/10 transition-colors cursor-pointer" 
+            onClick={() => setAccountPaymentOpen(true)}
+            data-testid="button-account-payment"
+          >
+            <CardContent className="p-3 sm:p-4 flex items-center gap-3">
+              <div className="bg-green-50 dark:bg-green-900/20 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base sm:text-lg">Abono a Cuenta</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">Aplicar pago automático a facturas</p>
               </div>
             </CardContent>
           </Card>
@@ -870,6 +889,12 @@ export default function PaymentDashboard() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Diálogo de Abono a Cuenta */}
+        <AccountPaymentDialog 
+          open={accountPaymentOpen} 
+          onOpenChange={setAccountPaymentOpen}
+        />
 
         {/* Panel de historial de pagos recientes */}
         <Card>
