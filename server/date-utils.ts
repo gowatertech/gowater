@@ -5,9 +5,9 @@
 
 /**
  * Obtiene la fecha y hora actual en República Dominicana
- * Guarda la hora LOCAL de RD como si fuera UTC en PostgreSQL
- * Ejemplo: si en RD son 31-oct 22:24, guarda "2025-10-31T22:24:00.000Z"
- * @returns Date object con hora de RD interpretada como UTC
+ * Retorna la hora LOCAL de RD para guardar en PostgreSQL timestamp
+ * Ejemplo: si en RD son 31-oct 22:24, retorna Date que representa 2025-10-31 22:24:00
+ * @returns Date object con hora de RD (SIN conversión UTC)
  */
 export function getNowRD(): Date {
   const now = new Date();
@@ -32,8 +32,9 @@ export function getNowRD(): Date {
     }
   });
   
-  // Construir un timestamp UTC con la hora local de RD
-  const rdTimeString = `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.000Z`;
+  // Construir fecha SIN 'Z' para que se guarde como timestamp local en PostgreSQL
+  // CRÍTICO: NO añadir 'Z' porque eso la convierte a UTC y causa desfase de 4 horas
+  const rdTimeString = `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;
   return new Date(rdTimeString);
 }
 
