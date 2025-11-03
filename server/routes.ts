@@ -2828,7 +2828,8 @@ export async function registerRoutes(router: express.Router) {
           id, invoice_number as "invoiceNumber", customer_id as "customerId",
           subtotal::text, tax::text, total::text, 
           status, payment_method as "paymentMethod",
-          date, notes, company_id as "companyId"
+          to_char(date, 'YYYY-MM-DD"T"HH24:MI:SS.MS') as date, 
+          notes, company_id as "companyId"
         FROM invoices
         WHERE company_id = $1
         ORDER BY invoice_number DESC
@@ -4566,27 +4567,31 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere una sesión con companyId" });
       }
       
-      const allPayments = await db        
-        .select({
-          id: payments.id,
-          invoiceId: payments.invoiceId,
-          customerId: payments.customerId,
-          amount: payments.amount,          
-          date: payments.date,
-          notes: payments.notes,
-          method: payments.paymentMethod,
-          reference: payments.reference,
-          customerName: sql<string>`COALESCE(${customers.businessname}, (SELECT businessname FROM customers WHERE id = ${payments.customerId}))`,
-          invoiceNumber: invoices.invoiceNumber,
-          companyId: payments.companyId,
-          isAdvance: payments.isAdvance,
-          documentNumber: payments.documentNumber
-        })
-        .from(payments)
-        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
-        .leftJoin(customers, eq(invoices.customerId, customers.id))
-        .where(eq(payments.companyId, companyId)) // Filtramos por companyId
-        .orderBy(desc(payments.date));
+      // Usar SQL directo para controlar el formato de fecha (sin 'Z')
+      const { pool } = await import('./db');
+      const result = await pool.query(`
+        SELECT 
+          p.id,
+          p.invoice_id as "invoiceId",
+          p.customer_id as "customerId",
+          p.amount::text,
+          to_char(p.date, 'YYYY-MM-DD"T"HH24:MI:SS.MS') as date,
+          p.notes,
+          p.payment_method as method,
+          p.reference,
+          COALESCE(c.businessname, (SELECT businessname FROM customers WHERE id = p.customer_id)) as "customerName",
+          i.invoice_number as "invoiceNumber",
+          p.company_id as "companyId",
+          p.is_advance as "isAdvance",
+          p.document_number as "documentNumber"
+        FROM payments p
+        LEFT JOIN invoices i ON p.invoice_id = i.id
+        LEFT JOIN customers c ON i.customer_id = c.id
+        WHERE p.company_id = $1
+        ORDER BY p.date DESC
+      `, [companyId]);
+
+      const allPayments = result.rows;
 
       console.log(`GET /api/payments - Retornando: ${allPayments.length} pagos para empresa ${companyId}`);
       res.json(allPayments);
