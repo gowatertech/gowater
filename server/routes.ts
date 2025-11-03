@@ -3037,6 +3037,7 @@ export async function registerRoutes(router: express.Router) {
       } else if (result.data.paymentMethod === 'cash') {
         // Pago en efectivo: crear pago por el balance restante
         console.log(`💵 Creando pago en efectivo por el balance restante: $${remainingBalance.toFixed(2)}`);
+        console.log(`💵 DEBUG - invoiceId: ${invoice.id}, customerId: ${invoice.customer_id}, companyId: ${companyId}`);
         
         try {
           const [payment] = await db
@@ -3053,6 +3054,33 @@ export async function registerRoutes(router: express.Router) {
             .returning();
           
           console.log(`✅ Pago #${payment.id} creado por $${remainingBalance.toFixed(2)}`);
+          console.log(`🔍 DEBUG - payment object:`, payment);
+          
+          // Crear transacción RI (Recibo de Ingreso) para el pago en efectivo
+          console.log(`🔍 DEBUG - Intentando crear transacción RI...`);
+          try {
+            const transactionData = {
+              companyId,
+              documentType: 'RI',
+              customerId: invoice.customer_id,
+              invoiceId: invoice.id,
+              paymentId: payment.id,
+              amount: remainingBalance.toFixed(2),
+              type: 'credit',
+              description: `Pago en efectivo - Factura #${invoice.invoice_number}`,
+              notes: payment.notes || null,
+              date: getTimestampRD(),
+            };
+            console.log(`🔍 DEBUG - Transaction data:`, transactionData);
+            
+            await storage.createTransaction(transactionData);
+            console.log(`✅ Transacción RI creada automáticamente para pago #${payment.id}`);
+          } catch (transactionError) {
+            console.error(`❌ Error al crear transacción RI para pago #${payment.id}:`, transactionError);
+            console.error(`❌ Stack trace:`, transactionError instanceof Error ? transactionError.stack : 'No stack');
+            // No fallar si falla la transacción
+          }
+          
           finalStatus = 'paid';
         } catch (paymentError) {
           console.error(`❌ ERROR al crear pago en efectivo para factura #${invoice.id}:`, paymentError);
