@@ -421,11 +421,12 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 3. Actualizar el estado de la ruta a "completed"
+      const routeEndTime = getNowRD();
       await companyDb.update(routes)
         .set({
           status: "completed",
-          endTime: new Date(),
-          driverEndedAt: new Date(),
+          endTime: routeEndTime,
+          driverEndedAt: routeEndTime,
           isCompleted: true
         })
         .where(and(
@@ -556,12 +557,13 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 2. Actualizar el estado de la orden a "entregado"
+      const deliveryTime = getNowRD();
       const [updatedOrder] = await companyDb
         .update(orders)
         .set({ 
           status: "delivered",
           cashCollected: amountPaid.toString(),
-          actualDeliveryTime: new Date(),
+          actualDeliveryTime: deliveryTime,
           deliveredBy: userId || null // Guardar quién procesó la entrega
         })
         .where(and(

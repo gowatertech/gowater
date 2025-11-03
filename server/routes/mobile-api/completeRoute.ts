@@ -2,6 +2,7 @@ import { Express, Request, Response } from "express";
 import { db } from "../../db";
 import { eq, and } from "drizzle-orm";
 import { routes, orders, vehicleLoading } from "@shared/schema";
+import { getNowRD } from "../../date-utils";
 
 export function registerCompleteRouteEndpoint(app: Express) {
   // Endpoint para completar una ruta desde la app móvil
@@ -54,11 +55,12 @@ export function registerCompleteRouteEndpoint(app: Express) {
       }
       
       // 3. Actualizar el estado de la ruta a "completed"
+      const completionTime = getNowRD();
       await db.update(routes)
         .set({
           status: "completed",
-          endTime: new Date(),
-          driverEndedAt: new Date(),
+          endTime: completionTime,
+          driverEndedAt: completionTime,
           isCompleted: true
         })
         .where(eq(routes.id, routeId));

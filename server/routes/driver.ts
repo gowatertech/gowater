@@ -3,6 +3,7 @@ import { eq, sql, and, desc, like } from "drizzle-orm";
 import { db } from "../db";
 import { orders, routes, customers, orderItems, products, users, bottleReturns, trucks } from "@shared/schema";
 import { storage } from "../storage";
+import { getNowRD, getTimestampRD } from "../date-utils";
 
 // Para añadir tipos de req.user (simulando autenticación)
 declare global {
@@ -298,7 +299,7 @@ export async function registerDriverRoutes(app: Express) {
           coordinates,
           estimatedTime: typeof order.estimatedTime === 'string' 
                         ? order.estimatedTime 
-                        : new Date().toISOString(),
+                        : getTimestampRD(),
           status: mappedStatus,
           priority: order.priority as 'normal' | 'high' | 'low',
           orderDetails: orderDescription,
@@ -450,7 +451,7 @@ export async function registerDriverRoutes(app: Express) {
             expectedQuantity: req.body.expectedQuantity || returnedContainers,
             returnedQuantity: returnedContainers,
             pendingQuantity: (req.body.expectedQuantity || returnedContainers) - returnedContainers,
-            returnDate: new Date().toISOString(),
+            returnDate: getTimestampRD(),
             status: "pending",
             amountCharged: "0.00",
             depositAmount: "0.00",
@@ -482,7 +483,7 @@ export async function registerDriverRoutes(app: Express) {
       await storage.updateDriverLocation(driverId, {
         latitude,
         longitude,
-        timestamp: new Date()
+        timestamp: getNowRD()
       });
       
       res.json({ success: true });
