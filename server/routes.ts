@@ -4863,9 +4863,9 @@ export async function registerRoutes(router: express.Router) {
           
           return {
             id: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            total: invoice.total,
-            date: invoice.date,
+            invoiceNumber: invoice.invoiceNumber.toString(),
+            total: parseFloat(invoice.total).toFixed(2),
+            date: invoice.date.toISOString(),
             status: invoice.status,
             paid: totalPaid.toFixed(2),
             pending: pendingAmount.toFixed(2),
@@ -4877,6 +4877,9 @@ export async function registerRoutes(router: express.Router) {
       const pendingInvoices = invoicesWithBalance.filter(
         inv => parseFloat(inv.pending) > 0
       );
+      
+      console.log(`[Account Payment] Returning ${pendingInvoices.length} pending invoices for customer ${customerId}`);
+      console.log(`[Account Payment] Sample invoice:`, JSON.stringify(pendingInvoices[0], null, 2));
       
       res.json(pendingInvoices);
     } catch (error) {
