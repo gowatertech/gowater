@@ -383,7 +383,10 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                       min="0.01"
                       placeholder="0.00"
                       value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
+                      onChange={(e) => {
+                        console.log('AMOUNT CHANGED:', e.target.value);
+                        setAmount(e.target.value);
+                      }}
                       required
                     />
                   </div>
