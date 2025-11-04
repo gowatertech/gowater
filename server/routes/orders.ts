@@ -1694,4 +1694,204 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
   }
 });
 
+// Endpoint para actualizar un pedido existente
+ordersRouter.put("/api/orders/:id", authMiddleware, async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  
+  try {
+    const orderId = safeParseInt(req.params.id, -1);
+    console.log(`🔄 PUT /api/orders/${orderId} - Intento de actualizar pedido`);
+    console.log("📣 Datos recibidos:", JSON.stringify(req.body, null, 2));
+    
+    if (!isPositiveInteger(orderId)) {
+      return res.status(400).json({ error: "ID de pedido inválido" });
+    }
+    
+    // Obtener companyId del contexto
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.warn(`ADVERTENCIA: No se encontró companyId para actualizar pedido`);
+      return res.status(401).json({ error: "No se pudo determinar la compañía del usuario. Intente iniciar sesión nuevamente." });
+    }
+    
+    console.log("🏢 Usando companyId:", companyId);
+    
+    // Verificar que el pedido existe y es editable
+    const checkQuery = `
+      SELECT id, status, invoice_id 
+      FROM orders 
+      WHERE id = $1 AND company_id = $2
+    `;
+    const checkResult = await pool.query(checkQuery, [orderId, companyId]);
+    
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: "Pedido no encontrado" });
+    }
+    
+    const existingOrder = checkResult.rows[0];
+    
+    // Verificar que el pedido es editable (pending o in_transit y sin factura)
+    if (!['pending', 'in_transit'].includes(existingOrder.status)) {
+      return res.status(400).json({ error: "Solo se pueden editar pedidos pendientes o en tránsito" });
+    }
+    
+    if (existingOrder.invoice_id) {
+      return res.status(400).json({ error: "No se puede editar un pedido que ya tiene una factura asociada" });
+    }
+    
+    // Extraer datos de los items
+    const orderItemsData = req.body.items || [];
+    console.log("📦 Items para actualizar:", orderItemsData.length);
+    
+    if (orderItemsData.length === 0) {
+      return res.status(400).json({ error: "Debe incluir al menos un producto en el pedido" });
+    }
+    
+    if (!req.body.customerId) {
+      return res.status(400).json({ error: "El ID de cliente es obligatorio" });
+    }
+    
+    const customerId = safeParseInt(req.body.customerId, -1);
+    if (!isPositiveInteger(customerId)) {
+      return res.status(400).json({ error: "ID de cliente inválido" });
+    }
+    
+    // Obtener coordenadas del cliente
+    const customerQuery = `
+      SELECT coordinates FROM customers 
+      WHERE id = $1 AND company_id = $2
+    `;
+    const customerResult = await pool.query(customerQuery, [customerId, companyId]);
+    const customerCoordinates = customerResult.rows[0]?.coordinates || null;
+    
+    // Iniciar transacción
+    await client.query('BEGIN');
+    console.log("🔄 Transacción iniciada para actualización");
+    
+    // 1. Actualizar el pedido
+    const updateQuery = `
+      UPDATE orders 
+      SET 
+        customer_id = $1,
+        total = $2,
+        status = $3,
+        payment_method = $4,
+        notes = $5,
+        delivery_coordinates = $6
+      WHERE id = $7 AND company_id = $8
+      RETURNING *
+    `;
+    
+    const updateParams = [
+      customerId,
+      req.body.total,
+      req.body.status || existingOrder.status,
+      req.body.paymentMethod || 'cash',
+      req.body.notes || '',
+      customerCoordinates,
+      orderId,
+      companyId
+    ];
+    
+    console.log("🔄 Actualizando pedido con parámetros:", updateParams);
+    const updateResult = await client.query(updateQuery, updateParams);
+    
+    if (updateResult.rows.length === 0) {
+      throw new Error("No se pudo actualizar el pedido");
+    }
+    
+    const updatedOrder = updateResult.rows[0];
+    console.log("✅ Pedido actualizado:", updatedOrder.id);
+    
+    // 2. Eliminar items antiguos
+    const deleteItemsQuery = `
+      DELETE FROM order_items 
+      WHERE order_id = $1 AND company_id = $2
+    `;
+    await client.query(deleteItemsQuery, [orderId, companyId]);
+    console.log("🗑️ Items antiguos eliminados");
+    
+    // 3. Insertar nuevos items
+    for (const item of orderItemsData) {
+      const productId = safeParseInt(item.productId || item.code, -1);
+      
+      if (!isPositiveInteger(productId)) {
+        console.warn("⚠️ Item sin ID de producto válido, saltando:", item);
+        continue;
+      }
+      
+      const itemQuery = `
+        INSERT INTO order_items (
+          order_id, product_id, quantity, price, total, company_id
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6
+        ) RETURNING *
+      `;
+      
+      const quantity = safeParseInt(item.quantity, 1);
+      const price = typeof item.price === 'string' ? item.price : 
+                   (typeof item.price === 'number' ? item.price.toFixed(2) : '0.00');
+      
+      const total = typeof item.total === 'string' ? item.total : 
+                   (typeof item.total === 'number' ? item.total.toFixed(2) : 
+                   (safeParseFloat(price, 0) * quantity).toFixed(2));
+      
+      const itemParams = [
+        orderId,
+        productId,
+        quantity,
+        price,
+        total,
+        companyId
+      ];
+      
+      console.log(`🔄 Insertando nuevo item:`, itemParams);
+      
+      const itemResult = await client.query(itemQuery, itemParams);
+      if (itemResult.rows.length > 0) {
+        console.log(`✅ Item creado con ID: ${itemResult.rows[0].id}`);
+      }
+    }
+    
+    // Confirmar transacción
+    await client.query('COMMIT');
+    console.log("✅ Transacción confirmada (COMMIT)");
+    
+    // Respuesta formateada
+    const formattedOrder = {
+      id: updatedOrder.id,
+      companyId: updatedOrder.company_id,
+      customerId: updatedOrder.customer_id,
+      routeId: updatedOrder.route_id,
+      total: updatedOrder.total,
+      status: updatedOrder.status,
+      paymentMethod: updatedOrder.payment_method,
+      date: updatedOrder.date,
+      notes: updatedOrder.notes,
+      items: orderItemsData.length
+    };
+    
+    console.log("✅ Pedido actualizado exitosamente:", formattedOrder);
+    res.json(formattedOrder);
+    
+  } catch (error) {
+    console.error("❌ ERROR al actualizar pedido:", error);
+    try {
+      await client.query('ROLLBACK');
+      console.log("🔄 Transacción revertida (ROLLBACK)");
+    } catch (rollbackError) {
+      console.error("❌ Error durante ROLLBACK:", rollbackError);
+    }
+    res.status(500).json({ error: String(error) });
+  } finally {
+    try {
+      client.release();
+      console.log("🔄 Cliente de conexión liberado");
+    } catch (releaseError) {
+      console.error("❌ Error al liberar el cliente:", releaseError);
+    }
+  }
+});
+
 export default ordersRouter;
