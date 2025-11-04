@@ -293,10 +293,20 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                 {loadingInvoices ? (
                   <div className="text-sm text-muted-foreground">Cargando facturas...</div>
                 ) : pendingInvoices.length === 0 ? (
-                  <Card className="p-4 text-center">
-                    <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Este cliente no tiene facturas pendientes</p>
-                  </Card>
+                  parseFloat(customerBalance) > 0 ? (
+                    <Card className="p-4 text-center bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                      <FileText className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                      <p className="text-sm font-medium mb-1">Cliente con balance CXC</p>
+                      <p className="text-xs text-muted-foreground">
+                        Balance: <span className="font-semibold text-red-600">${parseFloat(customerBalance).toFixed(2)}</span>
+                      </p>
+                    </Card>
+                  ) : (
+                    <Card className="p-4 text-center">
+                      <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                      <p className="text-sm font-medium">Este cliente no tiene facturas pendientes</p>
+                    </Card>
+                  )
                 ) : (
                   <Card className="p-3">
                     <div className="space-y-2">
@@ -339,7 +349,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
             )}
 
             {/* Detalles del Pago */}
-            {selectedCustomerId && pendingInvoices.length > 0 && (
+            {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance) > 0) && (
               <>
                 <Separator className="my-4" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
