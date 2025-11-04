@@ -136,20 +136,11 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
       remainingAmount = paymentAmount - cxcPayment;
     }
 
-    const result = {
+    return {
       invoices,
       cxcPayment,
       remaining: remainingAmount,
     };
-    
-    console.log('Payment Preview:', {
-      paymentAmount,
-      balance,
-      pendingInvoicesLength: pendingInvoices.length,
-      result
-    });
-
-    return result;
   }, [amount, pendingInvoices, customerBalance]);
 
   // Mutación para aplicar el pago
@@ -383,10 +374,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                       min="0.01"
                       placeholder="0.00"
                       value={amount}
-                      onChange={(e) => {
-                        console.log('AMOUNT CHANGED:', e.target.value);
-                        setAmount(e.target.value);
-                      }}
+                      onChange={(e) => setAmount(e.target.value)}
                       required
                     />
                   </div>
@@ -428,15 +416,6 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                   </div>
                 </div>
 
-                {/* DEBUG INFO */}
-                {amount && parseFloat(amount) > 0 && (
-                  <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
-                    DEBUG: amount={amount}, balance={customerBalance}, parsed={parseFloat(customerBalance.replace(/,/g, ''))}, 
-                    cxcPayment={paymentPreview.cxcPayment}, remaining={paymentPreview.remaining}, 
-                    invoicesCount={paymentPreview.invoices.length}
-                  </div>
-                )}
-
                 {/* Preview de Aplicación del Pago */}
                 {amount && parseFloat(amount) > 0 && (
                   <Card className="p-4 mt-4 bg-blue-50 dark:bg-blue-950/20">
@@ -445,14 +424,6 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                       Vista Previa de Aplicación del Pago
                     </h4>
                     <div className="space-y-2">
-                      {/* TEST: Mostrar siempre si no hay facturas */}
-                      {pendingInvoices.length === 0 && parseFloat(customerBalance.replace(/,/g, '')) > 0 && (
-                        <div className="p-2 bg-red-100 text-xs">
-                          TEST: Balance={customerBalance}, Parsed={parseFloat(customerBalance.replace(/,/g, ''))}, 
-                          Payment={amount}, CXC={paymentPreview.cxcPayment}, Rem={paymentPreview.remaining}
-                        </div>
-                      )}
-                      
                       {/* Pago a Facturas */}
                       {paymentPreview.invoices.map((inv: any) => (
                         <div key={inv.id} className="flex justify-between items-center text-sm">
