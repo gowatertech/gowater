@@ -442,6 +442,14 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                       Vista Previa de Aplicación del Pago
                     </h4>
                     <div className="space-y-2">
+                      {/* TEST: Mostrar siempre si no hay facturas */}
+                      {pendingInvoices.length === 0 && parseFloat(customerBalance.replace(/,/g, '')) > 0 && (
+                        <div className="p-2 bg-red-100 text-xs">
+                          TEST: Balance={customerBalance}, Parsed={parseFloat(customerBalance.replace(/,/g, ''))}, 
+                          Payment={amount}, CXC={paymentPreview.cxcPayment}, Rem={paymentPreview.remaining}
+                        </div>
+                      )}
+                      
                       {/* Pago a Facturas */}
                       {paymentPreview.invoices.map((inv: any) => (
                         <div key={inv.id} className="flex justify-between items-center text-sm">
