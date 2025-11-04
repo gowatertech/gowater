@@ -102,13 +102,16 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
   // Calcular la distribución del pago (preview)
   const paymentPreview = useMemo(() => {
     const paymentAmount = parseFloat(amount) || 0;
-    if (paymentAmount <= 0 || pendingInvoices.length === 0) {
-      return { invoices: [], remaining: 0 };
+    const balance = parseFloat(customerBalance) || 0;
+    
+    if (paymentAmount <= 0) {
+      return { invoices: [], cxcPayment: 0, remaining: 0 };
     }
 
     let remainingAmount = paymentAmount;
     const invoices = [];
 
+    // Primero aplicar a facturas
     for (const invoice of pendingInvoices) {
       if (remainingAmount <= 0.01) break;
 
@@ -126,11 +129,19 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
       remainingAmount -= amountToApply;
     }
 
+    // Si no hay facturas PERO hay balance CXC, calcular pago a CXC
+    let cxcPayment = 0;
+    if (pendingInvoices.length === 0 && balance > 0) {
+      cxcPayment = Math.min(paymentAmount, balance);
+      remainingAmount = paymentAmount - cxcPayment;
+    }
+
     return {
       invoices,
+      cxcPayment,
       remaining: remainingAmount,
     };
-  }, [amount, pendingInvoices]);
+  }, [amount, pendingInvoices, customerBalance]);
 
   // Mutación para aplicar el pago
   const applyPaymentMutation = useMutation({
@@ -413,6 +424,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                       Vista Previa de Aplicación del Pago
                     </h4>
                     <div className="space-y-2">
+                      {/* Pago a Facturas */}
                       {paymentPreview.invoices.map((inv: any) => (
                         <div key={inv.id} className="flex justify-between items-center text-sm">
                           <div className="flex items-center gap-2">
@@ -430,6 +442,20 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                         </div>
                       ))}
                       
+                      {/* Pago a CXC (cuando no hay facturas) */}
+                      {paymentPreview.cxcPayment > 0 && (
+                        <div className="flex justify-between items-center text-sm bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            <span className="font-medium">Aplicar a Balance CXC:</span>
+                          </div>
+                          <span className="font-semibold text-blue-700 dark:text-blue-400">
+                            -${paymentPreview.cxcPayment.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Anticipo por sobrante */}
                       {paymentPreview.remaining > 0.01 && (
                         <>
                           <Separator className="my-2" />
@@ -472,7 +498,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                 !selectedCustomerId ||
                 !amount ||
                 parseFloat(amount) <= 0 ||
-                pendingInvoices.length === 0 ||
+                (pendingInvoices.length === 0 && parseFloat(customerBalance) <= 0) ||
                 applyPaymentMutation.isPending
               }
             >
