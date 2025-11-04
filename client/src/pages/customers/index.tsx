@@ -812,14 +812,36 @@ export default function Customers() {
                             {provinces.find(p => p.id === customer.provinceid)?.name || 'N/A'}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <Badge variant="secondary" className="gap-1">
-                            <CreditCard className="h-3 w-3" />
-                            RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
-                          </Badge>
-                          <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
-                            {getZoneName(customer.zoneid)}
-                          </Badge>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <Badge variant="secondary" className="gap-1">
+                              <CreditCard className="h-3 w-3" />
+                              Límite: RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
+                            </Badge>
+                            <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
+                              {getZoneName(customer.zoneid)}
+                            </Badge>
+                          </div>
+                          <div className={`flex items-center gap-2 px-2 py-1.5 border rounded-md ${
+                            customer.balance && parseFloat(customer.balance.toString()) > 0 
+                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' 
+                              : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                          }`}>
+                            <DollarSign className={`h-4 w-4 ${
+                              customer.balance && parseFloat(customer.balance.toString()) > 0 
+                                ? 'text-red-600 dark:text-red-400' 
+                                : 'text-green-600 dark:text-green-400'
+                            }`} />
+                            <div className="flex-1">
+                              <p className={`text-xs font-medium ${
+                                customer.balance && parseFloat(customer.balance.toString()) > 0 
+                                  ? 'text-red-600 dark:text-red-400' 
+                                  : 'text-green-600 dark:text-green-400'
+                              }`}>
+                                CXC: RD$ {customer.balance ? parseFloat(customer.balance.toString()).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -838,7 +860,7 @@ export default function Customers() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             {/* Nombre */}
                             <div className="min-w-0">
                               <p className="text-xs text-muted-foreground mb-1">Nombre</p>
@@ -872,6 +894,22 @@ export default function Customers() {
                               <Badge className={`${getZoneColor(customer.zoneid)} text-white w-fit`}>
                                 {getZoneName(customer.zoneid)}
                               </Badge>
+                            </div>
+                            
+                            {/* Balance CXC */}
+                            <div className="min-w-0">
+                              <p className="text-xs text-muted-foreground mb-1">Balance CXC</p>
+                              {customer.balance && parseFloat(customer.balance.toString()) > 0 ? (
+                                <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-semibold">
+                                  <DollarSign className="h-4 w-4" />
+                                  <span>RD$ {parseFloat(customer.balance.toString()).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                  <DollarSign className="h-4 w-4" />
+                                  <span className="text-sm">RD$ 0.00</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                           
