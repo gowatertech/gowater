@@ -158,13 +158,30 @@ export default function EditOrder() {
 
       // Cargar items del pedido
       if (order.items && order.items.length > 0) {
-        const loadedItems = order.items.map((item: any) => ({
-          code: item.productId?.toString() || item.product?.id?.toString() || "",
-          description: item.productName || item.product?.name || "",
-          quantity: item.quantity || 0,
-          price: parseFloat(item.price || 0),
-          total: parseFloat(item.total || 0)
-        }));
+        const loadedItems = order.items.map((item: any) => {
+          const productId = item.productId?.toString() || item.product?.id?.toString() || "";
+          const itemPrice = parseFloat(item.price || item.unitPrice || 0);
+          
+          // Si el precio es 0, buscar el precio del producto
+          let finalPrice = itemPrice;
+          if (itemPrice === 0 && productId) {
+            const product = products.find((p: any) => p.id.toString() === productId);
+            if (product) {
+              finalPrice = parseFloat(product.price.toString());
+            }
+          }
+          
+          const quantity = item.quantity || 0;
+          const total = finalPrice * quantity;
+          
+          return {
+            code: productId,
+            description: item.productName || item.product?.name || "",
+            quantity: quantity,
+            price: finalPrice,
+            total: total
+          };
+        });
         setOrderItems([...loadedItems, { code: "", description: "", quantity: 0, price: 0, total: 0 }]);
       }
     }
