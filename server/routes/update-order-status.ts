@@ -4,7 +4,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from '../db';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
-import { getNowRD } from '../date-utils';
+import { getNowRD, getTimestampRD } from '../date-utils';
 
 // Endpoint especializado para actualización de estado de pedidos
 export function createUpdateOrderStatusEndpoint(router: Router) {
@@ -263,6 +263,42 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           
           console.log(`✅ ${orderItemsResult.rows.length} items copiados a la factura`);
           
+          // Crear transacción FT (Factura) para el historial del cliente
+          console.log(`📝 Creando transacción FT para factura #${createdInvoice.invoice_number}...`);
+          
+          // Obtener el siguiente número FT
+          const ftQuery = `
+            SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num 
+            FROM transactions 
+            WHERE company_id = $1 AND document_type = 'FT'
+          `;
+          const ftResult = await client.query(ftQuery, [companyId]);
+          const nextFtNumber = ftResult.rows[0].max_num + 1;
+          const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
+          
+          const transactionDate = getNowRD();
+          
+          const createFtTransactionQuery = `
+            INSERT INTO transactions (
+              company_id, document_type, document_number, customer_id, invoice_id,
+              amount, type, description, date
+            )
+            VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, $7)
+            RETURNING *
+          `;
+          
+          await client.query(createFtTransactionQuery, [
+            companyId,
+            ftDocNumber,
+            updatedOrder.customer_id,
+            createdInvoice.id,
+            total.toFixed(2),
+            `Factura #${createdInvoice.invoice_number} - Pedido #${orderIdNum}`,
+            transactionDate
+          ]);
+          
+          console.log(`✅ Transacción FT creada: ${ftDocNumber}`);
+          
           // Si el método de pago es efectivo, crear pago automáticamente
           if (updatedOrder.payment_method === 'cash') {
             console.log(`💵 Creando pago automático para factura en efectivo #${createdInvoice.invoice_number}...`);
@@ -288,6 +324,41 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
             ]);
             
             console.log(`✅ Pago automático creado con ID ${paymentResult.rows[0].id} por monto ${paymentResult.rows[0].amount}`);
+            
+            // Crear transacción RI (Recibo de Ingreso) para el historial del cliente
+            console.log(`📝 Creando transacción RI para pago de factura #${createdInvoice.invoice_number}...`);
+            
+            // Obtener el siguiente número RI
+            const riQuery = `
+              SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) as max_num 
+              FROM transactions 
+              WHERE company_id = $1 AND document_type = 'RI'
+            `;
+            const riResult = await client.query(riQuery, [companyId]);
+            const nextRiNumber = riResult.rows[0].max_num + 1;
+            const riDocNumber = `RI-${String(nextRiNumber).padStart(4, '0')}`;
+            
+            const createRiTransactionQuery = `
+              INSERT INTO transactions (
+                company_id, document_type, document_number, customer_id, invoice_id, payment_id,
+                amount, type, description, date
+              )
+              VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, $8)
+              RETURNING *
+            `;
+            
+            await client.query(createRiTransactionQuery, [
+              companyId,
+              riDocNumber,
+              updatedOrder.customer_id,
+              createdInvoice.id,
+              paymentResult.rows[0].id,
+              total.toFixed(2),
+              `Pago en efectivo - Factura #${createdInvoice.invoice_number}`,
+              transactionDate
+            ]);
+            
+            console.log(`✅ Transacción RI creada: ${riDocNumber}`);
           }
           
           console.log(`🎉 Proceso de facturación automática completado exitosamente`);
