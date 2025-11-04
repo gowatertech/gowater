@@ -322,10 +322,21 @@ export default function AccountPaymentPage() {
                   </div>
 
                   {pendingInvoices.length === 0 ? (
-                    <div className="text-center py-8">
-                      <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                      <p className="text-lg font-medium">Este cliente no tiene facturas pendientes</p>
-                    </div>
+                    parseFloat(customerBalance) > 0 ? (
+                      <div className="text-center py-8 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                        <FileText className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                        <p className="text-lg font-medium mb-2">Cliente con balance CXC inicial</p>
+                        <p className="text-sm text-muted-foreground">
+                          Este cliente tiene un balance pendiente pero no tiene facturas registradas.
+                          Puede aplicar un pago directamente al balance.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                        <p className="text-lg font-medium">Este cliente no tiene facturas pendientes</p>
+                      </div>
+                    )
                   ) : (
                     <div>
                       <div className="flex justify-between items-center mb-3">
@@ -376,7 +387,7 @@ export default function AccountPaymentPage() {
         )}
 
         {/* Detalles del Pago */}
-        {selectedCustomerId && pendingInvoices.length > 0 && (
+        {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance) > 0) && (
           <Card>
             <CardHeader>
               <CardTitle>Detalles del Pago</CardTitle>
