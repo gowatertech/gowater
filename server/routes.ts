@@ -4964,6 +4964,20 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "El monto debe ser mayor a 0" });
       }
       
+      // Obtener el balance del cliente
+      const [customer] = await db
+        .select({ balance: customers.balance, businessname: customers.businessname })
+        .from(customers)
+        .where(and(eq(customers.id, customerId), eq(customers.companyId, companyId)));
+      
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      const customerBalance = parseFloat(customer.balance.toString());
+      
+      console.log(`[Account Payment] Cliente: ${customer.businessname}, Balance: ${customerBalance}, Monto a pagar: ${remainingAmount}`);
+      
       // Obtener facturas pendientes del cliente ordenadas por fecha (más antigua primero)
       const customerInvoices = await db
         .select()
@@ -5051,9 +5065,55 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
+      // NUEVO: Si no aplicó pago a facturas PERO el cliente tiene balance CXC
+      // crear un RI directo contra el balance
+      if (paymentsCreated.length === 0 && customerBalance > 0) {
+        console.log(`[Account Payment] Cliente sin facturas pero con CXC. Creando RI directo...`);
+        
+        // Determinar cuánto aplicar al CXC (mínimo entre lo que paga y lo que debe)
+        const amountToApplyCXC = Math.min(remainingAmount, customerBalance);
+        
+        // Crear pago directo (sin invoice_id)
+        const [payment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            invoiceId: null, // No hay factura, es pago directo a CXC
+            amount: amountToApplyCXC.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || "Pago a cuenta - Abono a CXC",
+            isAdvance: false,
+            date: getNowRD(),
+          })
+          .returning();
+        
+        paymentsCreated.push(payment);
+        
+        // Crear transacción RI (crédito que reduce el balance)
+        await storage.createTransaction({
+          companyId,
+          documentType: 'RI',
+          customerId,
+          paymentId: payment.id,
+          amount: amountToApplyCXC.toFixed(2),
+          type: 'credit',
+          description: `Pago a cuenta - Abono a CXC`,
+          notes: notes || null,
+          date: getNowRD(),
+        });
+        
+        remainingAmount -= amountToApplyCXC;
+        
+        console.log(`[Account Payment] RI creado por ${amountToApplyCXC}. Restante: ${remainingAmount}`);
+      }
+      
       // Si queda dinero sobrante, crear un anticipo
       let advancePayment = null;
       if (remainingAmount > 0.01) {
+        console.log(`[Account Payment] Creando anticipo por sobrante: ${remainingAmount}`);
+        
         // Generar número de anticipo
         const lastAdvance = await db
           .select()
