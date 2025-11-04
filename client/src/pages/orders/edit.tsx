@@ -221,18 +221,26 @@ export default function EditOrder() {
     if (!product) return;
 
     const newItems = [...orderItems];
+    const currentQuantity = newItems[index].quantity || 1;
+    const productPrice = parseFloat(product.price.toString());
+    
     newItems[index] = {
       code,
       description: product.name,
-      quantity: 1,
-      price: parseFloat(product.price.toString()),
-      total: parseFloat(product.price.toString())
+      quantity: currentQuantity,
+      price: productPrice,
+      total: productPrice * currentQuantity
     };
-    setOrderItems(newItems);
+    
+    // Forzar actualización del estado creando un nuevo array
+    setOrderItems([...newItems]);
     
     // Si este es el último elemento del arreglo, agregar uno nuevo
     if (index === orderItems.length - 1) {
-      addEmptyProduct();
+      // Usar setTimeout para asegurar que React procesa primero el cambio actual
+      setTimeout(() => {
+        setOrderItems(items => [...items, { code: "", description: "", quantity: 0, price: 0, total: 0 }]);
+      }, 0);
     }
   };
 
