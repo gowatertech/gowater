@@ -1,9 +1,10 @@
 import { Express, Request, Response } from "express";
 import { eq, sql, and, desc, like } from "drizzle-orm";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { orders, routes, customers, orderItems, products, users, bottleReturns, trucks } from "@shared/schema";
 import { storage } from "../storage";
 import { getNowRD, getTimestampRD } from "../date-utils";
+import { getCurrentCompanyId } from "../company-db";
 
 // Para añadir tipos de req.user (simulando autenticación)
 declare global {
@@ -413,53 +414,290 @@ export async function registerDriverRoutes(app: Express) {
   app.post("/api/driver/deliveries/:id/complete", async (req: Request, res: Response) => {
     try {
       const orderId = parseInt(req.params.id);
+      console.log(`📱 [Mobile App] Completando entrega de pedido #${orderId}`);
       
-      // Verificar que el pedido existe
-      const existingOrder = await db.select()
-        .from(orders)
-        .where(eq(orders.id, orderId))
-        .limit(1);
+      const companyId = getCurrentCompanyId();
       
-      if (!existingOrder || existingOrder.length === 0) {
-        return res.status(404).json({ error: "Pedido no encontrado" });
+      if (!companyId) {
+        console.error("❌ No se encontró companyId para completar entrega");
+        return res.status(401).json({ error: "Autenticación requerida" });
       }
       
-      // Actualizar el estado del pedido
-      await db.update(orders)
-        .set({ status: 'delivered' })
-        .where(eq(orders.id, orderId));
+      // INICIO DE TRANSACCIÓN
+      const client = await pool.connect();
+      let updatedOrder: any;
+      let previousStatus: string;
       
-      // Opcional: actualizar la información de devolución de envases
-      const returnedContainers = req.body.returnedContainers;
-      if (returnedContainers !== undefined) {
-        const bottleReturn = await db.select()
-          .from(bottleReturns)
-          .where(eq(bottleReturns.orderId, orderId))
-          .limit(1);
+      try {
+        await client.query('BEGIN');
+        console.log('🔄 Transacción iniciada para entrega móvil');
         
-        if (bottleReturn && bottleReturn.length > 0) {
-          // Actualizar registro existente
-          await db.update(bottleReturns)
-            .set({ returnedQuantity: returnedContainers })
-            .where(eq(bottleReturns.id, bottleReturn[0].id));
-        } else {
-          // Crear nuevo registro
-          // Crear nuevo registro de devolución de botellas usando el schema
-          await db.insert(bottleReturns).values({
-            orderId,
-            productId: req.body.productId || 1,
-            expectedQuantity: req.body.expectedQuantity || returnedContainers,
-            returnedQuantity: returnedContainers,
-            pendingQuantity: (req.body.expectedQuantity || returnedContainers) - returnedContainers,
-            returnDate: getTimestampRD(),
-            status: "pending",
-            amountCharged: "0.00",
-            depositAmount: "0.00",
-            automaticAlert: false,
-            manuallyAssigned: false,
-            // Los campos opcionales no los incluimos
+        // Bloquear y leer el pedido
+        const lockQuery = `
+          SELECT * FROM orders 
+          WHERE id = $1 AND company_id = $2
+          FOR UPDATE
+        `;
+        
+        const lockResult = await client.query(lockQuery, [orderId, companyId]);
+        
+        if (lockResult.rowCount === 0) {
+          await client.query('ROLLBACK');
+          return res.status(404).json({ error: "Pedido no encontrado" });
+        }
+        
+        previousStatus = lockResult.rows[0].status;
+        console.log(`📌 Estado anterior: ${previousStatus}`);
+        
+        // No crear factura duplicada si ya está delivered
+        if (previousStatus === "delivered") {
+          console.log(`⚠️ El pedido ya está entregado`);
+          await client.query('COMMIT');
+          return res.status(200).json({ 
+            success: true, 
+            message: "El pedido ya estaba entregado",
+            order: lockResult.rows[0]
           });
         }
+        
+        // Actualizar estado a delivered
+        const updateQuery = `
+          UPDATE orders 
+          SET status = 'delivered'
+          WHERE id = $1 AND company_id = $2
+          RETURNING *
+        `;
+        
+        const result = await client.query(updateQuery, [orderId, companyId]);
+        updatedOrder = result.rows[0];
+        
+        console.log(`✅ Pedido actualizado a delivered`);
+        
+        // Actualizar devolución de envases si se proporciona
+        const returnedContainers = req.body.returnedContainers;
+        if (returnedContainers !== undefined) {
+          const bottleReturnQuery = `
+            SELECT * FROM bottle_returns 
+            WHERE order_id = $1
+            LIMIT 1
+          `;
+          const bottleReturnResult = await client.query(bottleReturnQuery, [orderId]);
+          
+          if (bottleReturnResult.rows.length > 0) {
+            await client.query(
+              `UPDATE bottle_returns SET returned_quantity = $1 WHERE id = $2`,
+              [returnedContainers, bottleReturnResult.rows[0].id]
+            );
+          } else {
+            await client.query(
+              `INSERT INTO bottle_returns (
+                order_id, product_id, expected_quantity, returned_quantity, 
+                pending_quantity, return_date, status, amount_charged, 
+                deposit_amount, automatic_alert, manually_assigned
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+              [
+                orderId,
+                req.body.productId || 1,
+                req.body.expectedQuantity || returnedContainers,
+                returnedContainers,
+                (req.body.expectedQuantity || returnedContainers) - returnedContainers,
+                getTimestampRD(),
+                'pending',
+                '0.00',
+                '0.00',
+                false,
+                false
+              ]
+            );
+          }
+        }
+        
+        // CREAR FACTURA AUTOMÁTICA (igual que update-order-status)
+        // Solo si NO es donación y NO tiene factura prepagada
+        if (updatedOrder.payment_method === 'donation') {
+          console.log(`🎁 Pedido es donación - NO se crea factura`);
+        } else if (updatedOrder.invoice_id) {
+          console.log(`💳 Pedido tiene factura prepagada (${updatedOrder.invoice_id}) - NO se crea factura`);
+        } else {
+          console.log(`📄 Creando factura automática para pedido ${orderId}...`);
+          
+          // Obtener tasa de impuestos
+          const settingsQuery = `SELECT tax FROM company_settings WHERE company_id = $1`;
+          const settingsResult = await client.query(settingsQuery, [companyId]);
+          const taxRate = settingsResult.rows[0]?.tax ? parseFloat(settingsResult.rows[0].tax) / 100 : 0;
+          
+          // Obtener items del pedido
+          const orderItemsQuery = `SELECT * FROM order_items WHERE order_id = $1 AND company_id = $2`;
+          const orderItemsResult = await client.query(orderItemsQuery, [orderId, companyId]);
+          
+          // Calcular totales
+          const subtotal = orderItemsResult.rows.reduce((sum, item) => sum + parseFloat(item.total), 0);
+          const tax = subtotal * taxRate;
+          const total = subtotal + tax;
+          
+          console.log(`💰 Subtotal=${subtotal.toFixed(2)}, Impuesto=${tax.toFixed(2)}, Total=${total.toFixed(2)}`);
+          
+          // Verificar factura existente
+          const exactNotePattern = `Factura generada automáticamente para pedido #${orderId}`;
+          const existingInvoiceQuery = `SELECT id, invoice_number FROM invoices WHERE company_id = $1 AND notes = $2`;
+          const existingInvoiceResult = await client.query(existingInvoiceQuery, [companyId, exactNotePattern]);
+          
+          if (existingInvoiceResult.rowCount && existingInvoiceResult.rowCount > 0) {
+            console.log(`⚠️ Ya existe factura para este pedido: #${existingInvoiceResult.rows[0].invoice_number}`);
+          } else {
+            // Bloquear tabla de facturas
+            await client.query('LOCK TABLE invoices IN EXCLUSIVE MODE');
+            
+            // Obtener siguiente número de factura
+            const maxInvoiceQuery = `
+              SELECT COALESCE(MAX(invoice_number), 0) as max_invoice_number 
+              FROM invoices WHERE company_id = $1
+            `;
+            const maxInvoiceResult = await client.query(maxInvoiceQuery, [companyId]);
+            const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
+            
+            console.log(`🔢 Siguiente factura: ${nextInvoiceNumber}`);
+            
+            const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
+            const invoiceDate = getNowRD();
+            
+            // Crear factura
+            const createInvoiceQuery = `
+              INSERT INTO invoices (
+                company_id, customer_id, subtotal, tax, total, status, payment_method, 
+                date, invoice_number, notes
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              RETURNING *
+            `;
+            
+            const invoiceResult = await client.query(createInvoiceQuery, [
+              companyId,
+              updatedOrder.customer_id,
+              subtotal.toFixed(2),
+              tax.toFixed(2),
+              total.toFixed(2),
+              invoiceStatus,
+              updatedOrder.payment_method,
+              invoiceDate,
+              nextInvoiceNumber,
+              exactNotePattern
+            ]);
+            
+            const createdInvoice = invoiceResult.rows[0];
+            console.log(`✅ Factura #${createdInvoice.invoice_number} creada`);
+            
+            // Copiar items a la factura
+            for (const item of orderItemsResult.rows) {
+              await client.query(
+                `INSERT INTO invoice_items (company_id, invoice_id, product_id, quantity, price, total)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [companyId, createdInvoice.id, item.product_id, item.quantity, item.price, item.total]
+              );
+            }
+            
+            console.log(`✅ ${orderItemsResult.rows.length} items copiados`);
+            
+            // CREAR TRANSACCIÓN FT
+            console.log(`📝 Creando transacción FT...`);
+            
+            const ftQuery = `
+              SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) + 1 as next_num
+              FROM transactions WHERE company_id = $1 AND document_type = 'FT'
+            `;
+            const ftResult = await client.query(ftQuery, [companyId]);
+            const nextFtNumber = ftResult.rows[0].next_num;
+            const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
+            
+            const transactionDate = getNowRD();
+            
+            await client.query(
+              `INSERT INTO transactions (
+                company_id, document_type, document_number, customer_id, invoice_id,
+                amount, type, description, date
+              ) VALUES ($1, 'FT', $2, $3, $4, $5, 'debit', $6, $7)`,
+              [
+                companyId,
+                ftDocNumber,
+                updatedOrder.customer_id,
+                createdInvoice.id,
+                total.toFixed(2),
+                `Factura #${createdInvoice.invoice_number} - Pedido #${orderId}`,
+                transactionDate
+              ]
+            );
+            
+            console.log(`✅ Transacción FT creada: ${ftDocNumber}`);
+            
+            // Si es efectivo, crear pago y RI
+            if (updatedOrder.payment_method === 'cash') {
+              console.log(`💵 Creando pago automático...`);
+              
+              const paymentDate = getTimestampRD();
+              
+              const createPaymentQuery = `
+                INSERT INTO payments (
+                  company_id, invoice_id, customer_id, amount, payment_method, date, notes
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING *
+              `;
+              
+              const paymentResult = await client.query(createPaymentQuery, [
+                companyId,
+                createdInvoice.id,
+                updatedOrder.customer_id,
+                total.toFixed(2),
+                'cash',
+                paymentDate,
+                `Pago automático en efectivo - Factura #${createdInvoice.invoice_number} - Pedido #${orderId}`
+              ]);
+              
+              console.log(`✅ Pago creado con ID ${paymentResult.rows[0].id}`);
+              
+              // CREAR TRANSACCIÓN RI
+              console.log(`📝 Creando transacción RI...`);
+              
+              const riQuery = `
+                SELECT COALESCE(MAX(CAST(SUBSTRING(document_number FROM 4) AS INTEGER)), 0) + 1 as next_num
+                FROM transactions WHERE company_id = $1 AND document_type = 'RI'
+              `;
+              const riResult = await client.query(riQuery, [companyId]);
+              const nextRiNumber = riResult.rows[0].next_num;
+              const riDocNumber = `RI-${String(nextRiNumber).padStart(4, '0')}`;
+              
+              await client.query(
+                `INSERT INTO transactions (
+                  company_id, document_type, document_number, customer_id, invoice_id, payment_id,
+                  amount, type, description, date
+                ) VALUES ($1, 'RI', $2, $3, $4, $5, $6, 'credit', $7, $8)`,
+                [
+                  companyId,
+                  riDocNumber,
+                  updatedOrder.customer_id,
+                  createdInvoice.id,
+                  paymentResult.rows[0].id,
+                  total.toFixed(2),
+                  `Pago en efectivo - Factura #${createdInvoice.invoice_number}`,
+                  transactionDate
+                ]
+              );
+              
+              console.log(`✅ Transacción RI creada: ${riDocNumber}`);
+            }
+          }
+        }
+        
+        // COMMIT
+        await client.query('COMMIT');
+        console.log('✅ Transacción completada exitosamente');
+        
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Error en transacción, ROLLBACK:', error);
+        throw error;
+      } finally {
+        client.release();
       }
       
       res.json({ success: true, message: "Entrega completada exitosamente" });
