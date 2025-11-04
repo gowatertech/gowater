@@ -425,6 +425,15 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                   </div>
                 </div>
 
+                {/* DEBUG INFO */}
+                {amount && parseFloat(amount) > 0 && (
+                  <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                    DEBUG: amount={amount}, balance={customerBalance}, parsed={parseFloat(customerBalance.replace(/,/g, ''))}, 
+                    cxcPayment={paymentPreview.cxcPayment}, remaining={paymentPreview.remaining}, 
+                    invoicesCount={paymentPreview.invoices.length}
+                  </div>
+                )}
+
                 {/* Preview de Aplicación del Pago */}
                 {amount && parseFloat(amount) > 0 && (
                   <Card className="p-4 mt-4 bg-blue-50 dark:bg-blue-950/20">
