@@ -136,11 +136,20 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
       remainingAmount = paymentAmount - cxcPayment;
     }
 
-    return {
+    const result = {
       invoices,
       cxcPayment,
       remaining: remainingAmount,
     };
+    
+    console.log('Payment Preview:', {
+      paymentAmount,
+      balance,
+      pendingInvoicesLength: pendingInvoices.length,
+      result
+    });
+
+    return result;
   }, [amount, pendingInvoices, customerBalance]);
 
   // Mutación para aplicar el pago
