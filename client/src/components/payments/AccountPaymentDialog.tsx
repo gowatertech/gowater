@@ -102,7 +102,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
   // Calcular la distribución del pago (preview)
   const paymentPreview = useMemo(() => {
     const paymentAmount = parseFloat(amount) || 0;
-    const balance = parseFloat(customerBalance) || 0;
+    const balance = parseFloat(customerBalance.replace(/,/g, '')) || 0;
     
     if (paymentAmount <= 0) {
       return { invoices: [], cxcPayment: 0, remaining: 0 };
@@ -313,12 +313,12 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                 {loadingInvoices ? (
                   <div className="text-sm text-muted-foreground">Cargando facturas...</div>
                 ) : pendingInvoices.length === 0 ? (
-                  parseFloat(customerBalance) > 0 ? (
+                  parseFloat(customerBalance.replace(/,/g, '')) > 0 ? (
                     <Card className="p-4 text-center bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
                       <FileText className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                       <p className="text-sm font-medium mb-1">Cliente con balance CXC</p>
                       <p className="text-xs text-muted-foreground">
-                        Balance: <span className="font-semibold text-red-600">${parseFloat(customerBalance).toFixed(2)}</span>
+                        Balance: <span className="font-semibold text-red-600">${parseFloat(customerBalance.replace(/,/g, '')).toFixed(2)}</span>
                       </p>
                     </Card>
                   ) : (
@@ -335,7 +335,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                           {pendingInvoices.length} factura(s) pendiente(s)
                         </span>
                         <span className="text-sm font-semibold text-red-600">
-                          Balance Cliente: ${parseFloat(customerBalance).toFixed(2)}
+                          Balance Cliente: ${parseFloat(customerBalance.replace(/,/g, '')).toFixed(2)}
                         </span>
                       </div>
                       <Separator />
@@ -369,7 +369,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
             )}
 
             {/* Detalles del Pago */}
-            {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance) > 0) && (
+            {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance.replace(/,/g, '')) > 0) && (
               <>
                 <Separator className="my-4" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,7 +507,7 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
                 !selectedCustomerId ||
                 !amount ||
                 parseFloat(amount) <= 0 ||
-                (pendingInvoices.length === 0 && parseFloat(customerBalance) <= 0) ||
+                (pendingInvoices.length === 0 && parseFloat(customerBalance.replace(/,/g, '')) <= 0) ||
                 applyPaymentMutation.isPending
               }
             >
