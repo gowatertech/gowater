@@ -101,7 +101,7 @@ interface CashReconciliation {
 export default function CashReconciliation() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("new");
-  const [selectedDate, setSelectedDate] = useState<string>(toRD(new Date()).toISOString());
+  const [selectedDate, setSelectedDate] = useState<string>(format(toRD(new Date()), "yyyy-MM-dd"));
   const [initialCash, setInitialCash] = useState("0.00");
   const [actualCash, setActualCash] = useState("0.00");
   const [lostWaterGallons, setLostWaterGallons] = useState("0");
@@ -223,7 +223,7 @@ export default function CashReconciliation() {
   const shortage = difference < 0 ? Math.abs(difference) : 0;
 
   const resetForm = () => {
-    setSelectedDate(toRD(new Date()).toISOString());
+    setSelectedDate(format(toRD(new Date()), "yyyy-MM-dd"));
     setInitialCash("0.00");
     setActualCash("0.00");
     setLostWaterGallons("0");
@@ -341,9 +341,9 @@ export default function CashReconciliation() {
                   <Input
                     id="reconciliation-date"
                     type="date"
-                    value={format(new Date(selectedDate), "yyyy-MM-dd")}
+                    value={selectedDate}
                     onChange={(e) => {
-                      setSelectedDate(parseDateStringRD(e.target.value).toISOString());
+                      setSelectedDate(e.target.value);
                       setIsEditMode(false);
                       setEditingReconciliationId(null);
                     }}

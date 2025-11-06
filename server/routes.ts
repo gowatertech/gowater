@@ -7449,18 +7449,35 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere la fecha" });
       }
       
-      const selectedDate = new Date(date);
+      // Validar formato YYYY-MM-DD estricto para prevenir SQL injection
+      const dateFormatRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateFormatRegex.test(date)) {
+        return res.status(400).json({ error: "Formato de fecha inválido. Use YYYY-MM-DD" });
+      }
       
+      // Usar el string de fecha directamente (ya validado con regex)
+      const dateOnly = date.slice(0, 10);
+      
+      console.log("[Check Exists] Fecha recibida:", date);
+      console.log("[Check Exists] Comparando con:", dateOnly);
+      
+      // Comparación directa de fecha como string para evitar problemas de timezone
+      // PostgreSQL compara DATE(timestamp_column) con el string de fecha YYYY-MM-DD
       const existing = await db
         .select()
         .from(platformSchema.dailyCashReconciliations)
         .where(
           and(
             eq(platformSchema.dailyCashReconciliations.companyId, companyId),
-            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = DATE(${selectedDate})`
+            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = ${dateOnly}`
           )
         )
         .limit(1);
+      
+      console.log("[Check Exists] Resultado:", existing.length > 0 ? "EXISTE" : "NO EXISTE");
+      if (existing.length > 0) {
+        console.log("[Check Exists] Fecha en DB:", existing[0].reconciliationDate);
+      }
       
       res.json({ 
         exists: existing.length > 0,
