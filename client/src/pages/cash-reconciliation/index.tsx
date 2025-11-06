@@ -170,6 +170,7 @@ export default function CashReconciliation() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cash-reconciliation"] });
       resetForm();
+      setActiveTab("history");
     },
     onError: (error: any) => {
       if (error.existing) {
