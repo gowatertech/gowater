@@ -565,65 +565,141 @@ export default function CashReconciliation() {
                   No hay cuadres registrados
                 </p>
               ) : (
-                <ScrollArea className="h-[600px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Ventas</TableHead>
-                        <TableHead>Efectivo Esp.</TableHead>
-                        <TableHead>Efectivo Real</TableHead>
-                        <TableHead>Resultado</TableHead>
-                        <TableHead>Creado Por</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <>
+                  {/* Vista móvil - Cards */}
+                  <div className="md:hidden space-y-4">
+                    <ScrollArea className="h-[600px]">
                       {reconciliations.map((rec) => {
                         const surplus = parseFloat(rec.surplus);
                         const shortage = parseFloat(rec.shortage);
                         return (
-                          <TableRow key={rec.id} data-testid={`row-reconciliation-${rec.id}`}>
-                            <TableCell className="font-medium">
-                              {formatDateRD(new Date(rec.reconciliationDate))}
-                            </TableCell>
-                            <TableCell>${parseFloat(rec.totalSales).toFixed(2)}</TableCell>
-                            <TableCell>${parseFloat(rec.expectedCash).toFixed(2)}</TableCell>
-                            <TableCell>${parseFloat(rec.actualCash).toFixed(2)}</TableCell>
-                            <TableCell>
-                              {surplus > 0 && (
-                                <Badge variant="default" className="bg-green-600">
-                                  +${surplus.toFixed(2)}
-                                </Badge>
-                              )}
-                              {shortage > 0 && (
-                                <Badge variant="destructive">
-                                  -${shortage.toFixed(2)}
-                                </Badge>
-                              )}
-                              {surplus === 0 && shortage === 0 && (
-                                <Badge variant="outline" className="border-blue-600 text-blue-600">
-                                  Perfecto
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>{rec.userName || "N/A"}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => viewReconciliationDetails(rec)}
-                                data-testid={`button-view-${rec.id}`}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
+                          <Card key={rec.id} className="mb-4" data-testid={`card-reconciliation-${rec.id}`}>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  {formatDateRD(new Date(rec.reconciliationDate))}
+                                </CardTitle>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => viewReconciliationDetails(rec)}
+                                  data-testid={`button-view-mobile-${rec.id}`}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Ventas</p>
+                                  <p className="font-semibold">${parseFloat(rec.totalSales).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Efectivo Esp.</p>
+                                  <p className="font-semibold">${parseFloat(rec.expectedCash).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Efectivo Real</p>
+                                  <p className="font-semibold">${parseFloat(rec.actualCash).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Creado Por</p>
+                                  <p className="font-semibold text-xs truncate">{rec.userName || "N/A"}</p>
+                                </div>
+                              </div>
+                              <Separator />
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Resultado:</span>
+                                <div>
+                                  {surplus > 0 && (
+                                    <Badge variant="default" className="bg-green-600">
+                                      +${surplus.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  {shortage > 0 && (
+                                    <Badge variant="destructive">
+                                      -${shortage.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  {surplus === 0 && shortage === 0 && (
+                                    <Badge variant="outline" className="border-blue-600 text-blue-600">
+                                      Perfecto
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         );
                       })}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Vista desktop - Tabla */}
+                  <div className="hidden md:block">
+                    <ScrollArea className="h-[600px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Ventas</TableHead>
+                            <TableHead>Efectivo Esp.</TableHead>
+                            <TableHead>Efectivo Real</TableHead>
+                            <TableHead>Resultado</TableHead>
+                            <TableHead>Creado Por</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {reconciliations.map((rec) => {
+                            const surplus = parseFloat(rec.surplus);
+                            const shortage = parseFloat(rec.shortage);
+                            return (
+                              <TableRow key={rec.id} data-testid={`row-reconciliation-${rec.id}`}>
+                                <TableCell className="font-medium">
+                                  {formatDateRD(new Date(rec.reconciliationDate))}
+                                </TableCell>
+                                <TableCell>${parseFloat(rec.totalSales).toFixed(2)}</TableCell>
+                                <TableCell>${parseFloat(rec.expectedCash).toFixed(2)}</TableCell>
+                                <TableCell>${parseFloat(rec.actualCash).toFixed(2)}</TableCell>
+                                <TableCell>
+                                  {surplus > 0 && (
+                                    <Badge variant="default" className="bg-green-600">
+                                      +${surplus.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  {shortage > 0 && (
+                                    <Badge variant="destructive">
+                                      -${shortage.toFixed(2)}
+                                    </Badge>
+                                  )}
+                                  {surplus === 0 && shortage === 0 && (
+                                    <Badge variant="outline" className="border-blue-600 text-blue-600">
+                                      Perfecto
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>{rec.userName || "N/A"}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => viewReconciliationDetails(rec)}
+                                    data-testid={`button-view-${rec.id}`}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -652,7 +728,7 @@ export default function CashReconciliation() {
 
       {/* Dialog de detalles */}
       <AlertDialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <AlertDialogContent className="max-w-2xl">
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -664,7 +740,7 @@ export default function CashReconciliation() {
           </AlertDialogHeader>
           {selectedReconciliation && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Total Ventas</Label>
                   <p className="font-semibold">${parseFloat(selectedReconciliation.totalSales).toFixed(2)}</p>
@@ -693,7 +769,7 @@ export default function CashReconciliation() {
               
               <Separator />
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Efectivo Inicial</Label>
                   <p className="font-semibold">${parseFloat(selectedReconciliation.initialCash).toFixed(2)}</p>
@@ -709,7 +785,7 @@ export default function CashReconciliation() {
                 <div>
                   <Label className="text-xs text-muted-foreground">Agua Perdida</Label>
                   <p className="font-semibold">
-                    {parseFloat(selectedReconciliation.lostWaterGallons).toFixed(2)} gal 
+                    {parseInt(selectedReconciliation.lostWaterGallons)} gal 
                     (${parseFloat(selectedReconciliation.lostWaterValue).toFixed(2)})
                   </p>
                 </div>
