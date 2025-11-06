@@ -66,6 +66,16 @@ The mobile driver app implements an **offline-first architecture** with:
 -   **Conflict Resolution System**: Detects and resolves data conflicts using timestamps, with driver-authoritative strategy for deliveries/payments and server-authoritative for master data.
 -   **User Experience Features**: Visual online/offline indicators, sync status, manual sync controls, and toast notifications.
 
+### Daily Cash Reconciliation System
+The system includes a comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) for end-of-day financial management:
+-   **Automatic Sales Summary**: Displays total sales, credit vs. cash invoices, and all payment types (RI, ANT) with real-time calculations from the day's transactions.
+-   **Manual Input Fields**: Accepts initial cash, actual cash counted, and lost water gallons with automatic value calculation based on configured water price.
+-   **Automatic Calculations**: Computes expected cash (initial + cash invoices + payments - lost water value), automatically detects and displays surplus/shortage with color-coded badges (green for surplus, red for shortage).
+-   **One Per Day Validation**: Enforces business rule allowing only one reconciliation per day, displaying existing reconciliation details if duplicate attempt is made.
+-   **Historical Records**: Maintains queryable history of all reconciliations with detailed view dialogs showing complete financial breakdown, notes, and audit information.
+-   **Modern UI**: Tabbed interface ("Nuevo Cuadre" and "Historial") with icons from lucide-react, responsive design, and accessible from billing module via dedicated "Cuadre de Caja" button.
+-   **Multi-tenant Support**: All reconciliations are isolated by company using the standard companyId mechanism.
+
 ## External Dependencies
 
 ### Core Infrastructure
