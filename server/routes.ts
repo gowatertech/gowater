@@ -7358,7 +7358,7 @@ export async function registerRoutes(router: express.Router) {
         ? parseFloat(waterProducts[0].price.toString()) 
         : 0;
       
-      // Calcular agua donada de pedidos con payment method 'donation'
+      // Calcular agua donada de pedidos entregados con clientes benéficos
       const donationOrders = await db
         .select({
           orderId: orders.id,
@@ -7366,10 +7366,13 @@ export async function registerRoutes(router: express.Router) {
           total: orders.total,
         })
         .from(orders)
+        .innerJoin(customers, eq(orders.customerId, customers.id))
         .where(
           and(
             eq(orders.companyId, companyId),
             eq(orders.paymentMethod, 'donation'),
+            eq(orders.status, 'delivered'),
+            eq(customers.isCharity, true),
             gte(orders.date, startOfDay),
             lte(orders.date, endOfDay)
           )
