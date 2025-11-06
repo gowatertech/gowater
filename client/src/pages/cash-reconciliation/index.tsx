@@ -50,6 +50,12 @@ import {
   AlertCircle,
   History,
   Eye,
+  CheckCircle2,
+  Wallet,
+  User,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  MinusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -572,59 +578,105 @@ export default function CashReconciliation() {
                       {reconciliations.map((rec) => {
                         const surplus = parseFloat(rec.surplus);
                         const shortage = parseFloat(rec.shortage);
+                        const isBalanced = surplus === 0 && shortage === 0;
+                        
                         return (
-                          <Card key={rec.id} className="mb-4" data-testid={`card-reconciliation-${rec.id}`}>
+                          <Card 
+                            key={rec.id} 
+                            className={cn(
+                              "mb-4 border-l-4 shadow-md hover:shadow-lg transition-all duration-200",
+                              isBalanced && "border-l-emerald-500 bg-gradient-to-r from-emerald-50/50 to-transparent dark:from-emerald-950/20",
+                              surplus > 0 && "border-l-green-500 bg-gradient-to-r from-green-50/50 to-transparent dark:from-green-950/20",
+                              shortage > 0 && "border-l-red-500 bg-gradient-to-r from-red-50/50 to-transparent dark:from-red-950/20"
+                            )}
+                            data-testid={`card-reconciliation-${rec.id}`}
+                          >
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  {formatDateRD(new Date(rec.reconciliationDate))}
-                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "p-2 rounded-full",
+                                    isBalanced && "bg-emerald-100 dark:bg-emerald-900",
+                                    surplus > 0 && "bg-green-100 dark:bg-green-900",
+                                    shortage > 0 && "bg-red-100 dark:bg-red-900"
+                                  )}>
+                                    <Calendar className={cn(
+                                      "h-4 w-4",
+                                      isBalanced && "text-emerald-600 dark:text-emerald-400",
+                                      surplus > 0 && "text-green-600 dark:text-green-400",
+                                      shortage > 0 && "text-red-600 dark:text-red-400"
+                                    )} />
+                                  </div>
+                                  <div>
+                                    <CardTitle className="text-sm font-semibold">
+                                      {formatDateRD(new Date(rec.reconciliationDate))}
+                                    </CardTitle>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <User className="h-3 w-3" />
+                                      {rec.userName || "N/A"}
+                                    </p>
+                                  </div>
+                                </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => viewReconciliationDetails(rec)}
                                   data-testid={`button-view-mobile-${rec.id}`}
+                                  className="h-8 w-8 p-0"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Ventas</p>
-                                  <p className="font-semibold">${parseFloat(rec.totalSales).toFixed(2)}</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-card/50 p-3 rounded-lg border">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                    <p className="text-xs font-medium text-muted-foreground">Ventas</p>
+                                  </div>
+                                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                    ${parseFloat(rec.totalSales).toFixed(2)}
+                                  </p>
                                 </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Efectivo Esp.</p>
-                                  <p className="font-semibold">${parseFloat(rec.expectedCash).toFixed(2)}</p>
+                                <div className="bg-card/50 p-3 rounded-lg border">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Calculator className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                    <p className="text-xs font-medium text-muted-foreground">Efectivo Esp.</p>
+                                  </div>
+                                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                                    ${parseFloat(rec.expectedCash).toFixed(2)}
+                                  </p>
                                 </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Efectivo Real</p>
-                                  <p className="font-semibold">${parseFloat(rec.actualCash).toFixed(2)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Creado Por</p>
-                                  <p className="font-semibold text-xs truncate">{rec.userName || "N/A"}</p>
+                                <div className="bg-card/50 p-3 rounded-lg border col-span-2">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Wallet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                    <p className="text-xs font-medium text-muted-foreground">Efectivo Real</p>
+                                  </div>
+                                  <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                                    ${parseFloat(rec.actualCash).toFixed(2)}
+                                  </p>
                                 </div>
                               </div>
                               <Separator />
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">Resultado:</span>
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="text-sm font-medium text-muted-foreground">Resultado</span>
                                 <div>
                                   {surplus > 0 && (
-                                    <Badge variant="default" className="bg-green-600">
+                                    <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-sm">
+                                      <ArrowUpCircle className="h-3 w-3 mr-1" />
                                       +${surplus.toFixed(2)}
                                     </Badge>
                                   )}
                                   {shortage > 0 && (
-                                    <Badge variant="destructive">
+                                    <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
+                                      <ArrowDownCircle className="h-3 w-3 mr-1" />
                                       -${shortage.toFixed(2)}
                                     </Badge>
                                   )}
-                                  {surplus === 0 && shortage === 0 && (
-                                    <Badge variant="outline" className="border-blue-600 text-blue-600">
+                                  {isBalanced && (
+                                    <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0 shadow-sm">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
                                       Perfecto
                                     </Badge>
                                   )}
@@ -642,52 +694,136 @@ export default function CashReconciliation() {
                     <ScrollArea className="h-[600px]">
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Fecha</TableHead>
-                            <TableHead>Ventas</TableHead>
-                            <TableHead>Efectivo Esp.</TableHead>
-                            <TableHead>Efectivo Real</TableHead>
-                            <TableHead>Resultado</TableHead>
-                            <TableHead>Creado Por</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
+                          <TableRow className="border-b-2">
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                Fecha
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                Ventas
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <Calculator className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                Efectivo Esp.
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <Wallet className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                Efectivo Real
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                                Resultado
+                              </div>
+                            </TableHead>
+                            <TableHead className="font-bold">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                Creado Por
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-right font-bold">
+                              <div className="flex items-center justify-end gap-2">
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                                Acciones
+                              </div>
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {reconciliations.map((rec) => {
                             const surplus = parseFloat(rec.surplus);
                             const shortage = parseFloat(rec.shortage);
+                            const isBalanced = surplus === 0 && shortage === 0;
+                            
                             return (
-                              <TableRow key={rec.id} data-testid={`row-reconciliation-${rec.id}`}>
+                              <TableRow 
+                                key={rec.id} 
+                                data-testid={`row-reconciliation-${rec.id}`}
+                                className={cn(
+                                  "hover:bg-muted/50 transition-colors",
+                                  isBalanced && "bg-emerald-50/30 dark:bg-emerald-950/10 border-l-4 border-l-emerald-500",
+                                  surplus > 0 && "bg-green-50/30 dark:bg-green-950/10 border-l-4 border-l-green-500",
+                                  shortage > 0 && "bg-red-50/30 dark:bg-red-950/10 border-l-4 border-l-red-500"
+                                )}
+                              >
                                 <TableCell className="font-medium">
-                                  {formatDateRD(new Date(rec.reconciliationDate))}
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn(
+                                      "p-1.5 rounded-md",
+                                      isBalanced && "bg-emerald-100 dark:bg-emerald-900",
+                                      surplus > 0 && "bg-green-100 dark:bg-green-900",
+                                      shortage > 0 && "bg-red-100 dark:bg-red-900"
+                                    )}>
+                                      <Calendar className={cn(
+                                        "h-3.5 w-3.5",
+                                        isBalanced && "text-emerald-600 dark:text-emerald-400",
+                                        surplus > 0 && "text-green-600 dark:text-green-400",
+                                        shortage > 0 && "text-red-600 dark:text-red-400"
+                                      )} />
+                                    </div>
+                                    {formatDateRD(new Date(rec.reconciliationDate))}
+                                  </div>
                                 </TableCell>
-                                <TableCell>${parseFloat(rec.totalSales).toFixed(2)}</TableCell>
-                                <TableCell>${parseFloat(rec.expectedCash).toFixed(2)}</TableCell>
-                                <TableCell>${parseFloat(rec.actualCash).toFixed(2)}</TableCell>
+                                <TableCell>
+                                  <span className="font-semibold text-blue-700 dark:text-blue-400">
+                                    ${parseFloat(rec.totalSales).toFixed(2)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-semibold text-amber-700 dark:text-amber-400">
+                                    ${parseFloat(rec.expectedCash).toFixed(2)}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="font-semibold text-purple-700 dark:text-purple-400">
+                                    ${parseFloat(rec.actualCash).toFixed(2)}
+                                  </span>
+                                </TableCell>
                                 <TableCell>
                                   {surplus > 0 && (
-                                    <Badge variant="default" className="bg-green-600">
+                                    <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-sm">
+                                      <ArrowUpCircle className="h-3 w-3 mr-1" />
                                       +${surplus.toFixed(2)}
                                     </Badge>
                                   )}
                                   {shortage > 0 && (
-                                    <Badge variant="destructive">
+                                    <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
+                                      <ArrowDownCircle className="h-3 w-3 mr-1" />
                                       -${shortage.toFixed(2)}
                                     </Badge>
                                   )}
-                                  {surplus === 0 && shortage === 0 && (
-                                    <Badge variant="outline" className="border-blue-600 text-blue-600">
+                                  {isBalanced && (
+                                    <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0 shadow-sm">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
                                       Perfecto
                                     </Badge>
                                   )}
                                 </TableCell>
-                                <TableCell>{rec.userName || "N/A"}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1 rounded-full bg-muted">
+                                      <User className="h-3 w-3 text-muted-foreground" />
+                                    </div>
+                                    {rec.userName || "N/A"}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-right">
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => viewReconciliationDetails(rec)}
                                     data-testid={`button-view-${rec.id}`}
+                                    className="hover:bg-primary/10 hover:text-primary"
                                   >
                                     <Eye className="h-4 w-4" />
                                   </Button>
