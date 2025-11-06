@@ -94,7 +94,7 @@ export default function CashReconciliation() {
   const [selectedDate, setSelectedDate] = useState<string>(toRD(new Date()).toISOString());
   const [initialCash, setInitialCash] = useState("0.00");
   const [actualCash, setActualCash] = useState("0.00");
-  const [lostWaterGallons, setLostWaterGallons] = useState("0.00");
+  const [lostWaterGallons, setLostWaterGallons] = useState("0");
   const [notes, setNotes] = useState("");
   const [showExistingAlert, setShowExistingAlert] = useState(false);
   const [existingReconciliation, setExistingReconciliation] = useState<CashReconciliation | null>(null);
@@ -161,14 +161,14 @@ export default function CashReconciliation() {
 
   // Cálculos automáticos
   const waterPricePerGallon = parseFloat(dailySummary?.waterPricePerGallon || "0");
-  const lostWaterValue = parseFloat(lostWaterGallons) * waterPricePerGallon;
+  const lostWaterValue = parseFloat(lostWaterGallons || "0") * waterPricePerGallon;
   
   const cashInvoicesTotal = parseFloat(dailySummary?.cashInvoicesTotal || "0");
   const receiptsTotal = parseFloat(dailySummary?.receiptsTotal || "0");
   const advancesTotal = parseFloat(dailySummary?.advancesTotal || "0");
   
-  // Efectivo esperado = inicial + facturas cash + pagos (RI + ANT) - agua perdida
-  const expectedCash = parseFloat(initialCash) + cashInvoicesTotal + receiptsTotal + advancesTotal - lostWaterValue;
+  // Nueva fórmula: efectivo caja - (efectivo FT + ANT + efectivo inicial)
+  const expectedCash = cashInvoicesTotal + advancesTotal + parseFloat(initialCash);
   
   const actualCashValue = parseFloat(actualCash);
   const difference = actualCashValue - expectedCash;
@@ -179,7 +179,7 @@ export default function CashReconciliation() {
     setSelectedDate(toRD(new Date()).toISOString());
     setInitialCash("0.00");
     setActualCash("0.00");
-    setLostWaterGallons("0.00");
+    setLostWaterGallons("0");
     setNotes("");
   };
 
@@ -204,7 +204,7 @@ export default function CashReconciliation() {
       initialCash: parseFloat(initialCash).toFixed(2),
       expectedCash: expectedCash.toFixed(2),
       actualCash: parseFloat(actualCash).toFixed(2),
-      lostWaterGallons: parseFloat(lostWaterGallons).toFixed(2),
+      lostWaterGallons: parseInt(lostWaterGallons || "0").toString(),
       waterPricePerGallon: waterPricePerGallon.toFixed(2),
       lostWaterValue: lostWaterValue.toFixed(2),
       surplus: surplus.toFixed(2),
@@ -417,14 +417,14 @@ export default function CashReconciliation() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="lost-water">Cantidad de Galones</Label>
+                        <Label htmlFor="lost-water">Cantidad de Galones (solo informativo)</Label>
                         <Input
                           id="lost-water"
                           type="number"
-                          step="0.01"
+                          step="1"
                           value={lostWaterGallons}
                           onChange={(e) => setLostWaterGallons(e.target.value)}
-                          placeholder="0.00"
+                          placeholder="0"
                           data-testid="input-lost-water-gallons"
                         />
                       </div>
@@ -457,7 +457,7 @@ export default function CashReconciliation() {
                           ${expectedCash.toFixed(2)}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Inicial + FT Cash + Pagos - Agua Perdida
+                          Inicial + FT Cash + ANT
                         </p>
                       </div>
                       <div className={cn(
