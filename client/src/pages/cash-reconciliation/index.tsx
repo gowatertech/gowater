@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { toRD, formatDateRD } from "@/lib/date-utils";
+import { toRD, formatDateRD, parseDateStringRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -331,7 +331,7 @@ export default function CashReconciliation() {
                     type="date"
                     value={format(new Date(selectedDate), "yyyy-MM-dd")}
                     onChange={(e) => {
-                      setSelectedDate(new Date(e.target.value).toISOString());
+                      setSelectedDate(parseDateStringRD(e.target.value).toISOString());
                       setIsEditMode(false);
                       setEditingReconciliationId(null);
                     }}

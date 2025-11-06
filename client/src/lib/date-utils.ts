@@ -304,3 +304,19 @@ export function getEndOfWeekRD(weekStartsOn: 0 | 1 = 1): string {
   
   return `${endDateParts.year}-${endDateParts.month}-${endDateParts.day}`;
 }
+
+/**
+ * Convierte una fecha en formato YYYY-MM-DD a un Date object representando
+ * medianoche de esa fecha en zona horaria RD (como timestamp UTC)
+ * @param dateString - Fecha en formato YYYY-MM-DD (del input type="date")
+ * @returns Date object que representa medianoche de esa fecha en RD
+ */
+export function parseDateStringRD(dateString: string): Date {
+  // Parsear la fecha manualmente para evitar problemas de timezone
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  // Crear fecha a medianoche UTC + 4 horas (para RD que es UTC-4)
+  // Esto representa medianoche en RD como timestamp UTC
+  const date = new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0));
+  return date;
+}
