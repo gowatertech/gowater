@@ -201,13 +201,18 @@ export default function CashReconciliation() {
   const waterPricePerGallon = 30; // Precio fijo de 30 para agua perdida
   const lostWaterValue = parseFloat(lostWaterGallons || "0") * waterPricePerGallon;
   
-  // Agua donada (calculada automáticamente desde el backend)
-  const donatedWaterGallons = parseFloat(dailySummary?.donatedWaterGallons || "0");
-  const donatedWaterValue = parseFloat(dailySummary?.donatedWaterValue || "0");
+  // En modo edición, usar valores originales; en modo creación, usar dailySummary
+  const reconciliationData = isEditMode && existenceCheck?.reconciliation 
+    ? existenceCheck.reconciliation 
+    : null;
   
-  const cashInvoicesTotal = parseFloat(dailySummary?.cashInvoicesTotal || "0");
-  const receiptsTotal = parseFloat(dailySummary?.receiptsTotal || "0");
-  const advancesTotal = parseFloat(dailySummary?.advancesTotal || "0");
+  // Agua donada (desde el cuadre existente o calculada desde el backend)
+  const donatedWaterGallons = parseFloat(reconciliationData?.donatedWaterGallons || dailySummary?.donatedWaterGallons || "0");
+  const donatedWaterValue = parseFloat(reconciliationData?.donatedWaterValue || dailySummary?.donatedWaterValue || "0");
+  
+  const cashInvoicesTotal = parseFloat(reconciliationData?.cashInvoicesTotal || dailySummary?.cashInvoicesTotal || "0");
+  const receiptsTotal = parseFloat(reconciliationData?.receiptsTotal || dailySummary?.receiptsTotal || "0");
+  const advancesTotal = parseFloat(reconciliationData?.advancesTotal || dailySummary?.advancesTotal || "0");
   
   // Nueva fórmula: Efectivo Esperado = Inicial + RI + ANT (sin incluir FT)
   const expectedCash = parseFloat(initialCash) + receiptsTotal + advancesTotal;
@@ -245,7 +250,7 @@ export default function CashReconciliation() {
   };
 
   const handleSubmit = () => {
-    if (!dailySummary) {
+    if (!dailySummary && !isEditMode) {
       toast({
         title: "Error",
         description: "Primero selecciona una fecha válida",
@@ -254,22 +259,29 @@ export default function CashReconciliation() {
       return;
     }
 
+    // En modo edición, usar los valores originales del cuadre existente
+    // En modo creación, usar el resumen diario
+    const reconciliationToUse = isEditMode && existenceCheck?.reconciliation 
+      ? existenceCheck.reconciliation 
+      : null;
+
     const data = {
       reconciliationDate: selectedDate,
-      totalSales: dailySummary.totalSales,
-      creditInvoicesTotal: dailySummary.creditInvoicesTotal,
-      cashInvoicesTotal: dailySummary.cashInvoicesTotal,
-      totalPayments: dailySummary.totalPayments,
-      receiptsTotal: dailySummary.receiptsTotal,
-      advancesTotal: dailySummary.advancesTotal,
+      // Conservar valores originales en modo edición
+      totalSales: reconciliationToUse?.totalSales || dailySummary?.totalSales || "0.00",
+      creditInvoicesTotal: reconciliationToUse?.creditInvoicesTotal || dailySummary?.creditInvoicesTotal || "0.00",
+      cashInvoicesTotal: reconciliationToUse?.cashInvoicesTotal || dailySummary?.cashInvoicesTotal || "0.00",
+      totalPayments: reconciliationToUse?.totalPayments || dailySummary?.totalPayments || "0.00",
+      receiptsTotal: reconciliationToUse?.receiptsTotal || dailySummary?.receiptsTotal || "0.00",
+      advancesTotal: reconciliationToUse?.advancesTotal || dailySummary?.advancesTotal || "0.00",
       initialCash: parseFloat(initialCash).toFixed(2),
       expectedCash: expectedCash.toFixed(2),
       actualCash: parseFloat(actualCash).toFixed(2),
       lostWaterGallons: parseInt(lostWaterGallons || "0").toString(),
       waterPricePerGallon: waterPricePerGallon.toFixed(2),
       lostWaterValue: lostWaterValue.toFixed(2),
-      donatedWaterGallons: donatedWaterGallons.toFixed(2),
-      donatedWaterValue: donatedWaterValue.toFixed(2),
+      donatedWaterGallons: reconciliationToUse?.donatedWaterGallons || donatedWaterGallons.toFixed(2),
+      donatedWaterValue: reconciliationToUse?.donatedWaterValue || donatedWaterValue.toFixed(2),
       surplus: surplus.toFixed(2),
       shortage: shortage.toFixed(2),
       notes: notes.trim() || undefined,
