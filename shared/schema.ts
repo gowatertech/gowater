@@ -1233,8 +1233,12 @@ export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
   
   // Agua perdida
   lostWaterGallons: decimal("lost_water_gallons", { precision: 10, scale: 2 }).notNull().default("0"),
-  waterPricePerGallon: decimal("water_price_per_gallon", { precision: 10, scale: 2 }).notNull().default("0"),
+  waterPricePerGallon: decimal("water_price_per_gallon", { precision: 10, scale: 2 }).notNull().default("30"),
   lostWaterValue: decimal("lost_water_value", { precision: 10, scale: 2 }).notNull().default("0"),
+  
+  // Agua donada
+  donatedWaterGallons: decimal("donated_water_gallons", { precision: 10, scale: 2 }).notNull().default("0"),
+  donatedWaterValue: decimal("donated_water_value", { precision: 10, scale: 2 }).notNull().default("0"),
   
   // Resultado del cuadre
   surplus: decimal("surplus", { precision: 10, scale: 2 }).notNull().default("0"), // Sobrante

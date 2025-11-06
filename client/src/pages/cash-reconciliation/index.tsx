@@ -69,6 +69,8 @@ interface DailySummary {
   waterPricePerGallon: string;
   invoicesCount: number;
   paymentsCount: number;
+  donatedWaterGallons: string;
+  donatedWaterValue: string;
 }
 
 interface CashReconciliation {
@@ -86,6 +88,8 @@ interface CashReconciliation {
   lostWaterGallons: string;
   waterPricePerGallon: string;
   lostWaterValue: string;
+  donatedWaterGallons: string;
+  donatedWaterValue: string;
   surplus: string;
   shortage: string;
   notes?: string;
@@ -166,8 +170,12 @@ export default function CashReconciliation() {
   });
 
   // Cálculos automáticos
-  const waterPricePerGallon = parseFloat(dailySummary?.waterPricePerGallon || "0");
+  const waterPricePerGallon = 30; // Precio fijo de 30 para agua perdida
   const lostWaterValue = parseFloat(lostWaterGallons || "0") * waterPricePerGallon;
+  
+  // Agua donada (calculada automáticamente desde el backend)
+  const donatedWaterGallons = parseFloat(dailySummary?.donatedWaterGallons || "0");
+  const donatedWaterValue = parseFloat(dailySummary?.donatedWaterValue || "0");
   
   const cashInvoicesTotal = parseFloat(dailySummary?.cashInvoicesTotal || "0");
   const receiptsTotal = parseFloat(dailySummary?.receiptsTotal || "0");
@@ -213,6 +221,8 @@ export default function CashReconciliation() {
       lostWaterGallons: parseInt(lostWaterGallons || "0").toString(),
       waterPricePerGallon: waterPricePerGallon.toFixed(2),
       lostWaterValue: lostWaterValue.toFixed(2),
+      donatedWaterGallons: donatedWaterGallons.toFixed(2),
+      donatedWaterValue: donatedWaterValue.toFixed(2),
       surplus: surplus.toFixed(2),
       shortage: shortage.toFixed(2),
       notes: notes.trim() || undefined,
@@ -419,36 +429,72 @@ export default function CashReconciliation() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Droplet className="h-5 w-5 text-blue-500" />
-                      <h3 className="text-lg font-semibold">Agua Perdida</h3>
+                      <h3 className="text-lg font-semibold">Agua Perdida y Donada</h3>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="lost-water">Cantidad de Galones (solo informativo)</Label>
-                        <Input
-                          id="lost-water"
-                          type="number"
-                          step="1"
-                          value={lostWaterGallons}
-                          onChange={(e) => setLostWaterGallons(e.target.value)}
-                          placeholder="0"
-                          data-testid="input-lost-water-gallons"
-                        />
+                    
+                    {/* Agua Perdida */}
+                    <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg space-y-3 border border-blue-200 dark:border-blue-900">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Droplet className="h-4 w-4 text-blue-600" />
+                        <span className="font-semibold text-sm">Agua Perdida</span>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Precio por Galón</Label>
-                        <div className="flex items-center h-10 px-3 rounded-md border bg-muted">
-                          <span className="font-medium">${waterPricePerGallon.toFixed(2)}</span>
-                          <span className="text-xs text-muted-foreground ml-2">(automático)</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="lost-water" className="text-sm">Cantidad de Galones (solo informativo)</Label>
+                          <Input
+                            id="lost-water"
+                            type="number"
+                            step="1"
+                            value={lostWaterGallons}
+                            onChange={(e) => setLostWaterGallons(e.target.value)}
+                            placeholder="0"
+                            data-testid="input-lost-water-gallons"
+                            className="bg-white dark:bg-gray-900"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Precio por Galón</Label>
+                          <div className="flex items-center h-10 px-3 rounded-md border bg-white dark:bg-gray-900">
+                            <span className="font-medium">${waterPricePerGallon.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground ml-2">(fijo)</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-900 p-3 rounded-md border">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">Valor del Agua Perdida:</span>
+                          <span className="text-lg font-bold text-blue-600" data-testid="text-lost-water-value">
+                            ${lostWaterValue.toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Valor del Agua Perdida:</span>
-                        <span className="text-lg font-bold text-blue-600" data-testid="text-lost-water-value">
-                          ${lostWaterValue.toFixed(2)}
-                        </span>
+
+                    {/* Agua Donada */}
+                    <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg space-y-3 border border-green-200 dark:border-green-900">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Droplet className="h-4 w-4 text-green-600" />
+                        <span className="font-semibold text-sm">Agua Donada</span>
+                        <Badge variant="outline" className="ml-auto text-xs">Automático</Badge>
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm">Cantidad de Galones</Label>
+                          <div className="flex items-center h-10 px-3 rounded-md border bg-white dark:bg-gray-900">
+                            <span className="font-medium">{donatedWaterGallons.toFixed(0)}</span>
+                            <span className="text-xs text-muted-foreground ml-2">gal</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm">Valor Total Donado</Label>
+                          <div className="flex items-center h-10 px-3 rounded-md border bg-white dark:bg-gray-900">
+                            <span className="font-medium text-green-600">${donatedWaterValue.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Calculado automáticamente desde pedidos con método de pago "Donación"
+                      </p>
                     </div>
                   </div>
 
@@ -918,11 +964,24 @@ export default function CashReconciliation() {
                   <Label className="text-xs text-muted-foreground">Efectivo Real</Label>
                   <p className="font-semibold">${parseFloat(selectedReconciliation.actualCash).toFixed(2)}</p>
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Agua Perdida</Label>
+                <div className="col-span-1 sm:col-span-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Droplet className="h-3 w-3 text-blue-600" />
+                    Agua Perdida
+                  </Label>
                   <p className="font-semibold">
                     {parseInt(selectedReconciliation.lostWaterGallons)} gal 
                     (${parseFloat(selectedReconciliation.lostWaterValue).toFixed(2)})
+                  </p>
+                </div>
+                <div className="col-span-1 sm:col-span-2 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg border border-green-200 dark:border-green-900">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Droplet className="h-3 w-3 text-green-600" />
+                    Agua Donada
+                  </Label>
+                  <p className="font-semibold text-green-600">
+                    {parseInt(selectedReconciliation.donatedWaterGallons || "0")} gal 
+                    (${parseFloat(selectedReconciliation.donatedWaterValue || "0").toFixed(2)})
                   </p>
                 </div>
               </div>

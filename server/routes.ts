@@ -7358,6 +7358,66 @@ export async function registerRoutes(router: express.Router) {
         ? parseFloat(waterProducts[0].price.toString()) 
         : 0;
       
+      // Calcular agua donada de pedidos con payment method 'donation'
+      const donationOrders = await db
+        .select({
+          orderId: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.companyId, companyId),
+            eq(orders.paymentMethod, 'donation'),
+            gte(orders.date, startOfDay),
+            lte(orders.date, endOfDay)
+          )
+        );
+      
+      // Obtener los items de los pedidos de donación para contar los galones
+      const donationOrderIds = donationOrders.map(o => o.orderId);
+      let donatedWaterGallons = 0;
+      let donatedWaterValue = 0;
+      
+      if (donationOrderIds.length > 0) {
+        const donationItems = await db
+          .select({
+            productId: orderItems.productId,
+            quantity: orderItems.quantity,
+            price: orderItems.price,
+          })
+          .from(orderItems)
+          .where(sql`${orderItems.orderId} IN (${sql.join(donationOrderIds, sql`, `)})`);
+        
+        // Obtener los productos para identificar cuáles son de agua
+        const productIds = [...new Set(donationItems.map(item => item.productId))];
+        const waterProductsList = await db
+          .select({
+            id: products.id,
+            name: products.name,
+            price: products.price,
+          })
+          .from(products)
+          .where(
+            and(
+              eq(products.companyId, companyId),
+              sql`${products.id} IN (${sql.join(productIds, sql`, `)})`,
+              sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%'`
+            )
+          );
+        
+        const waterProductIds = waterProductsList.map(p => p.id);
+        
+        // Contar galones de agua donados
+        donationItems.forEach(item => {
+          if (waterProductIds.includes(item.productId)) {
+            donatedWaterGallons += parseFloat(item.quantity.toString());
+            donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
+          }
+        });
+      }
+      
       const summary = {
         totalSales: totalSales.toFixed(2),
         creditInvoicesTotal: creditInvoicesTotal.toFixed(2),
@@ -7368,6 +7428,8 @@ export async function registerRoutes(router: express.Router) {
         waterPricePerGallon: waterPricePerGallon.toFixed(2),
         invoicesCount: dailyInvoices.length,
         paymentsCount: dailyPayments.length,
+        donatedWaterGallons: donatedWaterGallons.toFixed(2),
+        donatedWaterValue: donatedWaterValue.toFixed(2),
       };
       
       res.json(summary);
@@ -7458,8 +7520,10 @@ export async function registerRoutes(router: express.Router) {
           expectedCash: data.expectedCash,
           actualCash: data.actualCash,
           lostWaterGallons: data.lostWaterGallons || "0.00",
-          waterPricePerGallon: data.waterPricePerGallon || "0.00",
+          waterPricePerGallon: data.waterPricePerGallon || "30.00",
           lostWaterValue: data.lostWaterValue || "0.00",
+          donatedWaterGallons: data.donatedWaterGallons || "0.00",
+          donatedWaterValue: data.donatedWaterValue || "0.00",
           surplus: data.surplus || "0.00",
           shortage: data.shortage || "0.00",
           notes: data.notes,
