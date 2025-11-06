@@ -372,7 +372,7 @@ export default function CashReconciliation() {
           data-testid="button-back-to-billing"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver a Facturación
+          Volver
         </Button>
       </div>
 
