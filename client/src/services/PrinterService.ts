@@ -1885,37 +1885,28 @@ export class PrinterService {
         </div>
       `;
       
-      // Información adicional
-      const hasLostWater = reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0;
-      const hasDonatedWater = reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0;
+      // Información de agua (siempre mostrar)
+      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       
-      if (hasLostWater || hasDonatedWater) {
-        printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
-      }
-      
-      if (hasLostWater) {
-        printContent.innerHTML += `
-          <div style="margin-bottom: 5px;">
-            <div style="font-weight: bold; margin-bottom: 3px;">AGUA PERDIDA</div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>${parseInt(reconciliation.lostWaterGallons)} galones</span>
-              <span>RD$ ${parseFloat(reconciliation.lostWaterValue).toFixed(2)}</span>
-            </div>
+      printContent.innerHTML += `
+        <div style="margin-bottom: 5px;">
+          <div style="font-weight: bold; margin-bottom: 3px;">AGUA PERDIDA</div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>${parseInt(reconciliation.lostWaterGallons || '0')} galones</span>
+            <span>RD$ ${parseFloat(reconciliation.lostWaterValue || '0').toFixed(2)}</span>
           </div>
-        `;
-      }
+        </div>
+      `;
       
-      if (hasDonatedWater) {
-        printContent.innerHTML += `
-          <div style="margin-bottom: 5px;">
-            <div style="font-weight: bold; margin-bottom: 3px;">AGUA DONADA</div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>${parseInt(reconciliation.donatedWaterGallons)} galones</span>
-              <span>RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}</span>
-            </div>
+      printContent.innerHTML += `
+        <div style="margin-bottom: 5px;">
+          <div style="font-weight: bold; margin-bottom: 3px;">AGUA DONADA</div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>${parseInt(reconciliation.donatedWaterGallons || '0')} galones</span>
+            <span>RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}</span>
           </div>
-        `;
-      }
+        </div>
+      `;
       
       // Notas
       if (reconciliation.notes) {
@@ -2122,38 +2113,29 @@ export class PrinterService {
       doc.text(`RD$ ${parseFloat(reconciliation.actualCash).toFixed(2)}`, 75, yPos, { align: 'right' });
       yPos += 6;
 
-      // Información adicional
-      const hasLostWater = reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0;
-      const hasDonatedWater = reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0;
-      
-      if (hasLostWater || hasDonatedWater) {
-        doc.setDrawColor(200);
-        doc.line(5, yPos, 75, yPos);
-        yPos += 5;
-        doc.setFontSize(8);
-      }
+      // Información de agua (siempre mostrar)
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+      doc.setFontSize(8);
 
-      if (hasLostWater) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('AGUA PERDIDA', 10, yPos);
-        yPos += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.text('AGUA PERDIDA', 10, yPos);
+      yPos += 4;
 
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${parseInt(reconciliation.lostWaterGallons)} galones`, 10, yPos);
-        doc.text(`RD$ ${parseFloat(reconciliation.lostWaterValue).toFixed(2)}`, 75, yPos, { align: 'right' });
-        yPos += 5;
-      }
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${parseInt(reconciliation.lostWaterGallons || '0')} galones`, 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.lostWaterValue || '0').toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
 
-      if (hasDonatedWater) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('AGUA DONADA', 10, yPos);
-        yPos += 4;
+      doc.setFont('helvetica', 'bold');
+      doc.text('AGUA DONADA', 10, yPos);
+      yPos += 4;
 
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${parseInt(reconciliation.donatedWaterGallons)} galones`, 10, yPos);
-        doc.text(`RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}`, 75, yPos, { align: 'right' });
-        yPos += 5;
-      }
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${parseInt(reconciliation.donatedWaterGallons || '0')} galones`, 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
 
       // Notas
       if (reconciliation.notes) {

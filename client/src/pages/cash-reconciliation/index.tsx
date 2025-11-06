@@ -1232,46 +1232,40 @@ export default function CashReconciliation() {
                 </div>
 
                 {/* Agua Perdida y Donada */}
-                {(parseInt(selectedReconciliation.lostWaterGallons) > 0 || parseInt(selectedReconciliation.donatedWaterGallons || "0") > 0) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {parseInt(selectedReconciliation.lostWaterGallons) > 0 && (
-                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/20 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-800">
-                            <Droplet className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                          </div>
-                          <h4 className="font-semibold text-slate-700 dark:text-slate-300">Agua Perdida</h4>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">
-                            {parseInt(selectedReconciliation.lostWaterGallons)} gal
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Valor: ${parseFloat(selectedReconciliation.lostWaterValue).toFixed(2)}
-                          </p>
-                        </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/20 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-800">
+                        <Droplet className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                       </div>
-                    )}
-                    {parseInt(selectedReconciliation.donatedWaterGallons || "0") > 0 && (
-                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/20 p-5 rounded-xl border border-teal-200 dark:border-teal-800">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-2 rounded-lg bg-teal-200 dark:bg-teal-800">
-                            <Droplet className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                          </div>
-                          <h4 className="font-semibold text-teal-700 dark:text-teal-300">Agua Donada</h4>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-2xl font-bold text-teal-700 dark:text-teal-300">
-                            {parseInt(selectedReconciliation.donatedWaterGallons || "0")} gal
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Valor: ${parseFloat(selectedReconciliation.donatedWaterValue || "0").toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      <h4 className="font-semibold text-slate-700 dark:text-slate-300">Agua Perdida</h4>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">
+                        {parseInt(selectedReconciliation.lostWaterGallons || "0")} gal
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Valor: ${parseFloat(selectedReconciliation.lostWaterValue || "0").toFixed(2)}
+                      </p>
+                    </div>
                   </div>
-                )}
+                  <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/20 p-5 rounded-xl border border-teal-200 dark:border-teal-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-teal-200 dark:bg-teal-800">
+                        <Droplet className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                      </div>
+                      <h4 className="font-semibold text-teal-700 dark:text-teal-300">Agua Donada</h4>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-2xl font-bold text-teal-700 dark:text-teal-300">
+                        {parseInt(selectedReconciliation.donatedWaterGallons || "0")} gal
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Valor: ${parseFloat(selectedReconciliation.donatedWaterValue || "0").toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Notas */}
                 {selectedReconciliation.notes && (
