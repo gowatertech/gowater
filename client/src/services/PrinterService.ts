@@ -1750,23 +1750,25 @@ export class PrinterService {
       printContent.style.padding = '5mm';
       printContent.style.width = '80mm';
 
-      // Encabezado de la empresa
+      // Encabezado de la empresa (igual que en facturas)
       if (settings) {
         const companyName = settings.name || 'Empresa';
         const rnc = settings.rnc || '';
         const street = settings.street || '';
         const streetNumber = settings.streetNumber || '';
-        const municipality = settings.municipalityName || '';
-        const province = settings.provinceName || '';
+        const companyMunicipality = settings.municipalityName || '';
+        const companyProvince = settings.provinceName || '';
         const contactPhone = settings.contactPhone || '';
+        const email = settings.email || '';
         
         printContent.innerHTML += `
           <div style="text-align: center; margin-bottom: 10px;">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
             <div style="font-size: 9px;">RNC: ${rnc}</div>
             <div style="font-size: 9px;">${street} ${streetNumber}</div>
-            <div style="font-size: 9px;">${municipality}, ${province}</div>
+            <div style="font-size: 9px;">${companyMunicipality}, ${companyProvince}</div>
             <div style="font-size: 9px;">Tel: ${contactPhone}</div>
+            <div style="font-size: 9px;">Email: ${email}</div>
           </div>
         `;
       }
@@ -1969,30 +1971,35 @@ export class PrinterService {
 
       let yPos = 10;
 
-      // Encabezado de la empresa
+      // Encabezado de la empresa (igual que en facturas)
       if (settings) {
         const companyName = settings.name || 'Empresa';
         const rnc = settings.rnc || '';
         const street = settings.street || '';
         const streetNumber = settings.streetNumber || '';
-        const municipality = settings.municipalityName || '';
-        const province = settings.provinceName || '';
+        const companyMunicipality = settings.municipalityName || '';
+        const companyProvince = settings.provinceName || '';
         const contactPhone = settings.contactPhone || '';
+        const email = settings.email || '';
 
+        // Encabezado: Nombre de la empresa
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text(companyName, 40, yPos, { align: 'center' });
 
+        // Información de la empresa
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.text(`RNC: ${rnc}`, 40, yPos + 5, { align: 'center' });
         doc.text(`${street} ${streetNumber}`, 40, yPos + 9, { align: 'center' });
-        doc.text(`${municipality}, ${province}`, 40, yPos + 13, { align: 'center' });
+        doc.text(`${companyMunicipality}, ${companyProvince}`, 40, yPos + 13, { align: 'center' });
         doc.text(`Tel: ${contactPhone}`, 40, yPos + 17, { align: 'center' });
+        doc.text(`Email: ${email}`, 40, yPos + 21, { align: 'center' });
 
+        // Línea separadora
         doc.setDrawColor(200);
-        doc.line(5, yPos + 20, 75, yPos + 20);
-        yPos += 24;
+        doc.line(5, yPos + 24, 75, yPos + 24);
+        yPos += 28;
       }
 
       // Título
