@@ -163,6 +163,7 @@ export default function CashReconciliation() {
       toast({
         title: "Cuadre guardado",
         description: "El cuadre de caja se ha registrado exitosamente",
+        duration: 3000,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cash-reconciliation"] });
       resetForm();
@@ -194,6 +195,7 @@ export default function CashReconciliation() {
       toast({
         title: "Cuadre actualizado",
         description: "El cuadre de caja se ha actualizado exitosamente",
+        duration: 3000,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/cash-reconciliation"] });
       resetForm();
