@@ -167,8 +167,8 @@ export default function CashReconciliation() {
   const receiptsTotal = parseFloat(dailySummary?.receiptsTotal || "0");
   const advancesTotal = parseFloat(dailySummary?.advancesTotal || "0");
   
-  // Nueva fórmula: efectivo caja - (efectivo FT + ANT + efectivo inicial)
-  const expectedCash = cashInvoicesTotal + advancesTotal + parseFloat(initialCash);
+  // Nueva fórmula: Efectivo Esperado = Inicial + RI + ANT (sin incluir FT)
+  const expectedCash = parseFloat(initialCash) + receiptsTotal + advancesTotal;
   
   const actualCashValue = parseFloat(actualCash);
   const difference = actualCashValue - expectedCash;
@@ -457,7 +457,7 @@ export default function CashReconciliation() {
                           ${expectedCash.toFixed(2)}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Inicial + FT Cash + ANT
+                          Inicial + RI + ANT
                         </p>
                       </div>
                       <div className={cn(
