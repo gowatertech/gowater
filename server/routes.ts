@@ -7538,6 +7538,69 @@ export async function registerRoutes(router: express.Router) {
     }
   });
   
+  // Actualizar un cuadre de caja existente
+  router.patch("/cash-reconciliation/:id", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = req.session.companyId as number;
+      const userId = req.user?.id;
+      const reconciliationId = parseInt(req.params.id);
+      
+      if (!userId) {
+        return res.status(401).json({ error: "No autenticado" });
+      }
+      
+      if (isNaN(reconciliationId)) {
+        return res.status(400).json({ error: "ID de cuadre inválido" });
+      }
+      
+      // Verificar que el cuadre existe y pertenece a la compañía
+      const existing = await db
+        .select()
+        .from(platformSchema.dailyCashReconciliations)
+        .where(
+          and(
+            eq(platformSchema.dailyCashReconciliations.id, reconciliationId),
+            eq(platformSchema.dailyCashReconciliations.companyId, companyId)
+          )
+        )
+        .limit(1);
+      
+      if (!existing || existing.length === 0) {
+        return res.status(404).json({ error: "Cuadre no encontrado" });
+      }
+      
+      const data = req.body;
+      
+      const [updatedReconciliation] = await db
+        .update(platformSchema.dailyCashReconciliations)
+        .set({
+          initialCash: data.initialCash,
+          expectedCash: data.expectedCash,
+          actualCash: data.actualCash,
+          lostWaterGallons: data.lostWaterGallons || "0.00",
+          waterPricePerGallon: data.waterPricePerGallon || "30.00",
+          lostWaterValue: data.lostWaterValue || "0.00",
+          donatedWaterGallons: data.donatedWaterGallons || "0.00",
+          donatedWaterValue: data.donatedWaterValue || "0.00",
+          surplus: data.surplus || "0.00",
+          shortage: data.shortage || "0.00",
+          notes: data.notes,
+        })
+        .where(
+          and(
+            eq(platformSchema.dailyCashReconciliations.id, reconciliationId),
+            eq(platformSchema.dailyCashReconciliations.companyId, companyId)
+          )
+        )
+        .returning();
+      
+      res.json(updatedReconciliation);
+    } catch (error) {
+      console.error("Error al actualizar cuadre de caja:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Listar todos los cuadres de caja
   router.get("/cash-reconciliation", companyAuthMiddleware, async (req, res) => {
     try {
@@ -7559,6 +7622,8 @@ export async function registerRoutes(router: express.Router) {
           lostWaterGallons: platformSchema.dailyCashReconciliations.lostWaterGallons,
           waterPricePerGallon: platformSchema.dailyCashReconciliations.waterPricePerGallon,
           lostWaterValue: platformSchema.dailyCashReconciliations.lostWaterValue,
+          donatedWaterGallons: platformSchema.dailyCashReconciliations.donatedWaterGallons,
+          donatedWaterValue: platformSchema.dailyCashReconciliations.donatedWaterValue,
           surplus: platformSchema.dailyCashReconciliations.surplus,
           shortage: platformSchema.dailyCashReconciliations.shortage,
           notes: platformSchema.dailyCashReconciliations.notes,

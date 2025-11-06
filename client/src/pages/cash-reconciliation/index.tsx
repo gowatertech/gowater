@@ -110,6 +110,8 @@ export default function CashReconciliation() {
   const [existingReconciliation, setExistingReconciliation] = useState<CashReconciliation | null>(null);
   const [selectedReconciliation, setSelectedReconciliation] = useState<CashReconciliation | null>(null);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingReconciliationId, setEditingReconciliationId] = useState<number | null>(null);
 
   // Obtener resumen diario
   const { data: dailySummary, isLoading: isLoadingSummary } = useQuery<DailySummary>({
@@ -169,6 +171,32 @@ export default function CashReconciliation() {
     },
   });
 
+  // Mutación para actualizar cuadre
+  const updateReconciliationMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return await apiRequest({
+        url: `/api/cash-reconciliation/${id}`,
+        method: "PATCH",
+        data,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Cuadre actualizado",
+        description: "El cuadre de caja se ha actualizado exitosamente",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/cash-reconciliation"] });
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.error || "No se pudo actualizar el cuadre",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Cálculos automáticos
   const waterPricePerGallon = 30; // Precio fijo de 30 para agua perdida
   const lostWaterValue = parseFloat(lostWaterGallons || "0") * waterPricePerGallon;
@@ -195,6 +223,25 @@ export default function CashReconciliation() {
     setActualCash("0.00");
     setLostWaterGallons("0");
     setNotes("");
+    setIsEditMode(false);
+    setEditingReconciliationId(null);
+  };
+
+  const loadExistingReconciliation = () => {
+    if (existenceCheck?.reconciliation) {
+      const rec = existenceCheck.reconciliation;
+      setInitialCash(parseFloat(rec.initialCash).toFixed(2));
+      setActualCash(parseFloat(rec.actualCash).toFixed(2));
+      setLostWaterGallons(parseInt(rec.lostWaterGallons).toString());
+      setNotes(rec.notes || "");
+      setIsEditMode(true);
+      setEditingReconciliationId(rec.id);
+      
+      toast({
+        title: "Modo Edición",
+        description: "Ahora puedes modificar el cuadre existente",
+      });
+    }
   };
 
   const handleSubmit = () => {
@@ -228,7 +275,11 @@ export default function CashReconciliation() {
       notes: notes.trim() || undefined,
     };
 
-    createReconciliationMutation.mutate(data);
+    if (isEditMode && editingReconciliationId) {
+      updateReconciliationMutation.mutate({ id: editingReconciliationId, data });
+    } else {
+      createReconciliationMutation.mutate(data);
+    }
   };
 
   const viewReconciliationDetails = (reconciliation: CashReconciliation) => {
@@ -279,14 +330,36 @@ export default function CashReconciliation() {
                     id="reconciliation-date"
                     type="date"
                     value={format(new Date(selectedDate), "yyyy-MM-dd")}
-                    onChange={(e) => setSelectedDate(new Date(e.target.value).toISOString())}
+                    onChange={(e) => {
+                      setSelectedDate(new Date(e.target.value).toISOString());
+                      setIsEditMode(false);
+                      setEditingReconciliationId(null);
+                    }}
                     data-testid="input-reconciliation-date"
                   />
                 </div>
-                {existenceCheck?.exists && (
-                  <Badge variant="destructive" className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    Ya existe cuadre para esta fecha
+                {existenceCheck?.exists && !isEditMode && (
+                  <div className="flex flex-col sm:flex-row gap-2 items-center">
+                    <Badge variant="destructive" className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Ya existe cuadre para esta fecha
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadExistingReconciliation}
+                      className="gap-2"
+                      data-testid="button-edit-existing"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Editar Cuadre
+                    </Button>
+                  </div>
+                )}
+                {isEditMode && (
+                  <Badge className="flex items-center gap-2 bg-blue-600">
+                    <FileText className="h-4 w-4" />
+                    Editando cuadre existente
                   </Badge>
                 )}
               </div>
@@ -572,16 +645,20 @@ export default function CashReconciliation() {
                       onClick={resetForm}
                       data-testid="button-reset"
                     >
-                      Limpiar
+                      {isEditMode ? "Cancelar" : "Limpiar"}
                     </Button>
                     <Button
                       onClick={handleSubmit}
-                      disabled={createReconciliationMutation.isPending || existenceCheck?.exists}
+                      disabled={(createReconciliationMutation.isPending || updateReconciliationMutation.isPending) || (existenceCheck?.exists && !isEditMode)}
                       className="gap-2"
                       data-testid="button-save-reconciliation"
                     >
                       <Save className="h-4 w-4" />
-                      {createReconciliationMutation.isPending ? "Guardando..." : "Guardar Cuadre"}
+                      {createReconciliationMutation.isPending || updateReconciliationMutation.isPending 
+                        ? "Guardando..." 
+                        : isEditMode 
+                        ? "Actualizar Cuadre" 
+                        : "Guardar Cuadre"}
                     </Button>
                   </div>
                 </CardContent>
