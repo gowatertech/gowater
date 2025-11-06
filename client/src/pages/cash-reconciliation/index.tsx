@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toRD, formatDateRD, parseDateStringRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { PrinterService } from "@/services/PrinterService";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,10 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   MinusCircle,
+  Printer,
+  Download,
+  Info,
+  ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -138,6 +143,11 @@ export default function CashReconciliation() {
   // Obtener historial de cuadres
   const { data: reconciliations = [], isLoading: isLoadingHistory } = useQuery<CashReconciliation[]>({
     queryKey: ["/api/cash-reconciliation"],
+  });
+
+  // Obtener configuración de la empresa
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/company/settings"],
   });
 
   // Mutación para crear cuadre
@@ -297,6 +307,31 @@ export default function CashReconciliation() {
   const viewReconciliationDetails = (reconciliation: CashReconciliation) => {
     setSelectedReconciliation(reconciliation);
     setShowDetailDialog(true);
+  };
+
+  // Funciones de impresión
+  const handlePrintReconciliation = async (reconciliation: CashReconciliation) => {
+    try {
+      await PrinterService.printCashReconciliation(reconciliation, settings);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo imprimir el cuadre",
+      });
+    }
+  };
+
+  const handleGeneratePDF = async (reconciliation: CashReconciliation) => {
+    try {
+      await PrinterService.generateCashReconciliationPDF(reconciliation, settings);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo generar el PDF",
+      });
+    }
   };
 
   return (
@@ -997,97 +1032,266 @@ export default function CashReconciliation() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de detalles */}
+      {/* Dialog de detalles moderno */}
       <AlertDialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <AlertDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Detalles del Cuadre
+            <AlertDialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <span>Detalles del Cuadre</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => selectedReconciliation && handlePrintReconciliation(selectedReconciliation)}
+                  disabled={!selectedReconciliation}
+                  data-testid="button-print-reconciliation"
+                  className="gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => selectedReconciliation && handleGeneratePDF(selectedReconciliation)}
+                  disabled={!selectedReconciliation}
+                  data-testid="button-download-pdf"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  PDF
+                </Button>
+              </div>
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
               {selectedReconciliation && formatDateRD(new Date(selectedReconciliation.reconciliationDate))}
+              <span className="text-muted-foreground">•</span>
+              <User className="h-4 w-4" />
+              {selectedReconciliation?.userName || "N/A"}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {selectedReconciliation && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Total Ventas</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.totalSales).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">FT Crédito</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.creditInvoicesTotal).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">FT Efectivo</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.cashInvoicesTotal).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Total Pagos</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.totalPayments).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Recibos (RI)</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.receiptsTotal).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Anticipos (ANT)</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.advancesTotal).toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Efectivo Inicial</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.initialCash).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Efectivo Esperado</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.expectedCash).toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Efectivo Real</Label>
-                  <p className="font-semibold">${parseFloat(selectedReconciliation.actualCash).toFixed(2)}</p>
-                </div>
-                <div className="col-span-1 sm:col-span-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Droplet className="h-3 w-3 text-blue-600" />
-                    Agua Perdida
-                  </Label>
-                  <p className="font-semibold">
-                    {parseInt(selectedReconciliation.lostWaterGallons)} gal 
-                    (${parseFloat(selectedReconciliation.lostWaterValue).toFixed(2)})
-                  </p>
-                </div>
-                <div className="col-span-1 sm:col-span-2 bg-green-50 dark:bg-green-950/30 p-3 rounded-lg border border-green-200 dark:border-green-900">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Droplet className="h-3 w-3 text-green-600" />
-                    Agua Donada
-                  </Label>
-                  <p className="font-semibold text-green-600">
-                    {parseInt(selectedReconciliation.donatedWaterGallons || "0")} gal 
-                    (${parseFloat(selectedReconciliation.donatedWaterValue || "0").toFixed(2)})
-                  </p>
-                </div>
-              </div>
-
-              {selectedReconciliation.notes && (
-                <>
-                  <Separator />
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Notas</Label>
-                    <p className="text-sm mt-1">{selectedReconciliation.notes}</p>
+          {selectedReconciliation && (() => {
+            const surplus = parseFloat(selectedReconciliation.surplus);
+            const shortage = parseFloat(selectedReconciliation.shortage);
+            const isBalanced = surplus === 0 && shortage === 0;
+            
+            return (
+              <div className="space-y-6">
+                {/* Resultado destacado */}
+                <div className={cn(
+                  "p-6 rounded-xl border-2",
+                  isBalanced && "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-500",
+                  surplus > 0 && "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-500",
+                  shortage > 0 && "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-500"
+                )}>
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      {isBalanced && <CheckCircle2 className="h-8 w-8 text-emerald-600" />}
+                      {surplus > 0 && <TrendingUp className="h-8 w-8 text-green-600" />}
+                      {shortage > 0 && <TrendingDown className="h-8 w-8 text-red-600" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Resultado del Cuadre</p>
+                      {isBalanced && (
+                        <>
+                          <p className="text-3xl font-bold text-emerald-600">Cuadre Perfecto</p>
+                          <p className="text-lg text-emerald-600 mt-1">$0.00</p>
+                        </>
+                      )}
+                      {surplus > 0 && (
+                        <>
+                          <p className="text-3xl font-bold text-green-600">Sobrante</p>
+                          <p className="text-lg text-green-600 mt-1">+${surplus.toFixed(2)}</p>
+                        </>
+                      )}
+                      {shortage > 0 && (
+                        <>
+                          <p className="text-3xl font-bold text-red-600">Faltante</p>
+                          <p className="text-lg text-red-600 mt-1">-${shortage.toFixed(2)}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                </div>
+
+                {/* Resumen de Ventas */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 p-5 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold mb-4 text-blue-700 dark:text-blue-400">
+                    <ShoppingCart className="h-5 w-5" />
+                    Resumen de Ventas
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-blue-600" />
+                        <Label className="text-xs text-muted-foreground">Total Ventas</Label>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
+                        ${parseFloat(selectedReconciliation.totalSales).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CreditCard className="h-4 w-4 text-amber-600" />
+                        <Label className="text-xs text-muted-foreground">FT Crédito</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-amber-700 dark:text-amber-400">
+                        ${parseFloat(selectedReconciliation.creditInvoicesTotal).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Banknote className="h-4 w-4 text-green-600" />
+                        <Label className="text-xs text-muted-foreground">FT Efectivo</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-green-700 dark:text-green-400">
+                        ${parseFloat(selectedReconciliation.cashInvoicesTotal).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pagos Recibidos */}
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 p-5 rounded-xl border border-purple-200 dark:border-purple-800">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold mb-4 text-purple-700 dark:text-purple-400">
+                    <Wallet className="h-5 w-5" />
+                    Pagos Recibidos
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4 text-purple-600" />
+                        <Label className="text-xs text-muted-foreground">Total Pagos</Label>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+                        ${parseFloat(selectedReconciliation.totalPayments).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Receipt className="h-4 w-4 text-indigo-600" />
+                        <Label className="text-xs text-muted-foreground">Recibos (RI)</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-indigo-700 dark:text-indigo-400">
+                        ${parseFloat(selectedReconciliation.receiptsTotal).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-4 w-4 text-cyan-600" />
+                        <Label className="text-xs text-muted-foreground">Anticipos (ANT)</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-cyan-700 dark:text-cyan-400">
+                        ${parseFloat(selectedReconciliation.advancesTotal).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cuadre de Efectivo */}
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950/30 dark:to-amber-900/20 p-5 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold mb-4 text-amber-700 dark:text-amber-400">
+                    <Calculator className="h-5 w-5" />
+                    Cuadre de Efectivo
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Banknote className="h-4 w-4 text-amber-600" />
+                        <Label className="text-xs text-muted-foreground">Efectivo Inicial</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-amber-700 dark:text-amber-400">
+                        ${parseFloat(selectedReconciliation.initialCash).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calculator className="h-4 w-4 text-orange-600" />
+                        <Label className="text-xs text-muted-foreground">Efectivo Esperado</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-orange-700 dark:text-orange-400">
+                        ${parseFloat(selectedReconciliation.expectedCash).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-white/80 dark:bg-gray-950/50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wallet className="h-4 w-4 text-green-600" />
+                        <Label className="text-xs text-muted-foreground">Efectivo Real</Label>
+                      </div>
+                      <p className="text-xl font-semibold text-green-700 dark:text-green-400">
+                        ${parseFloat(selectedReconciliation.actualCash).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Agua Perdida y Donada */}
+                {(parseInt(selectedReconciliation.lostWaterGallons) > 0 || parseInt(selectedReconciliation.donatedWaterGallons || "0") > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {parseInt(selectedReconciliation.lostWaterGallons) > 0 && (
+                      <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950/30 dark:to-slate-900/20 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-2 rounded-lg bg-slate-200 dark:bg-slate-800">
+                            <Droplet className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                          </div>
+                          <h4 className="font-semibold text-slate-700 dark:text-slate-300">Agua Perdida</h4>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">
+                            {parseInt(selectedReconciliation.lostWaterGallons)} gal
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Valor: ${parseFloat(selectedReconciliation.lostWaterValue).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {parseInt(selectedReconciliation.donatedWaterGallons || "0") > 0 && (
+                      <div className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950/30 dark:to-teal-900/20 p-5 rounded-xl border border-teal-200 dark:border-teal-800">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="p-2 rounded-lg bg-teal-200 dark:bg-teal-800">
+                            <Droplet className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                          </div>
+                          <h4 className="font-semibold text-teal-700 dark:text-teal-300">Agua Donada</h4>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-2xl font-bold text-teal-700 dark:text-teal-300">
+                            {parseInt(selectedReconciliation.donatedWaterGallons || "0")} gal
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Valor: ${parseFloat(selectedReconciliation.donatedWaterValue || "0").toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Notas */}
+                {selectedReconciliation.notes && (
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950/30 dark:to-gray-900/20 p-5 rounded-xl border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-gray-200 dark:bg-gray-800">
+                        <Info className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <h4 className="font-semibold text-gray-700 dark:text-gray-300">Notas</h4>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      {selectedReconciliation.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <AlertDialogFooter>
-            <AlertDialogCancel>Cerrar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-close-detail-dialog">Cerrar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

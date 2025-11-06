@@ -1737,4 +1737,428 @@ export class PrinterService {
       });
     }
   }
+
+  /**
+   * Imprimir cuadre de caja diario
+   */
+  static async printCashReconciliation(reconciliation: any, settings: any): Promise<void> {
+    try {
+      const printContent = document.createElement('div');
+      printContent.style.fontFamily = 'Arial, sans-serif';
+      printContent.style.fontSize = '10px';
+      printContent.style.lineHeight = '1.4';
+      printContent.style.padding = '5mm';
+      printContent.style.width = '80mm';
+
+      // Encabezado de la empresa
+      if (settings) {
+        const companyName = settings.name || 'Empresa';
+        const rnc = settings.rnc || '';
+        const street = settings.street || '';
+        const streetNumber = settings.streetNumber || '';
+        const municipality = settings.municipalityName || '';
+        const province = settings.provinceName || '';
+        const contactPhone = settings.contactPhone || '';
+        
+        printContent.innerHTML += `
+          <div style="text-align: center; margin-bottom: 10px;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
+            <div style="font-size: 9px;">RNC: ${rnc}</div>
+            <div style="font-size: 9px;">${street} ${streetNumber}</div>
+            <div style="font-size: 9px;">${municipality}, ${province}</div>
+            <div style="font-size: 9px;">Tel: ${contactPhone}</div>
+          </div>
+        `;
+      }
+      
+      // Separador
+      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
+      
+      // Título
+      printContent.innerHTML += `
+        <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 10px 0;">
+          CUADRE DE CAJA
+        </div>
+      `;
+      
+      // Fecha y usuario
+      const formattedDate = formatDateRD(reconciliation.reconciliationDate, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      
+      printContent.innerHTML += `
+        <div style="margin-bottom: 10px;">
+          <div style="font-size: 10px;"><strong>Fecha:</strong> ${formattedDate}</div>
+          <div style="font-size: 10px;"><strong>Usuario:</strong> ${reconciliation.userName || 'N/A'}</div>
+        </div>
+      `;
+      
+      // Separador
+      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
+      
+      // Resumen de Ventas
+      printContent.innerHTML += `
+        <div style="margin-bottom: 8px;">
+          <div style="font-weight: bold; margin-bottom: 5px;">RESUMEN DE VENTAS</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Total Ventas:</span>
+            <span style="font-weight: bold;">RD$ ${parseFloat(reconciliation.totalSales).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>FT a Crédito:</span>
+            <span>RD$ ${parseFloat(reconciliation.creditInvoicesTotal).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>FT Efectivo:</span>
+            <span>RD$ ${parseFloat(reconciliation.cashInvoicesTotal).toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+      
+      // Pagos Recibidos
+      printContent.innerHTML += `
+        <div style="margin-bottom: 8px;">
+          <div style="font-weight: bold; margin-bottom: 5px;">PAGOS RECIBIDOS</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Total Pagos:</span>
+            <span style="font-weight: bold;">RD$ ${parseFloat(reconciliation.totalPayments).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Recibos (RI):</span>
+            <span>RD$ ${parseFloat(reconciliation.receiptsTotal).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Anticipos (ANT):</span>
+            <span>RD$ ${parseFloat(reconciliation.advancesTotal).toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+      
+      // Separador
+      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
+      
+      // Cuadre de Efectivo
+      const surplus = parseFloat(reconciliation.surplus);
+      const shortage = parseFloat(reconciliation.shortage);
+      const isBalanced = surplus === 0 && shortage === 0;
+      
+      printContent.innerHTML += `
+        <div style="margin-bottom: 8px;">
+          <div style="font-weight: bold; margin-bottom: 5px;">CUADRE DE EFECTIVO</div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Efectivo Inicial:</span>
+            <span>RD$ ${parseFloat(reconciliation.initialCash).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Efectivo Esperado:</span>
+            <span style="font-weight: bold;">RD$ ${parseFloat(reconciliation.expectedCash).toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+            <span>Efectivo Real:</span>
+            <span style="font-weight: bold;">RD$ ${parseFloat(reconciliation.actualCash).toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+      
+      // Resultado
+      printContent.innerHTML += `<div style="border-top: 2px solid #000; margin: 8px 0;"></div>`;
+      
+      let resultText = '';
+      if (isBalanced) {
+        resultText = 'CUADRE PERFECTO';
+      } else if (surplus > 0) {
+        resultText = `SOBRANTE: RD$ ${surplus.toFixed(2)}`;
+      } else {
+        resultText = `FALTANTE: RD$ ${shortage.toFixed(2)}`;
+      }
+      
+      printContent.innerHTML += `
+        <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 8px 0;">
+          ${resultText}
+        </div>
+      `;
+      
+      // Información adicional
+      if (reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0) {
+        printContent.innerHTML += `
+          <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+          <div style="margin-bottom: 5px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">AGUA PERDIDA</div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>${parseInt(reconciliation.lostWaterGallons)} galones</span>
+              <span>RD$ ${parseFloat(reconciliation.lostWaterValue).toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+      }
+      
+      if (reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0) {
+        printContent.innerHTML += `
+          <div style="margin-bottom: 5px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">AGUA DONADA</div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>${parseInt(reconciliation.donatedWaterGallons)} galones</span>
+              <span>RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Notas
+      if (reconciliation.notes) {
+        printContent.innerHTML += `
+          <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+          <div style="margin-top: 5px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">NOTAS:</div>
+            <div style="font-size: 9px;">${reconciliation.notes}</div>
+          </div>
+        `;
+      }
+      
+      // Separador final
+      printContent.innerHTML += `
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; margin-top: 10px; font-size: 9px;">
+          Cuadre generado el ${formatDateRD(new Date())}
+        </div>
+      `;
+      
+      // Imprimir
+      await this.printDocument(printContent, {
+        title: `Cuadre de Caja - ${formattedDate}`,
+        size: [80, 200],
+      });
+    } catch (error: any) {
+      console.error('Error en printCashReconciliation:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al imprimir el cuadre de caja",
+      });
+    }
+  }
+
+  /**
+   * Generar PDF de cuadre de caja
+   */
+  static async generateCashReconciliationPDF(reconciliation: any, settings: any): Promise<void> {
+    try {
+      toast({
+        title: "Generando PDF",
+        description: "Preparando documento...",
+      });
+
+      // Crear documento PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 297],
+        hotfixes: ['px_scaling'],
+      });
+
+      let yPos = 10;
+
+      // Encabezado de la empresa
+      if (settings) {
+        const companyName = settings.name || 'Empresa';
+        const rnc = settings.rnc || '';
+        const street = settings.street || '';
+        const streetNumber = settings.streetNumber || '';
+        const municipality = settings.municipalityName || '';
+        const province = settings.provinceName || '';
+        const contactPhone = settings.contactPhone || '';
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(companyName, 40, yPos, { align: 'center' });
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`RNC: ${rnc}`, 40, yPos + 5, { align: 'center' });
+        doc.text(`${street} ${streetNumber}`, 40, yPos + 9, { align: 'center' });
+        doc.text(`${municipality}, ${province}`, 40, yPos + 13, { align: 'center' });
+        doc.text(`Tel: ${contactPhone}`, 40, yPos + 17, { align: 'center' });
+
+        doc.setDrawColor(200);
+        doc.line(5, yPos + 20, 75, yPos + 20);
+        yPos += 24;
+      }
+
+      // Título
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CUADRE DE CAJA', 40, yPos, { align: 'center' });
+      yPos += 7;
+
+      // Fecha y usuario
+      const formattedDate = formatDateRD(reconciliation.reconciliationDate, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${formattedDate}`, 10, yPos);
+      yPos += 4;
+      doc.text(`Usuario: ${reconciliation.userName || 'N/A'}`, 10, yPos);
+      yPos += 6;
+
+      // Línea
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+
+      // Resumen de Ventas
+      doc.setFont('helvetica', 'bold');
+      doc.text('RESUMEN DE VENTAS', 10, yPos);
+      yPos += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Ventas:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.totalSales).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('FT a Crédito:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.creditInvoicesTotal).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('FT Efectivo:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.cashInvoicesTotal).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 6;
+
+      // Pagos Recibidos
+      doc.setFont('helvetica', 'bold');
+      doc.text('PAGOS RECIBIDOS', 10, yPos);
+      yPos += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Total Pagos:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.totalPayments).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('Recibos (RI):', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.receiptsTotal).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('Anticipos (ANT):', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.advancesTotal).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 6;
+
+      // Línea
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+
+      // Cuadre de Efectivo
+      doc.setFont('helvetica', 'bold');
+      doc.text('CUADRE DE EFECTIVO', 10, yPos);
+      yPos += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Efectivo Inicial:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.initialCash).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('Efectivo Esperado:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.expectedCash).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 4;
+
+      doc.text('Efectivo Real:', 10, yPos);
+      doc.text(`RD$ ${parseFloat(reconciliation.actualCash).toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 6;
+
+      // Resultado
+      const surplus = parseFloat(reconciliation.surplus);
+      const shortage = parseFloat(reconciliation.shortage);
+      const isBalanced = surplus === 0 && shortage === 0;
+
+      doc.setDrawColor(0);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+
+      if (isBalanced) {
+        doc.text('CUADRE PERFECTO', 40, yPos, { align: 'center' });
+      } else if (surplus > 0) {
+        doc.text(`SOBRANTE: RD$ ${surplus.toFixed(2)}`, 40, yPos, { align: 'center' });
+      } else {
+        doc.text(`FALTANTE: RD$ ${shortage.toFixed(2)}`, 40, yPos, { align: 'center' });
+      }
+      yPos += 8;
+
+      // Información adicional
+      if (reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0) {
+        doc.setDrawColor(200);
+        doc.line(5, yPos, 75, yPos);
+        yPos += 5;
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('AGUA PERDIDA', 10, yPos);
+        yPos += 4;
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${parseInt(reconciliation.lostWaterGallons)} galones`, 10, yPos);
+        doc.text(`RD$ ${parseFloat(reconciliation.lostWaterValue).toFixed(2)}`, 75, yPos, { align: 'right' });
+        yPos += 5;
+      }
+
+      if (reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('AGUA DONADA', 10, yPos);
+        yPos += 4;
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(`${parseInt(reconciliation.donatedWaterGallons)} galones`, 10, yPos);
+        doc.text(`RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}`, 75, yPos, { align: 'right' });
+        yPos += 5;
+      }
+
+      // Notas
+      if (reconciliation.notes) {
+        doc.setDrawColor(200);
+        doc.line(5, yPos, 75, yPos);
+        yPos += 5;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOTAS:', 10, yPos);
+        yPos += 4;
+
+        doc.setFont('helvetica', 'normal');
+        const splitNotes = doc.splitTextToSize(reconciliation.notes, 70);
+        doc.text(splitNotes, 10, yPos);
+        yPos += splitNotes.length * 4;
+      }
+
+      // Pie de página
+      yPos += 5;
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+
+      doc.setFontSize(8);
+      doc.text(`Cuadre generado el ${formatDateRD(new Date())}`, 40, yPos, { align: 'center' });
+
+      // Guardar PDF
+      const fileName = `CuadreCaja-${formattedDate.replace(/\//g, '-')}.pdf`;
+      doc.save(fileName);
+
+      toast({
+        title: "PDF generado",
+        description: `El archivo "${fileName}" se ha descargado correctamente.`,
+      });
+    } catch (error: any) {
+      console.error('Error en generateCashReconciliationPDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el PDF del cuadre de caja",
+      });
+    }
+  }
 }
