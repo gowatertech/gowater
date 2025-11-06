@@ -7283,6 +7283,237 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Cash Reconciliation Endpoints (Cuadre de Caja)
+  
+  // Obtener resumen de ventas del día
+  router.get("/cash-reconciliation/daily-summary", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = req.session.companyId as number;
+      const { date } = req.query;
+      
+      if (!date || typeof date !== 'string') {
+        return res.status(400).json({ error: "Se requiere la fecha" });
+      }
+      
+      const selectedDate = new Date(date);
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Obtener facturas del día
+      const dailyInvoices = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, companyId),
+            gte(invoices.date, startOfDay),
+            lte(invoices.date, endOfDay)
+          )
+        );
+      
+      // Obtener pagos del día (RI y ANT)
+      const dailyPayments = await db
+        .select()
+        .from(payments)
+        .where(
+          and(
+            eq(payments.companyId, companyId),
+            gte(payments.date, startOfDay),
+            lte(payments.date, endOfDay)
+          )
+        );
+      
+      // Calcular totales
+      const totalSales = dailyInvoices.reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+      const creditInvoicesTotal = dailyInvoices
+        .filter(inv => inv.paymentMethod === 'credit')
+        .reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+      const cashInvoicesTotal = dailyInvoices
+        .filter(inv => inv.paymentMethod === 'cash')
+        .reduce((sum, inv) => sum + parseFloat(inv.total.toString()), 0);
+      
+      const totalPayments = dailyPayments.reduce((sum, pay) => sum + parseFloat(pay.amount.toString()), 0);
+      const receiptsTotal = dailyPayments
+        .filter(pay => !pay.isAdvance)
+        .reduce((sum, pay) => sum + parseFloat(pay.amount.toString()), 0);
+      const advancesTotal = dailyPayments
+        .filter(pay => pay.isAdvance)
+        .reduce((sum, pay) => sum + parseFloat(pay.amount.toString()), 0);
+      
+      // Obtener precio del botellón de agua (asumiendo que es el producto de agua)
+      const waterProducts = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.companyId, companyId),
+            sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%'`
+          )
+        )
+        .limit(1);
+      
+      const waterPricePerGallon = waterProducts.length > 0 
+        ? parseFloat(waterProducts[0].price.toString()) 
+        : 0;
+      
+      const summary = {
+        totalSales: totalSales.toFixed(2),
+        creditInvoicesTotal: creditInvoicesTotal.toFixed(2),
+        cashInvoicesTotal: cashInvoicesTotal.toFixed(2),
+        totalPayments: totalPayments.toFixed(2),
+        receiptsTotal: receiptsTotal.toFixed(2),
+        advancesTotal: advancesTotal.toFixed(2),
+        waterPricePerGallon: waterPricePerGallon.toFixed(2),
+        invoicesCount: dailyInvoices.length,
+        paymentsCount: dailyPayments.length,
+      };
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("Error al obtener resumen diario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Verificar si ya existe un cuadre para la fecha
+  router.get("/cash-reconciliation/check-exists", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = req.session.companyId as number;
+      const { date } = req.query;
+      
+      if (!date || typeof date !== 'string') {
+        return res.status(400).json({ error: "Se requiere la fecha" });
+      }
+      
+      const selectedDate = new Date(date);
+      
+      const existing = await db
+        .select()
+        .from(platformSchema.dailyCashReconciliations)
+        .where(
+          and(
+            eq(platformSchema.dailyCashReconciliations.companyId, companyId),
+            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = DATE(${selectedDate})`
+          )
+        )
+        .limit(1);
+      
+      res.json({ 
+        exists: existing.length > 0,
+        reconciliation: existing[0] || null
+      });
+    } catch (error) {
+      console.error("Error al verificar cuadre existente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Crear un nuevo cuadre de caja
+  router.post("/cash-reconciliation", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = req.session.companyId as number;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Usuario no autenticado" });
+      }
+      
+      const data = req.body;
+      
+      // Verificar si ya existe un cuadre para esta fecha
+      const selectedDate = new Date(data.reconciliationDate);
+      const existing = await db
+        .select()
+        .from(platformSchema.dailyCashReconciliations)
+        .where(
+          and(
+            eq(platformSchema.dailyCashReconciliations.companyId, companyId),
+            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = DATE(${selectedDate})`
+          )
+        )
+        .limit(1);
+      
+      if (existing.length > 0) {
+        return res.status(400).json({ 
+          error: "Ya existe un cuadre para esta fecha",
+          existing: existing[0]
+        });
+      }
+      
+      // Crear el cuadre
+      const [reconciliation] = await db
+        .insert(platformSchema.dailyCashReconciliations)
+        .values({
+          companyId,
+          reconciliationDate: selectedDate,
+          totalSales: data.totalSales,
+          creditInvoicesTotal: data.creditInvoicesTotal,
+          cashInvoicesTotal: data.cashInvoicesTotal,
+          totalPayments: data.totalPayments,
+          receiptsTotal: data.receiptsTotal,
+          advancesTotal: data.advancesTotal,
+          initialCash: data.initialCash,
+          expectedCash: data.expectedCash,
+          actualCash: data.actualCash,
+          lostWaterGallons: data.lostWaterGallons || "0.00",
+          waterPricePerGallon: data.waterPricePerGallon || "0.00",
+          lostWaterValue: data.lostWaterValue || "0.00",
+          surplus: data.surplus || "0.00",
+          shortage: data.shortage || "0.00",
+          notes: data.notes,
+          createdBy: userId,
+        })
+        .returning();
+      
+      res.json(reconciliation);
+    } catch (error) {
+      console.error("Error al crear cuadre de caja:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Listar todos los cuadres de caja
+  router.get("/cash-reconciliation", companyAuthMiddleware, async (req, res) => {
+    try {
+      const companyId = req.session.companyId as number;
+      
+      const reconciliations = await db
+        .select({
+          id: platformSchema.dailyCashReconciliations.id,
+          reconciliationDate: platformSchema.dailyCashReconciliations.reconciliationDate,
+          totalSales: platformSchema.dailyCashReconciliations.totalSales,
+          creditInvoicesTotal: platformSchema.dailyCashReconciliations.creditInvoicesTotal,
+          cashInvoicesTotal: platformSchema.dailyCashReconciliations.cashInvoicesTotal,
+          totalPayments: platformSchema.dailyCashReconciliations.totalPayments,
+          receiptsTotal: platformSchema.dailyCashReconciliations.receiptsTotal,
+          advancesTotal: platformSchema.dailyCashReconciliations.advancesTotal,
+          initialCash: platformSchema.dailyCashReconciliations.initialCash,
+          expectedCash: platformSchema.dailyCashReconciliations.expectedCash,
+          actualCash: platformSchema.dailyCashReconciliations.actualCash,
+          lostWaterGallons: platformSchema.dailyCashReconciliations.lostWaterGallons,
+          waterPricePerGallon: platformSchema.dailyCashReconciliations.waterPricePerGallon,
+          lostWaterValue: platformSchema.dailyCashReconciliations.lostWaterValue,
+          surplus: platformSchema.dailyCashReconciliations.surplus,
+          shortage: platformSchema.dailyCashReconciliations.shortage,
+          notes: platformSchema.dailyCashReconciliations.notes,
+          createdBy: platformSchema.dailyCashReconciliations.createdBy,
+          createdAt: platformSchema.dailyCashReconciliations.createdAt,
+          userName: users.name,
+        })
+        .from(platformSchema.dailyCashReconciliations)
+        .leftJoin(users, eq(platformSchema.dailyCashReconciliations.createdBy, users.id))
+        .where(eq(platformSchema.dailyCashReconciliations.companyId, companyId))
+        .orderBy(desc(platformSchema.dailyCashReconciliations.reconciliationDate));
+      
+      res.json(reconciliations);
+    } catch (error) {
+      console.error("Error al listar cuadres de caja:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Nota: El WebSocketServer se configurará en server/index.ts
   // Para permitir que el router sea modular, dejamos la configuración del WebSocketServer
   // fuera de este archivo y solo registramos las rutas API

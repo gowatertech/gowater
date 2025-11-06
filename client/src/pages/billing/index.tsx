@@ -65,8 +65,10 @@ import {
   Clock,
   DollarSign,
   ArrowLeftRight,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 interface CartItem {
   productId: number;
@@ -415,6 +417,13 @@ export default function Billing() {
           <Receipt className="h-6 w-6 text-primary" />
           <h1 className="text-xl md:text-2xl font-bold">Punto de Venta</h1>
         </div>
+        <Link href="/cash-reconciliation">
+          <Button variant="outline" className="flex items-center gap-2" data-testid="button-cash-reconciliation">
+            <Calculator className="h-4 w-4" />
+            <span className="hidden sm:inline">Cuadre de Caja</span>
+            <span className="sm:hidden">Cuadre</span>
+          </Button>
+        </Link>
       </div>
 
       {/* Tabs */}

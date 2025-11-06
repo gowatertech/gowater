@@ -26,6 +26,7 @@ import PaymentsList from "@/pages/payments/list";
 import PaymentsHistory from "@/pages/payments/history";
 import AccountPaymentPage from "@/pages/payments/account-payment";
 import Billing from "@/pages/billing";
+import CashReconciliation from "@/pages/cash-reconciliation";
 import RegisterInitialBalance from "@/pages/transactions/initial-balance";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
@@ -387,6 +388,7 @@ function Router() {
       <Switch>
         <Route path="/dashboard" component={Dashboard} />
         <Route path="/billing" component={Billing} />
+        <Route path="/cash-reconciliation" component={CashReconciliation} />
         <Route path="/payments" component={Payments} />
         <Route path="/payments/register" component={RegisterPayment} />
         <Route path="/payments/list" component={PaymentsList} />

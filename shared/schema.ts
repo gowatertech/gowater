@@ -1209,3 +1209,71 @@ export const insertCompanyLeadSchema = z.object({
 
 export type CompanyLead = typeof companyLeads.$inferSelect;
 export type InsertCompanyLead = z.infer<typeof insertCompanyLeadSchema>;
+
+// Daily Cash Reconciliations (Cuadre de Caja)
+export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  reconciliationDate: timestamp("reconciliation_date").notNull(),
+  
+  // Resumen de ventas
+  totalSales: decimal("total_sales", { precision: 10, scale: 2 }).notNull(),
+  creditInvoicesTotal: decimal("credit_invoices_total", { precision: 10, scale: 2 }).notNull(),
+  cashInvoicesTotal: decimal("cash_invoices_total", { precision: 10, scale: 2 }).notNull(),
+  
+  // Pagos recibidos
+  totalPayments: decimal("total_payments", { precision: 10, scale: 2 }).notNull(),
+  receiptsTotal: decimal("receipts_total", { precision: 10, scale: 2 }).notNull(), // RI
+  advancesTotal: decimal("advances_total", { precision: 10, scale: 2 }).notNull(), // ANT
+  
+  // Efectivo
+  initialCash: decimal("initial_cash", { precision: 10, scale: 2 }).notNull(),
+  expectedCash: decimal("expected_cash", { precision: 10, scale: 2 }).notNull(),
+  actualCash: decimal("actual_cash", { precision: 10, scale: 2 }).notNull(),
+  
+  // Agua perdida
+  lostWaterGallons: decimal("lost_water_gallons", { precision: 10, scale: 2 }).notNull().default("0"),
+  waterPricePerGallon: decimal("water_price_per_gallon", { precision: 10, scale: 2 }).notNull().default("0"),
+  lostWaterValue: decimal("lost_water_value", { precision: 10, scale: 2 }).notNull().default("0"),
+  
+  // Resultado del cuadre
+  surplus: decimal("surplus", { precision: 10, scale: 2 }).notNull().default("0"), // Sobrante
+  shortage: decimal("shortage", { precision: 10, scale: 2 }).notNull().default("0"), // Faltante
+  
+  // Metadata
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  // Un cuadre por día por compañía
+  uniqueReconciliationDate: unique().on(table.companyId, table.reconciliationDate),
+}));
+
+export const insertDailyCashReconciliationSchema = z.object({
+  reconciliationDate: z.string().datetime("La fecha debe estar en formato ISO"),
+  
+  // Estos valores se calculan automáticamente en el backend, pero los incluimos para validación
+  totalSales: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  creditInvoicesTotal: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  cashInvoicesTotal: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  totalPayments: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  receiptsTotal: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  advancesTotal: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  
+  // Valores ingresados por el usuario
+  initialCash: z.string().regex(/^\d+\.\d{2}$/, "El efectivo inicial debe tener 2 decimales"),
+  actualCash: z.string().regex(/^\d+\.\d{2}$/, "El efectivo en caja debe tener 2 decimales"),
+  lostWaterGallons: z.string().regex(/^\d+\.\d{2}$/, "Los galones deben tener 2 decimales").default("0.00"),
+  waterPricePerGallon: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales").default("0.00"),
+  
+  // Calculados automáticamente
+  expectedCash: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  lostWaterValue: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  surplus: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  shortage: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  
+  notes: z.string().optional(),
+});
+
+export type DailyCashReconciliation = typeof dailyCashReconciliations.$inferSelect;
+export type InsertDailyCashReconciliation = z.infer<typeof insertDailyCashReconciliationSchema>;
