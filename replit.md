@@ -70,7 +70,7 @@ The mobile driver app implements an **offline-first architecture** with:
 The system includes a comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) for end-of-day financial management:
 -   **Automatic Sales Summary**: Displays total sales, credit vs. cash invoices, and all payment types (RI, ANT) with real-time calculations from the day's transactions.
 -   **Manual Input Fields**: Accepts initial cash, actual cash counted, and lost water gallons (integer format, informative only).
--   **Automatic Calculations**: Uses formula **Efectivo Caja - (Inicial + FT Cash + ANT)** to calculate surplus/shortage. If result = 0: balanced, > 0: surplus (green badge), < 0: shortage (red badge).
+-   **Automatic Calculations**: Uses formula **Efectivo Esperado = Inicial + RI + ANT** (excluding FT cash invoices), then calculates surplus/shortage as **Efectivo Caja - Efectivo Esperado**. If result = 0: balanced, > 0: surplus (green badge), < 0: shortage (red badge).
 -   **Lost Water Field**: Integer-only format (no decimals), displayed as informational field only and NOT included in reconciliation calculations.
 -   **One Per Day Validation**: Enforces business rule allowing only one reconciliation per day, displaying existing reconciliation details if duplicate attempt is made.
 -   **Historical Records**: Maintains queryable history of all reconciliations with detailed view dialogs showing complete financial breakdown, notes, and audit information.
