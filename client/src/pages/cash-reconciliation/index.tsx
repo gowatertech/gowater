@@ -6,6 +6,7 @@ import { toRD, formatDateRD, parseDateStringRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PrinterService } from "@/services/PrinterService";
+import { useLocation } from "wouter";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ import {
   Download,
   Info,
   ShoppingCart,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +107,7 @@ interface CashReconciliation {
 
 export default function CashReconciliation() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("new");
   const [selectedDate, setSelectedDate] = useState<string>(format(toRD(new Date()), "yyyy-MM-dd"));
   const [initialCash, setInitialCash] = useState("0.00");
@@ -362,6 +365,15 @@ export default function CashReconciliation() {
             Proceso de cierre y reconciliación de efectivo diario
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={() => setLocation("/billing")}
+          className="flex items-center gap-2"
+          data-testid="button-back-to-billing"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver a Facturación
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
