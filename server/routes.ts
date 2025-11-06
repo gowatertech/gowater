@@ -7349,7 +7349,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(products.companyId, companyId),
-            sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%'`
+            sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%' OR LOWER(${products.name}) LIKE '%galón%' OR LOWER(${products.name}) LIKE '%galon%'`
           )
         )
         .limit(1);
@@ -7403,7 +7403,7 @@ export async function registerRoutes(router: express.Router) {
             and(
               eq(products.companyId, companyId),
               sql`${products.id} IN (${sql.join(productIds, sql`, `)})`,
-              sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%'`
+              sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%' OR LOWER(${products.name}) LIKE '%galón%' OR LOWER(${products.name}) LIKE '%galon%'`
             )
           );
         
