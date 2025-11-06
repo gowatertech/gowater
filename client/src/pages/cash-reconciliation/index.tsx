@@ -225,7 +225,8 @@ export default function CashReconciliation() {
   const advancesTotal = parseFloat(reconciliationData?.advancesTotal || dailySummary?.advancesTotal || "0");
   
   // Nueva fórmula: Efectivo Esperado = Inicial + RI + ANT (sin incluir FT)
-  const expectedCash = parseFloat(initialCash) + receiptsTotal + advancesTotal;
+  const initialCashValue = parseFloat(initialCash) || 0;
+  const expectedCash = initialCashValue + receiptsTotal + advancesTotal;
   
   const actualCashValue = parseFloat(actualCash);
   const difference = actualCashValue - expectedCash;
@@ -245,9 +246,9 @@ export default function CashReconciliation() {
   const loadExistingReconciliation = () => {
     if (existenceCheck?.reconciliation) {
       const rec = existenceCheck.reconciliation;
-      setInitialCash(parseFloat(rec.initialCash).toFixed(2));
-      setActualCash(parseFloat(rec.actualCash).toFixed(2));
-      setLostWaterGallons(parseInt(rec.lostWaterGallons).toString());
+      setInitialCash((parseFloat(rec.initialCash) || 0).toFixed(2));
+      setActualCash((parseFloat(rec.actualCash) || 0).toFixed(2));
+      setLostWaterGallons((parseInt(rec.lostWaterGallons) || 0).toString());
       setNotes(rec.notes || "");
       setIsEditMode(true);
       setEditingReconciliationId(rec.id);
@@ -296,6 +297,19 @@ export default function CashReconciliation() {
       shortage: shortage.toFixed(2),
       notes: notes.trim() || undefined,
     };
+
+    // Log para depuración
+    console.log("💰 CUADRE DE CAJA - Valores calculados:", {
+      initialCash,
+      initialCashValue,
+      receiptsTotal,
+      advancesTotal,
+      expectedCash,
+      dataToSend: {
+        initialCash: data.initialCash,
+        expectedCash: data.expectedCash,
+      }
+    });
 
     if (isEditMode && editingReconciliationId) {
       updateReconciliationMutation.mutate({ id: editingReconciliationId, data });
