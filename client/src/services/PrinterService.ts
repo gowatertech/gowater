@@ -1798,6 +1798,31 @@ export class PrinterService {
       // Separador
       printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       
+      // RESULTADO DESTACADO AL INICIO
+      const surplus = parseFloat(reconciliation.surplus);
+      const shortage = parseFloat(reconciliation.shortage);
+      const isBalanced = surplus === 0 && shortage === 0;
+      
+      let resultText = '';
+      let resultStyle = '';
+      if (isBalanced) {
+        resultText = 'CUADRE PERFECTO';
+        resultStyle = 'background: #10b981; color: white;';
+      } else if (surplus > 0) {
+        resultText = `SOBRANTE: RD$ ${surplus.toFixed(2)}`;
+        resultStyle = 'background: #22c55e; color: white;';
+      } else {
+        resultText = `FALTANTE: RD$ ${shortage.toFixed(2)}`;
+        resultStyle = 'background: #ef4444; color: white;';
+      }
+      
+      printContent.innerHTML += `
+        <div style="text-align: center; font-size: 14px; font-weight: bold; margin: 10px 0; padding: 10px; border-radius: 5px; ${resultStyle}">
+          ${resultText}
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+      `;
+      
       // Resumen de Ventas
       printContent.innerHTML += `
         <div style="margin-bottom: 8px;">
@@ -1840,10 +1865,6 @@ export class PrinterService {
       printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       
       // Cuadre de Efectivo
-      const surplus = parseFloat(reconciliation.surplus);
-      const shortage = parseFloat(reconciliation.shortage);
-      const isBalanced = surplus === 0 && shortage === 0;
-      
       printContent.innerHTML += `
         <div style="margin-bottom: 8px;">
           <div style="font-weight: bold; margin-bottom: 5px;">CUADRE DE EFECTIVO</div>
@@ -1862,28 +1883,16 @@ export class PrinterService {
         </div>
       `;
       
-      // Resultado
-      printContent.innerHTML += `<div style="border-top: 2px solid #000; margin: 8px 0;"></div>`;
+      // Información adicional
+      const hasLostWater = reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0;
+      const hasDonatedWater = reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0;
       
-      let resultText = '';
-      if (isBalanced) {
-        resultText = 'CUADRE PERFECTO';
-      } else if (surplus > 0) {
-        resultText = `SOBRANTE: RD$ ${surplus.toFixed(2)}`;
-      } else {
-        resultText = `FALTANTE: RD$ ${shortage.toFixed(2)}`;
+      if (hasLostWater || hasDonatedWater) {
+        printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       }
       
-      printContent.innerHTML += `
-        <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 8px 0;">
-          ${resultText}
-        </div>
-      `;
-      
-      // Información adicional
-      if (reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0) {
+      if (hasLostWater) {
         printContent.innerHTML += `
-          <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
           <div style="margin-bottom: 5px;">
             <div style="font-weight: bold; margin-bottom: 3px;">AGUA PERDIDA</div>
             <div style="display: flex; justify-content: space-between;">
@@ -1894,7 +1903,7 @@ export class PrinterService {
         `;
       }
       
-      if (reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0) {
+      if (hasDonatedWater) {
         printContent.innerHTML += `
           <div style="margin-bottom: 5px;">
             <div style="font-weight: bold; margin-bottom: 3px;">AGUA DONADA</div>
@@ -2011,7 +2020,43 @@ export class PrinterService {
       doc.line(5, yPos, 75, yPos);
       yPos += 5;
 
+      // RESULTADO DESTACADO AL INICIO
+      const surplus = parseFloat(reconciliation.surplus);
+      const shortage = parseFloat(reconciliation.shortage);
+      const isBalanced = surplus === 0 && shortage === 0;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+
+      // Rectángulo de fondo para el resultado
+      if (isBalanced) {
+        doc.setFillColor(16, 185, 129); // Verde esmeralda
+      } else if (surplus > 0) {
+        doc.setFillColor(34, 197, 94); // Verde
+      } else {
+        doc.setFillColor(239, 68, 68); // Rojo
+      }
+      doc.rect(5, yPos - 3, 70, 10, 'F'); // Rectángulo relleno
+
+      doc.setTextColor(255, 255, 255); // Texto blanco
+      if (isBalanced) {
+        doc.text('CUADRE PERFECTO', 40, yPos + 3, { align: 'center' });
+      } else if (surplus > 0) {
+        doc.text(`SOBRANTE: RD$ ${surplus.toFixed(2)}`, 40, yPos + 3, { align: 'center' });
+      } else {
+        doc.text(`FALTANTE: RD$ ${shortage.toFixed(2)}`, 40, yPos + 3, { align: 'center' });
+      }
+      
+      doc.setTextColor(0, 0, 0); // Volver a texto negro
+      yPos += 12;
+
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+
       // Resumen de Ventas
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.text('RESUMEN DE VENTAS', 10, yPos);
       yPos += 5;
@@ -2070,34 +2115,18 @@ export class PrinterService {
       doc.text(`RD$ ${parseFloat(reconciliation.actualCash).toFixed(2)}`, 75, yPos, { align: 'right' });
       yPos += 6;
 
-      // Resultado
-      const surplus = parseFloat(reconciliation.surplus);
-      const shortage = parseFloat(reconciliation.shortage);
-      const isBalanced = surplus === 0 && shortage === 0;
-
-      doc.setDrawColor(0);
-      doc.line(5, yPos, 75, yPos);
-      yPos += 5;
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-
-      if (isBalanced) {
-        doc.text('CUADRE PERFECTO', 40, yPos, { align: 'center' });
-      } else if (surplus > 0) {
-        doc.text(`SOBRANTE: RD$ ${surplus.toFixed(2)}`, 40, yPos, { align: 'center' });
-      } else {
-        doc.text(`FALTANTE: RD$ ${shortage.toFixed(2)}`, 40, yPos, { align: 'center' });
-      }
-      yPos += 8;
-
       // Información adicional
-      if (reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0) {
+      const hasLostWater = reconciliation.lostWaterGallons && parseInt(reconciliation.lostWaterGallons) > 0;
+      const hasDonatedWater = reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0;
+      
+      if (hasLostWater || hasDonatedWater) {
         doc.setDrawColor(200);
         doc.line(5, yPos, 75, yPos);
         yPos += 5;
-
         doc.setFontSize(8);
+      }
+
+      if (hasLostWater) {
         doc.setFont('helvetica', 'bold');
         doc.text('AGUA PERDIDA', 10, yPos);
         yPos += 4;
@@ -2108,7 +2137,7 @@ export class PrinterService {
         yPos += 5;
       }
 
-      if (reconciliation.donatedWaterGallons && parseInt(reconciliation.donatedWaterGallons) > 0) {
+      if (hasDonatedWater) {
         doc.setFont('helvetica', 'bold');
         doc.text('AGUA DONADA', 10, yPos);
         yPos += 4;
