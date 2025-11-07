@@ -381,14 +381,14 @@ export default function Dashboard() {
                     <div className="p-2 rounded-lg bg-white/20 flex-shrink-0">
                       <Package className="h-5 w-5 text-white" />
                     </div>
-                    <h3 className="text-sm font-semibold text-white">{t("Donaciones")}</h3>
+                    <h3 className="text-sm font-semibold text-white">{t("Agua Donada")}</h3>
                   </div>
                   <div className="space-y-1">
                     <p className="text-3xl font-bold text-white truncate">
-                      {formatCurrency(financialStats?.donations || 0)}
+                      {Math.round(financialStats?.donatedWaterGallons || 0)} gal
                     </p>
                     <p className="text-xs text-green-100">
-                      {financialStats?.donationsCount || 0} {t("donaciones este mes")}
+                      {formatCurrency(financialStats?.donatedWaterValue || 0)} • {financialStats?.donationsCount || 0} {t("pedidos")}
                     </p>
                   </div>
                 </div>
