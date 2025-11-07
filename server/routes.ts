@@ -3685,29 +3685,80 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Cuentas por cobrar TOTAL (solo balances positivos): ${accountsReceivable}`);
       
-      // 3. Donaciones del mes (pedidos con payment_method = 'donation')
-      const donations = await db
+      // 3. Donaciones del mes (agua donada de pedidos entregados con clientes benéficos)
+      const donationOrders = await db
         .select({
-          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
-          count: sql`COUNT(*)`.mapWith(Number),
+          orderId: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
         })
         .from(orders)
+        .innerJoin(customers, eq(orders.customerId, customers.id))
         .where(
           and(
             eq(orders.companyId, companyId),
             eq(orders.paymentMethod, 'donation'),
+            eq(orders.status, 'delivered'),
+            eq(customers.isCharity, true),
             gte(orders.date, monthStart),
             lte(orders.date, monthEnd)
           )
         );
       
-      console.log(`Donaciones:`, donations);
+      // Obtener los items de los pedidos de donación para contar los galones de agua
+      const donationOrderIds = donationOrders.map(o => o.orderId);
+      let donatedWaterGallons = 0;
+      let donatedWaterValue = 0;
+      
+      if (donationOrderIds.length > 0) {
+        const donationItems = await db
+          .select({
+            productId: orderItems.productId,
+            quantity: orderItems.quantity,
+            price: orderItems.price,
+          })
+          .from(orderItems)
+          .where(sql`${orderItems.orderId} IN (${sql.join(donationOrderIds, sql`, `)})`);
+        
+        // Obtener los productos para identificar cuáles son de agua
+        const productIds = [...new Set(donationItems.map(item => item.productId))];
+        if (productIds.length > 0) {
+          const waterProductsList = await db
+            .select({
+              id: products.id,
+              name: products.name,
+              price: products.price,
+            })
+            .from(products)
+            .where(
+              and(
+                eq(products.companyId, companyId),
+                sql`${products.id} IN (${sql.join(productIds, sql`, `)})`,
+                sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%' OR LOWER(${products.name}) LIKE '%galón%' OR LOWER(${products.name}) LIKE '%galon%'`
+              )
+            );
+          
+          const waterProductIds = waterProductsList.map(p => p.id);
+          
+          // Contar galones de agua donados
+          donationItems.forEach(item => {
+            if (waterProductIds.includes(item.productId)) {
+              donatedWaterGallons += parseFloat(item.quantity.toString());
+              donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
+            }
+          });
+        }
+      }
+      
+      console.log(`Agua donada - Galones: ${donatedWaterGallons}, Valor: ${donatedWaterValue}`);
       
       const stats = {
         monthlySales: Number(monthlySales[0]?.total) || 0,
         accountsReceivable: accountsReceivable,
-        donations: Number(donations[0]?.total) || 0,
-        donationsCount: Number(donations[0]?.count) || 0,
+        donations: donatedWaterValue,
+        donationsCount: donationOrders.length,
+        donatedWaterGallons: donatedWaterGallons,
+        donatedWaterValue: donatedWaterValue,
         monthStartDate: monthStart.toISOString(),
         monthEndDate: monthEnd.toISOString(),
       };

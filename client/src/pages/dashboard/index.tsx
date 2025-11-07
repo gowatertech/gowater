@@ -79,6 +79,8 @@ interface FinancialStats {
   accountsReceivable: number;
   donations: number;
   donationsCount: number;
+  donatedWaterGallons: number;
+  donatedWaterValue: number;
   monthStartDate: string;
   monthEndDate: string;
 }
