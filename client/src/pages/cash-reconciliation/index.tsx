@@ -797,7 +797,14 @@ export default function CashReconciliation() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm font-semibold">
-                                  {formatDateRD(new Date(rec.reconciliationDate))}
+                                  {new Date(rec.reconciliationDate).toLocaleString('es-DO', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {rec.userName || "N/A"}
@@ -881,7 +888,14 @@ export default function CashReconciliation() {
                                 )}
                               >
                                 <TableCell className="font-medium">
-                                  {formatDateRD(new Date(rec.reconciliationDate))}
+                                  {new Date(rec.reconciliationDate).toLocaleString('es-DO', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true
+                                  })}
                                 </TableCell>
                                 <TableCell>
                                   {surplus > 0 && (
@@ -985,7 +999,14 @@ export default function CashReconciliation() {
             </AlertDialogTitle>
             <AlertDialogDescription className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              {selectedReconciliation && formatDateRD(new Date(selectedReconciliation.reconciliationDate))}
+              {selectedReconciliation && new Date(selectedReconciliation.reconciliationDate).toLocaleString('es-DO', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
               <span className="text-muted-foreground">•</span>
               <User className="h-4 w-4" />
               {selectedReconciliation?.userName || "N/A"}
