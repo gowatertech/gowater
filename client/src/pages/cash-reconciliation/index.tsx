@@ -442,15 +442,17 @@ export default function CashReconciliation() {
             </CardContent>
           </Card>
 
-          {/* Resumen de ventas */}
-          {isLoadingSummary ? (
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">Cargando resumen...</p>
-              </CardContent>
-            </Card>
-          ) : dailySummary ? (
+          {/* Resumen de ventas - Solo mostrar si no existe cuadre o está en modo edición */}
+          {(!existenceCheck?.exists || isEditMode) && (
             <>
+              {isLoadingSummary ? (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">Cargando resumen...</p>
+                  </CardContent>
+                </Card>
+              ) : dailySummary ? (
+                <>
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -739,15 +741,17 @@ export default function CashReconciliation() {
                   </div>
                 </CardContent>
               </Card>
+                </>
+              ) : (
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="text-center text-muted-foreground">
+                      Selecciona una fecha para ver el resumen de ventas
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </>
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">
-                  Selecciona una fecha para ver el resumen de ventas
-                </p>
-              </CardContent>
-            </Card>
           )}
         </TabsContent>
 
