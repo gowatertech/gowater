@@ -7501,11 +7501,10 @@ export async function registerRoutes(router: express.Router) {
       
       const data = req.body;
       
-      // Verificar si ya existe un cuadre para esta fecha
-      // Combinar la fecha seleccionada con la hora actual en zona horaria RD
-      const reconciliationDateTimeString = getDateWithCurrentTimeRD(data.reconciliationDate);
+      // Combinar la fecha seleccionada con la hora actual en RD (retorna string, NO Date)
+      const reconciliationTimestamp = getDateWithCurrentTimeRD(data.reconciliationDate);
       
-      // Verificar si ya existe un cuadre para esta fecha usando SQL directo
+      // Verificar si ya existe un cuadre para esta fecha
       const existing = await db
         .select()
         .from(platformSchema.dailyCashReconciliations)
@@ -7524,74 +7523,35 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      // Crear el cuadre usando SQL directo para evitar conversión de zona horaria
-      const { pool } = await import('./db');
-      const insertQuery = `
-        INSERT INTO daily_cash_reconciliations (
-          company_id, reconciliation_date, total_sales, credit_invoices_total, cash_invoices_total,
-          total_payments, receipts_total, advances_total, initial_cash, expected_cash, actual_cash,
-          lost_water_gallons, water_price_per_gallon, lost_water_value,
-          donated_water_gallons, donated_water_value, surplus, shortage, notes, created_by
-        ) VALUES (
-          $1, $2::timestamp, $3::numeric, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8::numeric,
-          $9::numeric, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::numeric,
-          $15::numeric, $16::numeric, $17::numeric, $18::numeric, $19, $20
-        ) RETURNING *
-      `;
+      // Insertar usando raw SQL para reconciliationDate (evitar conversión automática de timezone)
+      // El string se interpreta literalmente en PostgreSQL sin conversión
+      const [reconciliation] = await db
+        .insert(platformSchema.dailyCashReconciliations)
+        .values({
+          companyId,
+          reconciliationDate: sql`${reconciliationTimestamp}::timestamp`,
+          totalSales: data.totalSales,
+          creditInvoicesTotal: data.creditInvoicesTotal,
+          cashInvoicesTotal: data.cashInvoicesTotal,
+          totalPayments: data.totalPayments,
+          receiptsTotal: data.receiptsTotal,
+          advancesTotal: data.advancesTotal,
+          initialCash: data.initialCash,
+          expectedCash: data.expectedCash,
+          actualCash: data.actualCash,
+          lostWaterGallons: data.lostWaterGallons || "0.00",
+          waterPricePerGallon: data.waterPricePerGallon || "30.00",
+          lostWaterValue: data.lostWaterValue || "0.00",
+          donatedWaterGallons: data.donatedWaterGallons || "0.00",
+          donatedWaterValue: data.donatedWaterValue || "0.00",
+          surplus: data.surplus || "0.00",
+          shortage: data.shortage || "0.00",
+          notes: data.notes || null,
+          createdBy: userId
+        })
+        .returning();
       
-      const insertParams = [
-        companyId,
-        reconciliationDateTimeString, // String directo sin conversión a Date
-        data.totalSales,
-        data.creditInvoicesTotal,
-        data.cashInvoicesTotal,
-        data.totalPayments,
-        data.receiptsTotal,
-        data.advancesTotal,
-        data.initialCash,
-        data.expectedCash,
-        data.actualCash,
-        data.lostWaterGallons || "0.00",
-        data.waterPricePerGallon || "30.00",
-        data.lostWaterValue || "0.00",
-        data.donatedWaterGallons || "0.00",
-        data.donatedWaterValue || "0.00",
-        data.surplus || "0.00",
-        data.shortage || "0.00",
-        data.notes || null,
-        userId
-      ];
-      
-      const result = await pool.query(insertQuery, insertParams);
-      const reconciliation = result.rows[0];
-      
-      // Convertir los snake_case a camelCase para la respuesta
-      const formattedReconciliation = {
-        id: reconciliation.id,
-        companyId: reconciliation.company_id,
-        reconciliationDate: reconciliation.reconciliation_date,
-        totalSales: reconciliation.total_sales,
-        creditInvoicesTotal: reconciliation.credit_invoices_total,
-        cashInvoicesTotal: reconciliation.cash_invoices_total,
-        totalPayments: reconciliation.total_payments,
-        receiptsTotal: reconciliation.receipts_total,
-        advancesTotal: reconciliation.advances_total,
-        initialCash: reconciliation.initial_cash,
-        expectedCash: reconciliation.expected_cash,
-        actualCash: reconciliation.actual_cash,
-        lostWaterGallons: reconciliation.lost_water_gallons,
-        waterPricePerGallon: reconciliation.water_price_per_gallon,
-        lostWaterValue: reconciliation.lost_water_value,
-        donatedWaterGallons: reconciliation.donated_water_gallons,
-        donatedWaterValue: reconciliation.donated_water_value,
-        surplus: reconciliation.surplus,
-        shortage: reconciliation.shortage,
-        notes: reconciliation.notes,
-        createdBy: reconciliation.created_by,
-        createdAt: reconciliation.created_at
-      };
-      
-      res.json(formattedReconciliation);
+      res.json(reconciliation);
     } catch (error) {
       console.error("Error al crear cuadre de caja:", error);
       res.status(500).json({ error: String(error) });
@@ -7647,7 +7607,7 @@ export async function registerRoutes(router: express.Router) {
     try {
       const companyId = req.session.companyId as number;
       
-      const reconciliations = await db
+      const rawReconciliations = await db
         .select({
           id: platformSchema.dailyCashReconciliations.id,
           companyId: platformSchema.dailyCashReconciliations.companyId,
@@ -7677,6 +7637,18 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(users, eq(platformSchema.dailyCashReconciliations.createdBy, users.id))
         .where(eq(platformSchema.dailyCashReconciliations.companyId, companyId))
         .orderBy(desc(platformSchema.dailyCashReconciliations.reconciliationDate));
+      
+      // Convertir timestamps a strings para evitar conversión automática a UTC
+      // Las columnas timestamp (sin timezone) deben enviarse sin 'Z' para que el frontend las interprete correctamente
+      const reconciliations = rawReconciliations.map(rec => ({
+        ...rec,
+        reconciliationDate: rec.reconciliationDate instanceof Date 
+          ? rec.reconciliationDate.toISOString().replace('Z', '')
+          : rec.reconciliationDate,
+        createdAt: rec.createdAt instanceof Date
+          ? rec.createdAt.toISOString().replace('Z', '')
+          : rec.createdAt
+      }));
       
       res.json(reconciliations);
     } catch (error) {

@@ -999,7 +999,7 @@ export default function CashReconciliation() {
             </AlertDialogTitle>
             <AlertDialogDescription className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              {selectedReconciliation && new Date(selectedReconciliation.reconciliationDate).toLocaleString('es-DO', {
+              {selectedReconciliation && formatDateTimeRD(selectedReconciliation.reconciliationDate, {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',

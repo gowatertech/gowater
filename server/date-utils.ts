@@ -59,9 +59,9 @@ export function toRD(date: Date): Date {
 
 /**
  * Obtiene un timestamp string en zona horaria RD para PostgreSQL
- * Retorna string sin 'Z' para que se guarde como timestamp local
- * Ejemplo: si en RD son 31-oct 22:24, retorna "2025-10-31T22:24:00.000"
- * @returns String en formato ISO pero SIN 'Z' (hora local RD)
+ * Retorna string con offset de timezone para interpretación correcta
+ * Ejemplo: si en RD son 31-oct 22:24, retorna "2025-10-31T22:24:00.000-04:00"
+ * @returns String en formato ISO con offset de timezone RD
  */
 export function getTimestampRD(): string {
   const now = new Date();
@@ -88,8 +88,9 @@ export function getTimestampRD(): string {
   });
   
   // Construir string directamente SIN usar Date object
-  // CRÍTICO: NO añadir 'Z' para evitar conversión a UTC
-  return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.${dateParts.fractionalSecond || '000'}`;
+  // CRÍTICO: Incluir offset de timezone (-04:00) para que PostgreSQL interprete correctamente
+  // la hora sin importar la timezone del servidor
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.${dateParts.fractionalSecond || '000'}-04:00`;
 }
 
 /**
@@ -121,9 +122,9 @@ export function getDayRangeRD(dateString: string): { startOfDay: Date; endOfDay:
 /**
  * Combina una fecha específica (YYYY-MM-DD) con la hora actual en zona horaria RD
  * Útil para cuadres de caja donde se selecciona una fecha pero se guarda con la hora actual
- * Retorna un string en formato timestamp SIN 'Z' para PostgreSQL
+ * Retorna un string timestamp para usar con sql\`...:timestamp\` (evita conversión de timezone)
  * @param dateString - Fecha en formato YYYY-MM-DD
- * @returns String timestamp en formato "YYYY-MM-DDTHH:mm:ss.SSS" (hora local RD)
+ * @returns String timestamp en formato "YYYY-MM-DD HH:mm:ss" (hora local RD)
  */
 export function getDateWithCurrentTimeRD(dateString: string): string {
   const now = new Date();
@@ -134,7 +135,6 @@ export function getDateWithCurrentTimeRD(dateString: string): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    fractionalSecondDigits: 3,
     hour12: false
   });
   
@@ -146,8 +146,7 @@ export function getDateWithCurrentTimeRD(dateString: string): string {
     }
   });
   
-  // Combinar la fecha seleccionada con la hora actual de RD
-  // Retornar string directamente SIN usar Date object y SIN 'Z'
-  // CRÍTICO: NO añadir 'Z' para que PostgreSQL lo guarde como timestamp local
-  return `${dateString}T${timeParts.hour}:${timeParts.minute}:${timeParts.second}.${timeParts.fractionalSecond || '000'}`;
+  // Retornar string directo (NO Date object) para evitar conversión de timezone
+  // Este string se usará con sql`${str}::timestamp` para que PostgreSQL lo guarde literalmente
+  return `${dateString} ${timeParts.hour}:${timeParts.minute}:${timeParts.second}`;
 }

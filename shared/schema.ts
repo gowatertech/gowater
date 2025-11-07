@@ -1214,7 +1214,7 @@ export type InsertCompanyLead = z.infer<typeof insertCompanyLeadSchema>;
 export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(),
-  reconciliationDate: timestamp("reconciliation_date").notNull(),
+  reconciliationDate: timestamp("reconciliation_date").notNull(), // Sin timezone como payments/invoices/orders
   
   // Resumen de ventas
   totalSales: decimal("total_sales", { precision: 10, scale: 2 }).notNull(),
@@ -1247,7 +1247,7 @@ export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
   // Metadata
   notes: text("notes"),
   createdBy: integer("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(), // Sin timezone como payments/invoices/orders
 }, (table) => ({
   // Un cuadre por día por compañía
   uniqueReconciliationDate: unique().on(table.companyId, table.reconciliationDate),

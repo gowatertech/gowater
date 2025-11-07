@@ -99,9 +99,10 @@ export function getTodayStringRD(): string {
 
 /**
  * Formatea una fecha a string legible en español (República Dominicana)
+ * SIEMPRE aplica timezone RD para consistencia
  * @param date - Fecha a formatear
  * @param options - Opciones de formateo
- * @returns string formateado
+ * @returns string formateado en timezone RD
  */
 export function formatDateRD(
   date: Date | string,
@@ -113,8 +114,11 @@ export function formatDateRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
-  return inputDate.toLocaleDateString('es-DO', options);
+  // SIEMPRE aplicar timezone RD para consistencia (como payments/invoices/orders)
+  return inputDate.toLocaleDateString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
 }
 
 /**
@@ -167,10 +171,10 @@ export function formatTodayCompactRD(): string {
 
 /**
  * Formatea una fecha/hora a string legible en español (República Dominicana)
- * Detecta automáticamente si el timestamp es UTC (con 'Z') o local
+ * Detecta si el timestamp tiene 'Z' (UTC) y aplica timezone RD, o si es local (sin 'Z')
  * @param date - Fecha/hora a formatear
  * @param options - Opciones de formateo
- * @returns string formateado con fecha y hora
+ * @returns string formateado con fecha y hora en timezone RD
  */
 export function formatDateTimeRD(
   date: Date | string,
@@ -185,20 +189,23 @@ export function formatDateTimeRD(
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
   
-  // Si el string original termina en 'Z', es UTC y necesitamos especificar timeZone
-  const isUTC = typeof date === 'string' && date.endsWith('Z');
+  // Si el string NO tiene 'Z', es hora local (timestamp sin timezone desde backend)
+  // No aplicar timeZone para interpretarlo como local
+  const isLocalTime = typeof date === 'string' && !date.endsWith('Z');
   
   return inputDate.toLocaleString('es-DO', {
     ...options,
-    ...(isUTC && { timeZone: 'America/Santo_Domingo' })
+    // Solo aplicar timezone si es UTC (con 'Z')
+    ...(!isLocalTime && { timeZone: 'America/Santo_Domingo' })
   });
 }
 
 /**
  * Formatea solo la hora de una fecha en República Dominicana
+ * SIEMPRE aplica timezone RD para consistencia
  * @param date - Fecha a formatear
  * @param options - Opciones de formateo
- * @returns string formateado con solo la hora
+ * @returns string formateado con solo la hora en timezone RD
  */
 export function formatTimeRD(
   date: Date | string,
@@ -208,8 +215,11 @@ export function formatTimeRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
-  return inputDate.toLocaleTimeString('es-DO', options);
+  // SIEMPRE aplicar timezone RD para consistencia (como payments/invoices/orders)
+  return inputDate.toLocaleTimeString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
 }
 
 /**
