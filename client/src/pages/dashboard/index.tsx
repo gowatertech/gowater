@@ -385,7 +385,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-3xl font-bold text-white truncate">
-                      {Math.round(financialStats?.donatedWaterGallons || 0)} gal
+                      {Math.round(financialStats?.donatedWaterGallons || 0)} Galones
                     </p>
                     <p className="text-xs text-green-100">
                       {formatCurrency(financialStats?.donatedWaterValue || 0)} • {financialStats?.donationsCount || 0} {t("pedidos")}
