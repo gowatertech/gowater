@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { getNowRD, getTimestampRD } from "./date-utils";
+import { getNowRD, getTimestampRD, getDayRangeRD } from "./date-utils";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions, transactions, insertTransactionSchema } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
@@ -7295,11 +7295,8 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere la fecha" });
       }
       
-      const selectedDate = new Date(date);
-      const startOfDay = new Date(selectedDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(selectedDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      // Usar getDayRangeRD para obtener el rango correcto del día en zona horaria RD
+      const { startOfDay, endOfDay } = getDayRangeRD(date);
       
       // Obtener facturas del día
       const dailyInvoices = await db

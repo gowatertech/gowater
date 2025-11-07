@@ -91,3 +91,29 @@ export function getTimestampRD(): string {
   // CRÍTICO: NO añadir 'Z' para evitar conversión a UTC
   return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.${dateParts.fractionalSecond || '000'}`;
 }
+
+/**
+ * Convierte una fecha en formato YYYY-MM-DD a un par de timestamps
+ * que representan el inicio y fin del día en zona horaria RD
+ * 
+ * RD está en UTC-4, entonces:
+ * - Medianoche en RD (00:00) = 04:00 UTC
+ * - 23:59:59.999 en RD = 03:59:59.999 UTC del día siguiente
+ * 
+ * @param dateString - Fecha en formato YYYY-MM-DD
+ * @returns Objeto con startOfDay y endOfDay como Date objects en timestamp UTC
+ */
+export function getDayRangeRD(dateString: string): { startOfDay: Date; endOfDay: Date } {
+  // Parsear la fecha manualmente para evitar problemas de timezone
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  // Crear inicio del día: medianoche en RD = 04:00 UTC del mismo día
+  // Ejemplo: 2025-11-06 00:00:00 RD = 2025-11-06 04:00:00 UTC
+  const startOfDay = new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0));
+  
+  // Crear fin del día: 23:59:59.999 en RD = 03:59:59.999 UTC del día siguiente
+  // Ejemplo: 2025-11-06 23:59:59.999 RD = 2025-11-07 03:59:59.999 UTC
+  const endOfDay = new Date(Date.UTC(year, month - 1, day + 1, 3, 59, 59, 999));
+  
+  return { startOfDay, endOfDay };
+}
