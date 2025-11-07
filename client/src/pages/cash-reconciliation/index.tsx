@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { toRD, formatDateRD, parseDateStringRD } from "@/lib/date-utils";
+import { toRD, formatDateRD, parseDateStringRD, formatDateTimeRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { PrinterService } from "@/services/PrinterService";
@@ -797,7 +797,7 @@ export default function CashReconciliation() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm font-semibold">
-                                  {new Date(rec.reconciliationDate).toLocaleString('es-DO', {
+                                  {formatDateTimeRD(rec.reconciliationDate, {
                                     year: 'numeric',
                                     month: 'short',
                                     day: 'numeric',
@@ -888,7 +888,7 @@ export default function CashReconciliation() {
                                 )}
                               >
                                 <TableCell className="font-medium">
-                                  {new Date(rec.reconciliationDate).toLocaleString('es-DO', {
+                                  {formatDateTimeRD(rec.reconciliationDate, {
                                     year: 'numeric',
                                     month: 'short',
                                     day: 'numeric',

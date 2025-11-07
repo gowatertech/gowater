@@ -167,6 +167,7 @@ export function formatTodayCompactRD(): string {
 
 /**
  * Formatea una fecha/hora a string legible en español (República Dominicana)
+ * Detecta automáticamente si el timestamp es UTC (con 'Z') o local
  * @param date - Fecha/hora a formatear
  * @param options - Opciones de formateo
  * @returns string formateado con fecha y hora
@@ -183,9 +184,14 @@ export function formatDateTimeRD(
   }
 ): string {
   const inputDate = typeof date === 'string' ? new Date(date) : date;
-  // NO usar timeZone aquí porque el backend ya devuelve fechas en hora local RD (sin 'Z')
-  // Si usamos timeZone, JavaScript intentará convertir desde la zona del navegador a RD
-  return inputDate.toLocaleString('es-DO', options);
+  
+  // Si el string original termina en 'Z', es UTC y necesitamos especificar timeZone
+  const isUTC = typeof date === 'string' && date.endsWith('Z');
+  
+  return inputDate.toLocaleString('es-DO', {
+    ...options,
+    ...(isUTC && { timeZone: 'America/Santo_Domingo' })
+  });
 }
 
 /**
@@ -319,4 +325,30 @@ export function parseDateStringRD(dateString: string): Date {
   // Esto representa medianoche en RD como timestamp UTC
   const date = new Date(Date.UTC(year, month - 1, day, 4, 0, 0, 0));
   return date;
+}
+
+/**
+ * Formatea un timestamp UTC a fecha/hora en zona horaria de República Dominicana
+ * Útil para timestamps que vienen del servidor en formato UTC (con 'Z')
+ * @param date - Timestamp UTC a formatear
+ * @param options - Opciones de formateo
+ * @returns string formateado con fecha y hora en RD
+ */
+export function formatUTCtoRD(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+): string {
+  const inputDate = typeof date === 'string' ? new Date(date) : date;
+  // Especificar timeZone para convertir de UTC a RD
+  return inputDate.toLocaleString('es-DO', {
+    ...options,
+    timeZone: 'America/Santo_Domingo'
+  });
 }
