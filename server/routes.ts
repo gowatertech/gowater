@@ -7410,38 +7410,16 @@ export async function registerRoutes(router: express.Router) {
       if (donationOrderIds.length > 0) {
         const donationItems = await db
           .select({
-            productId: orderItems.productId,
             quantity: orderItems.quantity,
             price: orderItems.price,
           })
           .from(orderItems)
           .where(sql`${orderItems.orderId} IN (${sql.join(donationOrderIds, sql`, `)})`);
         
-        // Obtener los productos para identificar cuáles son de agua
-        const productIds = [...new Set(donationItems.map(item => item.productId))];
-        const waterProductsList = await db
-          .select({
-            id: products.id,
-            name: products.name,
-            price: products.price,
-          })
-          .from(products)
-          .where(
-            and(
-              eq(products.companyId, companyId),
-              sql`${products.id} IN (${sql.join(productIds, sql`, `)})`,
-              sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%' OR LOWER(${products.name}) LIKE '%galón%' OR LOWER(${products.name}) LIKE '%galon%'`
-            )
-          );
-        
-        const waterProductIds = waterProductsList.map(p => p.id);
-        
-        // Contar galones de agua donados
+        // Sumar TODAS las cantidades y montos (sin filtrar por tipo de producto)
         donationItems.forEach(item => {
-          if (waterProductIds.includes(item.productId)) {
-            donatedWaterGallons += parseFloat(item.quantity.toString());
-            donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
-          }
+          donatedWaterGallons += parseFloat(item.quantity.toString());
+          donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
         });
       }
       
