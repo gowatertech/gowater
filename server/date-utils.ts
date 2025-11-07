@@ -117,3 +117,37 @@ export function getDayRangeRD(dateString: string): { startOfDay: Date; endOfDay:
   
   return { startOfDay, endOfDay };
 }
+
+/**
+ * Combina una fecha específica (YYYY-MM-DD) con la hora actual en zona horaria RD
+ * Útil para cuadres de caja donde se selecciona una fecha pero se guarda con la hora actual
+ * Retorna un string en formato timestamp SIN 'Z' para PostgreSQL
+ * @param dateString - Fecha en formato YYYY-MM-DD
+ * @returns String timestamp en formato "YYYY-MM-DDTHH:mm:ss.SSS" (hora local RD)
+ */
+export function getDateWithCurrentTimeRD(dateString: string): string {
+  const now = new Date();
+  
+  // Obtener la hora actual en timezone RD
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Santo_Domingo',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+    hour12: false
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const timeParts: Record<string, string> = {};
+  parts.forEach(part => {
+    if (part.type !== 'literal') {
+      timeParts[part.type] = part.value;
+    }
+  });
+  
+  // Combinar la fecha seleccionada con la hora actual de RD
+  // Retornar string directamente SIN usar Date object y SIN 'Z'
+  // CRÍTICO: NO añadir 'Z' para que PostgreSQL lo guarde como timestamp local
+  return `${dateString}T${timeParts.hour}:${timeParts.minute}:${timeParts.second}.${timeParts.fractionalSecond || '000'}`;
+}

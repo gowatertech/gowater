@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { getNowRD, getTimestampRD, getDayRangeRD } from "./date-utils";
+import { getNowRD, getTimestampRD, getDayRangeRD, getDateWithCurrentTimeRD } from "./date-utils";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens, contactFormSchema, commissions, transactions, insertTransactionSchema } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
@@ -7502,14 +7502,17 @@ export async function registerRoutes(router: express.Router) {
       const data = req.body;
       
       // Verificar si ya existe un cuadre para esta fecha
-      const selectedDate = new Date(data.reconciliationDate);
+      // Combinar la fecha seleccionada con la hora actual en zona horaria RD
+      const reconciliationDateTimeString = getDateWithCurrentTimeRD(data.reconciliationDate);
+      
+      // Verificar si ya existe un cuadre para esta fecha usando SQL directo
       const existing = await db
         .select()
         .from(platformSchema.dailyCashReconciliations)
         .where(
           and(
             eq(platformSchema.dailyCashReconciliations.companyId, companyId),
-            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = DATE(${selectedDate})`
+            sql`DATE(${platformSchema.dailyCashReconciliations.reconciliationDate}) = ${data.reconciliationDate}`
           )
         )
         .limit(1);
@@ -7521,34 +7524,74 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      // Crear el cuadre
-      const [reconciliation] = await db
-        .insert(platformSchema.dailyCashReconciliations)
-        .values({
-          companyId,
-          reconciliationDate: selectedDate,
-          totalSales: data.totalSales,
-          creditInvoicesTotal: data.creditInvoicesTotal,
-          cashInvoicesTotal: data.cashInvoicesTotal,
-          totalPayments: data.totalPayments,
-          receiptsTotal: data.receiptsTotal,
-          advancesTotal: data.advancesTotal,
-          initialCash: data.initialCash,
-          expectedCash: data.expectedCash,
-          actualCash: data.actualCash,
-          lostWaterGallons: data.lostWaterGallons || "0.00",
-          waterPricePerGallon: data.waterPricePerGallon || "30.00",
-          lostWaterValue: data.lostWaterValue || "0.00",
-          donatedWaterGallons: data.donatedWaterGallons || "0.00",
-          donatedWaterValue: data.donatedWaterValue || "0.00",
-          surplus: data.surplus || "0.00",
-          shortage: data.shortage || "0.00",
-          notes: data.notes,
-          createdBy: userId,
-        })
-        .returning();
+      // Crear el cuadre usando SQL directo para evitar conversión de zona horaria
+      const { pool } = await import('./db');
+      const insertQuery = `
+        INSERT INTO daily_cash_reconciliations (
+          company_id, reconciliation_date, total_sales, credit_invoices_total, cash_invoices_total,
+          total_payments, receipts_total, advances_total, initial_cash, expected_cash, actual_cash,
+          lost_water_gallons, water_price_per_gallon, lost_water_value,
+          donated_water_gallons, donated_water_value, surplus, shortage, notes, created_by
+        ) VALUES (
+          $1, $2::timestamp, $3::numeric, $4::numeric, $5::numeric, $6::numeric, $7::numeric, $8::numeric,
+          $9::numeric, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::numeric,
+          $15::numeric, $16::numeric, $17::numeric, $18::numeric, $19, $20
+        ) RETURNING *
+      `;
       
-      res.json(reconciliation);
+      const insertParams = [
+        companyId,
+        reconciliationDateTimeString, // String directo sin conversión a Date
+        data.totalSales,
+        data.creditInvoicesTotal,
+        data.cashInvoicesTotal,
+        data.totalPayments,
+        data.receiptsTotal,
+        data.advancesTotal,
+        data.initialCash,
+        data.expectedCash,
+        data.actualCash,
+        data.lostWaterGallons || "0.00",
+        data.waterPricePerGallon || "30.00",
+        data.lostWaterValue || "0.00",
+        data.donatedWaterGallons || "0.00",
+        data.donatedWaterValue || "0.00",
+        data.surplus || "0.00",
+        data.shortage || "0.00",
+        data.notes || null,
+        userId
+      ];
+      
+      const result = await pool.query(insertQuery, insertParams);
+      const reconciliation = result.rows[0];
+      
+      // Convertir los snake_case a camelCase para la respuesta
+      const formattedReconciliation = {
+        id: reconciliation.id,
+        companyId: reconciliation.company_id,
+        reconciliationDate: reconciliation.reconciliation_date,
+        totalSales: reconciliation.total_sales,
+        creditInvoicesTotal: reconciliation.credit_invoices_total,
+        cashInvoicesTotal: reconciliation.cash_invoices_total,
+        totalPayments: reconciliation.total_payments,
+        receiptsTotal: reconciliation.receipts_total,
+        advancesTotal: reconciliation.advances_total,
+        initialCash: reconciliation.initial_cash,
+        expectedCash: reconciliation.expected_cash,
+        actualCash: reconciliation.actual_cash,
+        lostWaterGallons: reconciliation.lost_water_gallons,
+        waterPricePerGallon: reconciliation.water_price_per_gallon,
+        lostWaterValue: reconciliation.lost_water_value,
+        donatedWaterGallons: reconciliation.donated_water_gallons,
+        donatedWaterValue: reconciliation.donated_water_value,
+        surplus: reconciliation.surplus,
+        shortage: reconciliation.shortage,
+        notes: reconciliation.notes,
+        createdBy: reconciliation.created_by,
+        createdAt: reconciliation.created_at
+      };
+      
+      res.json(formattedReconciliation);
     } catch (error) {
       console.error("Error al crear cuadre de caja:", error);
       res.status(500).json({ error: String(error) });
@@ -7560,65 +7603,46 @@ export async function registerRoutes(router: express.Router) {
     try {
       const companyId = req.session.companyId as number;
       const userId = req.user?.id;
-      const reconciliationId = parseInt(req.params.id);
       
       if (!userId) {
-        return res.status(401).json({ error: "No autenticado" });
+        return res.status(401).json({ error: "Usuario no autenticado" });
       }
       
-      if (isNaN(reconciliationId)) {
-        return res.status(400).json({ error: "ID de cuadre inválido" });
-      }
-      
-      // Verificar que el cuadre existe y pertenece a la compañía
-      const existing = await db
-        .select()
-        .from(platformSchema.dailyCashReconciliations)
-        .where(
-          and(
-            eq(platformSchema.dailyCashReconciliations.id, reconciliationId),
-            eq(platformSchema.dailyCashReconciliations.companyId, companyId)
-          )
-        )
-        .limit(1);
-      
-      if (!existing || existing.length === 0) {
-        return res.status(404).json({ error: "Cuadre no encontrado" });
-      }
-      
+      const { id } = req.params;
       const data = req.body;
       
-      const [updatedReconciliation] = await db
+      // Actualizar el cuadre
+      const [reconciliation] = await db
         .update(platformSchema.dailyCashReconciliations)
         .set({
           initialCash: data.initialCash,
-          expectedCash: data.expectedCash,
           actualCash: data.actualCash,
           lostWaterGallons: data.lostWaterGallons || "0.00",
-          waterPricePerGallon: data.waterPricePerGallon || "30.00",
-          lostWaterValue: data.lostWaterValue || "0.00",
-          donatedWaterGallons: data.donatedWaterGallons || "0.00",
-          donatedWaterValue: data.donatedWaterValue || "0.00",
+          notes: data.notes,
+          // Recalcular surplus y shortage
           surplus: data.surplus || "0.00",
           shortage: data.shortage || "0.00",
-          notes: data.notes,
         })
         .where(
           and(
-            eq(platformSchema.dailyCashReconciliations.id, reconciliationId),
+            eq(platformSchema.dailyCashReconciliations.id, parseInt(id)),
             eq(platformSchema.dailyCashReconciliations.companyId, companyId)
           )
         )
         .returning();
       
-      res.json(updatedReconciliation);
+      if (!reconciliation) {
+        return res.status(404).json({ error: "Cuadre no encontrado" });
+      }
+      
+      res.json(reconciliation);
     } catch (error) {
       console.error("Error al actualizar cuadre de caja:", error);
       res.status(500).json({ error: String(error) });
     }
   });
   
-  // Listar todos los cuadres de caja
+  // Listar todos los cuadres de caja de la compañía
   router.get("/cash-reconciliation", companyAuthMiddleware, async (req, res) => {
     try {
       const companyId = req.session.companyId as number;
@@ -7626,6 +7650,7 @@ export async function registerRoutes(router: express.Router) {
       const reconciliations = await db
         .select({
           id: platformSchema.dailyCashReconciliations.id,
+          companyId: platformSchema.dailyCashReconciliations.companyId,
           reconciliationDate: platformSchema.dailyCashReconciliations.reconciliationDate,
           totalSales: platformSchema.dailyCashReconciliations.totalSales,
           creditInvoicesTotal: platformSchema.dailyCashReconciliations.creditInvoicesTotal,
@@ -7659,11 +7684,58 @@ export async function registerRoutes(router: express.Router) {
       res.status(500).json({ error: String(error) });
     }
   });
-
-  // Nota: El WebSocketServer se configurará en server/index.ts
-  // Para permitir que el router sea modular, dejamos la configuración del WebSocketServer
-  // fuera de este archivo y solo registramos las rutas API
   
-  // No se necesita retornar httpServer ya que las rutas se registran a través del router
-  // El server/index.ts es quien maneja la creación y configuración del servidor HTTP
+  return router;
+}
+
+// WebSocket
+export async function setupWebSocket(io: any) {
+  const driversNamespace = io.of("/drivers");
+  
+  driversNamespace.on("connection", (socket: any) => {
+    console.log("Driver conectado:", socket.id);
+    
+    // Cuando un driver se conecta, pedirle su información
+    socket.on("register", (data: { driverId: number }) => {
+      console.log(`Driver ${data.driverId} registrado en WebSocket`);
+      socket.driverId = data.driverId;
+      
+      // Unir al driver a una sala específica para su ID
+      socket.join(`driver-${data.driverId}`);
+    });
+    
+    // Actualizar ubicación del driver
+    socket.on("updateLocation", async (data: { 
+      driverId: number; 
+      latitude: string; 
+      longitude: string;
+    }) => {
+      try {
+        console.log(`Actualizando ubicación del driver ${data.driverId}`);
+        
+        // Actualizar ubicación en la base de datos
+        await db
+          .update(users)
+          .set({
+            currentLocation: `${data.latitude},${data.longitude}`,
+            lastLocationUpdate: getNowRD()
+          })
+          .where(eq(users.id, data.driverId));
+        
+        // Broadcast la nueva ubicación a todos los clientes conectados
+        driversNamespace.emit("locationUpdate", {
+          driverId: data.driverId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        console.error("Error al actualizar ubicación:", error);
+      }
+    });
+    
+    socket.on("disconnect", () => {
+      console.log("Driver desconectado:", socket.id);
+    });
+  });
 }
