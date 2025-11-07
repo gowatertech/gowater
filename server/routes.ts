@@ -6711,8 +6711,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`📦 Obteniendo envases pendientes de retorno para compañía ${companyId}`);
       
       // 1. Obtener pedidos entregados con productos retornables SIN retorno registrado
-      // OPCIÓN 2: Marcados explícitamente como "no devuelto" (bottles_not_returned = true)
-      // OPCIÓN 3: Entregados hace más de 15 días sin registro de devolución
+      // Incluye TODOS los pedidos entregados con productos retornables sin registro de devolución
       const ordersWithoutReturnsQuery = sql`
         SELECT 
           o.id as order_id,
@@ -6739,10 +6738,6 @@ export async function registerRoutes(router: express.Router) {
           AND o.status = 'delivered'
           AND p.is_returnable = true
           AND br.id IS NULL
-          AND (
-            o.bottles_not_returned = true
-            OR o.actual_delivery_time < NOW() - INTERVAL '15 days'
-          )
         ORDER BY o.date DESC
       `;
       
