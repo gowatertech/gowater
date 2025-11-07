@@ -81,6 +81,24 @@ The system includes a comprehensive **daily cash reconciliation module** (`/cash
 -   **Multi-tenant Support**: All reconciliations are isolated by company using the standard companyId mechanism.
 -   **Date Handling**: Uses custom RD timezone utility functions (`parseDateStringRD()`) and maintains dates as YYYY-MM-DD strings throughout the application to prevent timezone shift issues in date picker controls.
 
+## Recent Changes
+
+### November 7, 2025 - Mobile Payment Processing Fixes
+
+#### Mobile Delivery Flow Parity with Web
+Fixed critical issues in the mobile delivery process (`/mobile-app/entregas/[id]`) to achieve exact parity with the web implementation:
+-   **Invoice Creation**: All invoices now created as 'pending' status first, enabling advance payment application before final status determination.
+-   **Advance Payment Application**: Mobile flow now correctly applies customer advance payments (`storage.applyAdvancePaymentsToInvoice`) before calculating remaining balance and creating payment records.
+-   **Payment Logic**: Automatic payment creation only occurs for cash orders with remaining balance > $0.01 after applying advances.
+-   **Transaction Creation**: FT (Factura) transactions created for all invoices; RI (Recibo de Ingreso) transactions only when actual payments recorded.
+-   **Status Workflow**: Invoices created → advances applied → balance calculated → payment created (if cash) → final status updated.
+
+#### UI Blocking Bug Fix
+Resolved critical user interface blocking issue in mobile delivery confirmation:
+-   **Root Cause**: When processing partial payments, if the API request failed, the confirmation dialog remained open with `isLoading=true`, causing the entire component to render only a loading spinner. This prevented all touch interactions.
+-   **Solution**: Added dialog cleanup in error catch blocks for both `executeDeliveryProcess` and `executeDeliveryProcessPrepaid` functions. Dialogs (`showDeliveryConfirm`, `showPartialPaymentConfirm`) now automatically close on API errors, preventing UI lock-up.
+-   **Impact**: Users can now cancel or retry operations after errors, maintaining app responsiveness and preventing frustration from locked screens.
+
 ## External Dependencies
 
 ### Core Infrastructure

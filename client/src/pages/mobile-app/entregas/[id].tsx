@@ -564,6 +564,11 @@ export default function DeliveryDetails() {
       
     } catch (error) {
       console.error("Error al procesar la entrega prepagada:", error);
+      
+      // IMPORTANTE: Cerrar los diálogos en caso de error para evitar que la UI quede bloqueada
+      setShowDeliveryConfirm(false);
+      setShowPartialPaymentConfirm(false);
+      
       toast({
         title: "Error",
         description: "Ocurrió un error al procesar la entrega",
@@ -635,6 +640,11 @@ export default function DeliveryDetails() {
       
     } catch (error) {
       console.error("Error al procesar la entrega:", error);
+      
+      // IMPORTANTE: Cerrar los diálogos en caso de error para evitar que la UI quede bloqueada
+      setShowDeliveryConfirm(false);
+      setShowPartialPaymentConfirm(false);
+      
       toast({
         title: "Error",
         description: "Ocurrió un error al procesar la entrega",
