@@ -625,13 +625,16 @@ export function createMobileApiEndpoints(): Router {
       const formattedTax = taxAmount.toFixed(2);
       const formattedTotal = totalAmount.toFixed(2);
       
+      // IMPORTANTE: Crear la factura SIEMPRE como 'pending' primero
+      // Luego, después de aplicar anticipos, determinaremos el status final
+      // (Esto es necesario para que storage.applyAdvancePaymentsToInvoice funcione)
       const invoiceData = {
         customerId: order.customerId,
         companyId: companyId, // Agregar companyId para el multitenant
         subtotal: formattedSubtotal,
         tax: formattedTax,
         total: formattedTotal,
-        status: paymentMethod === 'credit' ? 'pending' : 'paid',
+        status: 'pending', // SIEMPRE pending al inicio
         paymentMethod: paymentMethod,
         notes: `Factura generada desde entrega en ruta ${order.routeId || 'N/A'}`
       };
@@ -723,42 +726,79 @@ export function createMobileApiEndpoints(): Router {
       // Variable para guardar el pago creado (se usa más adelante para la transacción RI)
       let createdPayment: any = null;
       
-      // 6. Registrar el pago SOLO si el método de pago es 'cash' (igual que la web)
-      // Para facturas a crédito, NO se crea pago automático incluso si amountPaid > 0
-      if (paymentMethod === 'cash' && amountPaid > 0) {
-        const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+      // 6. PASO 1: Aplicar anticipos disponibles del cliente (IGUAL QUE LA WEB)
+      console.log(`💰 Verificando anticipos disponibles para factura #${invoice.id}`);
+      let remainingBalance = parseFloat(invoice.total);
+      
+      try {
+        const advanceResult = await storage.applyAdvancePaymentsToInvoice(invoice.id);
         
-        console.log(`💵 Creando pago en efectivo por: $${formattedAmount}`);
+        if (advanceResult.appliedPayments.length > 0) {
+          console.log(`✅ ${advanceResult.appliedPayments.length} anticipo(s) aplicados por un total de $${advanceResult.appliedAmount}`);
+          console.log(`💵 Balance restante: $${advanceResult.remainingBalance}`);
+          
+          remainingBalance = parseFloat(advanceResult.remainingBalance);
+        }
+      } catch (advanceError) {
+        console.error(`❌ Error al aplicar anticipos a factura #${invoice.id}:`, advanceError);
+        // Continuar con el proceso aunque falle la aplicación de anticipos
+      }
+      
+      // PASO 2: Manejar el balance restante según el método de pago (IGUAL QUE LA WEB)
+      let finalStatus: string = 'pending'; // Por defecto pending
+      
+      if (remainingBalance <= 0.01) {
+        // La factura está completamente cubierta con anticipos
+        console.log(`✅ Factura #${invoice.id} completamente cubierta con anticipos`);
+        finalStatus = 'paid';
+      } else if (paymentMethod === 'cash') {
+        // Pago en efectivo: crear pago por el balance restante
+        console.log(`💵 Creando pago en efectivo por el balance restante: $${remainingBalance.toFixed(2)}`);
         
-        const paymentData = {
-          invoiceId: invoice.id,
-          customerId: order.customerId,
-          amount: formattedAmount,
-          paymentMethod: 'cash',
-          notes: `Pago en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
-          companyId: companyId
-        };
-        
-        // Validar datos con el esquema
-        const validPaymentData = insertPaymentSchema.parse(paymentData);
-        
-        const [payment] = await companyDb
-          .insert(payments)
-          .values({
-            ...validPaymentData,
-            date: today
-          })
-          .returning();
-        
-        // Guardar el pago creado para usar en la transacción RI más adelante
-        createdPayment = payment;
-        
-        console.log(`✅ Pago en efectivo #${payment.id} creado por $${formattedAmount}`);
-      } else if (paymentMethod === 'credit') {
-        // Facturas a crédito NO generan pago automático, quedan pendientes
-        console.log(`📋 Factura ${invoice.invoiceNumber} a CRÉDITO - No se crea pago automático (queda pendiente)`);
+        try {
+          const [payment] = await companyDb
+            .insert(payments)
+            .values({
+              companyId: companyId,
+              invoiceId: invoice.id,
+              customerId: order.customerId,
+              amount: remainingBalance.toFixed(2),
+              paymentMethod: 'cash',
+              date: today,
+              notes: `Pago en efectivo (balance restante después de anticipos) - Factura #${invoice.invoiceNumber}`
+            })
+            .returning();
+          
+          // Guardar el pago creado para usar en la transacción RI más adelante
+          createdPayment = payment;
+          
+          console.log(`✅ Pago #${payment.id} creado por $${remainingBalance.toFixed(2)}`);
+          
+          finalStatus = 'paid';
+        } catch (paymentError) {
+          console.error(`❌ ERROR al crear pago en efectivo para factura #${invoice.id}:`, paymentError);
+          // No fallar la creación de la factura si falla el pago
+        }
       } else {
-        console.log(`📋 Factura ${invoice.invoiceNumber} - Método: ${paymentMethod} - No se creó pago (monto recibido: $${amountPaid})`);
+        // Crédito, tarjeta o transferencia: dejar pendiente el balance restante
+        console.log(`📋 Factura #${invoice.id} pendiente de pago: $${remainingBalance.toFixed(2)} (método: ${paymentMethod})`);
+        finalStatus = 'pending';
+      }
+      
+      // PASO 3: Actualizar el status de la factura en la base de datos (siempre actualizar)
+      try {
+        await companyDb
+          .update(invoices)
+          .set({ status: finalStatus })
+          .where(and(
+            eq(invoices.id, invoice.id),
+            eq(invoices.companyId, companyId)
+          ));
+        
+        invoice.status = finalStatus;
+        console.log(`✅ Status de factura #${invoice.id} actualizado a: ${finalStatus}`);
+      } catch (statusUpdateError) {
+        console.error(`❌ ERROR al actualizar status de factura #${invoice.id}:`, statusUpdateError);
       }
       
       // 7. Ahora que todo se creó exitosamente, crear las transacciones FT y RI
