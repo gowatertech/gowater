@@ -3711,52 +3711,19 @@ export async function registerRoutes(router: express.Router) {
       let donatedWaterValue = 0;
       
       if (donationOrderIds.length > 0) {
-        console.log(`Buscando items de ${donationOrderIds.length} órdenes de donación:`, donationOrderIds);
-        
         const donationItems = await db
           .select({
-            productId: orderItems.productId,
             quantity: orderItems.quantity,
             price: orderItems.price,
           })
           .from(orderItems)
           .where(sql`${orderItems.orderId} IN (${sql.join(donationOrderIds, sql`, `)})`);
         
-        console.log(`Items encontrados en órdenes de donación (${donationItems.length}):`, donationItems);
-        
-        // Obtener los productos para identificar cuáles son de agua
-        const productIds = [...new Set(donationItems.map(item => item.productId))];
-        console.log(`IDs de productos únicos: ${productIds.length}:`, productIds);
-        
-        if (productIds.length > 0) {
-          const waterProductsList = await db
-            .select({
-              id: products.id,
-              name: products.name,
-              price: products.price,
-            })
-            .from(products)
-            .where(
-              and(
-                eq(products.companyId, companyId),
-                sql`${products.id} IN (${sql.join(productIds, sql`, `)})`,
-                sql`LOWER(${products.name}) LIKE '%botell%' OR LOWER(${products.name}) LIKE '%agua%' OR LOWER(${products.name}) LIKE '%galón%' OR LOWER(${products.name}) LIKE '%galon%'`
-              )
-            );
-          
-          console.log(`Productos de agua encontrados (${waterProductsList.length}):`, waterProductsList);
-          
-          const waterProductIds = waterProductsList.map(p => p.id);
-          
-          // Contar galones de agua donados
-          donationItems.forEach(item => {
-            if (waterProductIds.includes(item.productId)) {
-              console.log(`Sumando producto de agua - ID: ${item.productId}, Cantidad: ${item.quantity}, Precio: ${item.price}`);
-              donatedWaterGallons += parseFloat(item.quantity.toString());
-              donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
-            }
-          });
-        }
+        // Sumar TODAS las cantidades y montos (sin filtrar por tipo de producto)
+        donationItems.forEach(item => {
+          donatedWaterGallons += parseFloat(item.quantity.toString());
+          donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
+        });
       }
       
       console.log(`Agua donada - Galones: ${donatedWaterGallons}, Valor: ${donatedWaterValue}`);
