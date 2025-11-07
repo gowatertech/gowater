@@ -723,30 +723,19 @@ export function createMobileApiEndpoints(): Router {
       // Variable para guardar el pago creado (se usa más adelante para la transacción RI)
       let createdPayment: any = null;
       
-      // 6. Registrar el pago si hay un monto pagado (parcial o total)
-      // - Para crédito: Si amountPaid > 0, se registra el pago parcial en efectivo
-      // - Para cash completo: Se registra el pago total
-      if (amountPaid > 0) {
+      // 6. Registrar el pago SOLO si el método de pago es 'cash' (igual que la web)
+      // Para facturas a crédito, NO se crea pago automático incluso si amountPaid > 0
+      if (paymentMethod === 'cash' && amountPaid > 0) {
         const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
-        const invoiceTotal = parseFloat(order.total).toFixed(2);
         
-        // Determinar si es pago parcial
-        const isPartialPayment = parseFloat(formattedAmount) < parseFloat(invoiceTotal);
-        
-        // Determinar el método de pago real del pago:
-        // - Si la factura es a crédito (paymentMethod === 'credit') pero hay un pago parcial,
-        //   ese pago se hizo en efectivo
-        // - Para todos los demás casos, usar el método original
-        const actualPaymentMethod = (paymentMethod === 'credit' && isPartialPayment) ? 'cash' : paymentMethod;
+        console.log(`💵 Creando pago en efectivo por: $${formattedAmount}`);
         
         const paymentData = {
           invoiceId: invoice.id,
           customerId: order.customerId,
-          amount: formattedAmount, // Usar el monto realmente pagado, no el total
-          paymentMethod: actualPaymentMethod,
-          notes: isPartialPayment 
-            ? `Pago parcial - Factura #${invoice.invoiceNumber} - Pedido #${orderId} - Abono: $${formattedAmount} de $${invoiceTotal}`
-            : `Pago automático - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
+          amount: formattedAmount,
+          paymentMethod: 'cash',
+          notes: `Pago en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
           companyId: companyId
         };
         
@@ -764,13 +753,12 @@ export function createMobileApiEndpoints(): Router {
         // Guardar el pago creado para usar en la transacción RI más adelante
         createdPayment = payment;
         
-        if (isPartialPayment) {
-          console.log(`Pago parcial registrado para la factura ${invoice.invoiceNumber}: $${formattedAmount} de $${invoiceTotal} (Pendiente: $${(parseFloat(invoiceTotal) - parseFloat(formattedAmount)).toFixed(2)})`);
-        } else {
-          console.log(`Pago completo registrado para la factura ${invoice.invoiceNumber} (método: ${actualPaymentMethod})`);
-        }
+        console.log(`✅ Pago en efectivo #${payment.id} creado por $${formattedAmount}`);
+      } else if (paymentMethod === 'credit') {
+        // Facturas a crédito NO generan pago automático, quedan pendientes
+        console.log(`📋 Factura ${invoice.invoiceNumber} a CRÉDITO - No se crea pago automático (queda pendiente)`);
       } else {
-        console.log(`Factura ${invoice.invoiceNumber} creada con estado "pending" - Método de pago: ${paymentMethod} - No se creó pago (monto recibido: $0)`);
+        console.log(`📋 Factura ${invoice.invoiceNumber} - Método: ${paymentMethod} - No se creó pago (monto recibido: $${amountPaid})`);
       }
       
       // 7. Ahora que todo se creó exitosamente, crear las transacciones FT y RI
