@@ -6,9 +6,10 @@ import {
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
-import { companyDb, getCurrentCompanyId } from '../company-db';
+import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
 import { getNowRD } from '../date-utils';
+import { storage } from '../storage';
 
 /**
  * Crea y registra los endpoints específicos para la aplicación móvil
@@ -477,13 +478,16 @@ export function createMobileApiEndpoints(): Router {
    * POST /api/mobile/orders/:id/deliver-and-invoice
    */
   router.post('/orders/:id/deliver-and-invoice', async (req, res) => {
+    // Variable para guardar el companyId y limpiar el contexto al final
+    let companyId: number | undefined;
+    
     try {
       console.log(`POST /api/mobile/orders/${req.params.id}/deliver-and-invoice - Body:`, req.body);
       
       const orderId = parseInt(req.params.id);
       
       // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      companyId = getCurrentCompanyId();
       
       // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
       if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
@@ -503,6 +507,10 @@ export function createMobileApiEndpoints(): Router {
       if (isNaN(orderId)) {
         return res.status(400).json({ error: "ID de orden inválido" });
       }
+      
+      // Establecer el contexto del tenant para las operaciones de storage
+      // Esto es necesario para que storage.createTransaction() funcione correctamente
+      setCurrentCompanyId(companyId);
       
       // Obtener datos necesarios del body
       let { paymentMethod, amountPaid, userId: userIdFromBody } = req.body;
@@ -660,7 +668,7 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Factura ${invoice.invoiceNumber} creada para la orden ${orderId}`);
       
-      // 4. Obtener los items de la orden y crear los items de la factura
+      // 5. Obtener los items de la orden y crear los items de la factura
       const items = await companyDb
         .select()
         .from(orderItems)
@@ -712,8 +720,11 @@ export function createMobileApiEndpoints(): Router {
       updatedOrder.invoiceId = invoice.id;
       updatedOrder.paymentMethod = paymentMethod;
       
+      // Variable para guardar el pago creado (se usa más adelante para la transacción RI)
+      let createdPayment: any = null;
+      
       // 6. Registrar el pago si hay un monto pagado (parcial o total)
-      // - Para crédito: Si amountPaid > 0, se registra el pago parcial
+      // - Para crédito: Si amountPaid > 0, se registra el pago parcial en efectivo
       // - Para cash completo: Se registra el pago total
       if (amountPaid > 0) {
         const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
@@ -722,14 +733,20 @@ export function createMobileApiEndpoints(): Router {
         // Determinar si es pago parcial
         const isPartialPayment = parseFloat(formattedAmount) < parseFloat(invoiceTotal);
         
+        // Determinar el método de pago real del pago:
+        // - Si la factura es a crédito (paymentMethod === 'credit') pero hay un pago parcial,
+        //   ese pago se hizo en efectivo
+        // - Para todos los demás casos, usar el método original
+        const actualPaymentMethod = (paymentMethod === 'credit' && isPartialPayment) ? 'cash' : paymentMethod;
+        
         const paymentData = {
           invoiceId: invoice.id,
           customerId: order.customerId,
           amount: formattedAmount, // Usar el monto realmente pagado, no el total
-          paymentMethod: paymentMethod === 'credit' ? 'cash' : paymentMethod, // Si es crédito, el pago fue en efectivo
+          paymentMethod: actualPaymentMethod,
           notes: isPartialPayment 
-            ? `Pago parcial en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId} - Abono: $${formattedAmount} de $${invoiceTotal}`
-            : `Pago automático en efectivo - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
+            ? `Pago parcial - Factura #${invoice.invoiceNumber} - Pedido #${orderId} - Abono: $${formattedAmount} de $${invoiceTotal}`
+            : `Pago automático - Factura #${invoice.invoiceNumber} - Pedido #${orderId}`,
           companyId: companyId
         };
         
@@ -744,17 +761,67 @@ export function createMobileApiEndpoints(): Router {
           })
           .returning();
         
+        // Guardar el pago creado para usar en la transacción RI más adelante
+        createdPayment = payment;
+        
         if (isPartialPayment) {
           console.log(`Pago parcial registrado para la factura ${invoice.invoiceNumber}: $${formattedAmount} de $${invoiceTotal} (Pendiente: $${(parseFloat(invoiceTotal) - parseFloat(formattedAmount)).toFixed(2)})`);
         } else {
-          console.log(`Pago completo registrado para la factura ${invoice.invoiceNumber} (efectivo)`);
+          console.log(`Pago completo registrado para la factura ${invoice.invoiceNumber} (método: ${actualPaymentMethod})`);
         }
       } else {
         console.log(`Factura ${invoice.invoiceNumber} creada con estado "pending" - Método de pago: ${paymentMethod} - No se creó pago (monto recibido: $0)`);
       }
       
+      // 7. Ahora que todo se creó exitosamente, crear las transacciones FT y RI
+      // Esto garantiza que las transacciones solo se crean si la factura y el pago se procesaron correctamente
       
-      // 7. Devolver respuesta exitosa
+      // 7.1. Crear transacción automática tipo FT (Factura)
+      try {
+        await storage.createTransaction({
+          documentType: 'FT',
+          customerId: order.customerId,
+          invoiceId: invoice.id,
+          amount: invoice.total.toString(),
+          type: 'debit', // Las facturas aumentan la deuda del cliente
+          description: `Factura #${invoice.invoiceNumber}`,
+          notes: invoice.notes || null,
+          date: today.toISOString()
+        });
+        console.log(`✅ Transacción FT creada automáticamente para factura #${invoice.invoiceNumber}`);
+      } catch (transactionError) {
+        console.error(`❌ Error al crear transacción FT para factura #${invoice.id}:`, transactionError);
+        // No fallar la creación de la factura si falla la transacción
+      }
+      
+      // 7.2. Crear transacción automática tipo RI (Recibo de Ingreso) si hubo pago
+      if (createdPayment) {
+        const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+        const invoiceTotal = parseFloat(order.total).toFixed(2);
+        const isPartialPayment = parseFloat(formattedAmount) < parseFloat(invoiceTotal);
+        
+        try {
+          await storage.createTransaction({
+            documentType: 'RI',
+            customerId: order.customerId,
+            invoiceId: invoice.id,
+            paymentId: createdPayment.id,
+            amount: formattedAmount,
+            type: 'credit', // Los pagos disminuyen la deuda del cliente (son crédito)
+            description: isPartialPayment
+              ? `Pago parcial - Factura #${invoice.invoiceNumber}`
+              : `Pago - Factura #${invoice.invoiceNumber}`,
+            notes: createdPayment.notes || null,
+            date: today.toISOString()
+          });
+          console.log(`✅ Transacción RI creada automáticamente para pago #${createdPayment.id}`);
+        } catch (transactionError) {
+          console.error(`❌ Error al crear transacción RI para pago #${createdPayment.id}:`, transactionError);
+          // No fallar el registro del pago si falla la transacción
+        }
+      }
+      
+      // 8. Devolver respuesta exitosa
       res.json({
         success: true,
         order: updatedOrder,
@@ -783,6 +850,11 @@ export function createMobileApiEndpoints(): Router {
         error: "Error al procesar la entrega y facturación", 
         details: String(error) 
       });
+    } finally {
+      // Limpiar el contexto del tenant para evitar fugas a otras peticiones
+      if (companyId) {
+        setCurrentCompanyId(undefined);
+      }
     }
   });
 
