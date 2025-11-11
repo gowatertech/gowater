@@ -16,7 +16,8 @@ import {
   Check,
   X,
   Printer,
-  FileDown
+  FileDown,
+  Trash2
 } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -397,6 +398,11 @@ export default function DeliveryDetails() {
     );
   };
 
+  // Eliminar un producto del pedido
+  const removeProduct = (id: number) => {
+    setEditedProducts(editedProducts.filter(product => product.id !== id));
+  };
+
   // Calcular el nuevo total después de la edición
   const calculateTotal = (products: {id: number; name: string; quantity: number; price: number}[]) => {
     return products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
@@ -424,11 +430,21 @@ export default function DeliveryDetails() {
     try {
       setIsLoading(true);
       
-      // Calcular el nuevo total
-      const newTotal = calculateTotal(editedProducts);
+      // Filtrar productos con cantidad mayor a 0
+      const validProducts = editedProducts.filter(product => product.quantity > 0);
+      
+      if (validProducts.length === 0) {
+        toast({
+          title: "Error",
+          description: "Debe haber al menos un producto con cantidad mayor a 0",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
       
       // Preparar datos para enviar al servidor
-      const productsData = editedProducts.map(product => ({
+      const productsData = validProducts.map(product => ({
         id: product.id,
         name: product.name,
         quantity: product.quantity,
@@ -436,24 +452,20 @@ export default function DeliveryDetails() {
       }));
       
       // Enviar la actualización al servidor
-      const result = await apiRequest({
+      await apiRequest({
         url: `/api/orders/${delivery.orderId}/products`,
         method: 'PATCH',
         data: { products: productsData }
       });
       
-      // Actualizar el estado local con la respuesta del servidor
-      setDelivery({
-        ...delivery,
-        products: editedProducts,
-        total: newTotal
-      });
+      // Recargar los datos completos desde el servidor para asegurar consistencia
+      await loadDeliveryDetails();
       
       setIsEditing(false);
       
       toast({
         title: "Cambios guardados",
-        description: "Los productos fueron actualizados correctamente y se generó una nueva factura"
+        description: "Los productos fueron actualizados correctamente"
       });
     } catch (error) {
       console.error('Error al guardar cambios de productos:', error);
@@ -1187,32 +1199,41 @@ export default function DeliveryDetails() {
                 {isEditing ? (
                   // Modo edición
                   editedProducts.map(product => (
-                    <div key={product.id} className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">{product.name}</div>
+                    <div key={product.id} className="flex justify-between items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{product.name}</div>
                         <div className="text-xs text-muted-foreground">
                           Precio unitario: ${product.price.toFixed(2)}
                         </div>
                       </div>
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="h-8 w-8 p-0 mr-2"
+                          className="h-8 w-8 p-0"
                           onClick={() => updateProductQuantity(product.id, Math.max(0, product.quantity - 1))}
                         >
                           -
                         </Button>
-                        <div className="w-12 text-center font-medium">
+                        <div className="w-10 text-center font-medium">
                           {product.quantity}
                         </div>
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="h-8 w-8 p-0 ml-2"
+                          className="h-8 w-8 p-0"
                           onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
                         >
                           +
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => removeProduct(product.id)}
+                          title="Eliminar producto"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
