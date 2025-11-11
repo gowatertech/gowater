@@ -1,7 +1,7 @@
 # GoWater - Water Delivery Management System
 
 ## Overview
-GoWater is a multi-tenant water delivery management system designed to optimize water distribution operations for various companies. It provides features for customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time tracking, invoicing, commission calculations, and account payment functionality. The system aims to significantly enhance operational efficiency in the water distribution sector, offering a full-stack TypeScript application solution with significant market potential in streamlining logistics and improving customer satisfaction for water delivery businesses.
+GoWater is a multi-tenant water delivery management system designed to optimize water distribution for various companies. It offers features for customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time tracking, invoicing, commission calculations, and account payment functionality. The system aims to significantly enhance operational efficiency in the water distribution sector, providing a full-stack TypeScript application solution.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -9,110 +9,58 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Multi-Tenancy Design
-The system employs a **shared database, shared schema** multi-tenancy model, isolating data per company using `company_id` and `AsyncLocalStorage` in Express sessions.
+The system uses a **shared database, shared schema** multi-tenancy model, isolating data per company using `company_id` and `AsyncLocalStorage`.
 
 ### Authentication & Authorization
-**Passport.js Local Strategy** with bcrypt handles authentication. It supports distinct user types (Platform and Company users) and implements **Role-Based Access Control (RBAC)** at both route and component levels.
+**Passport.js Local Strategy** with bcrypt handles authentication, supporting distinct user types (Platform and Company users) and implementing **Role-Based Access Control (RBAC)**.
 
 ### Database Architecture
-**Drizzle ORM** with PostgreSQL provides type-safe queries, migrations, soft deletes, audit fields, composite keys, and denormalization. PostgreSQL is chosen for ACID compliance, geospatial capabilities, and native multi-tenancy.
+**Drizzle ORM** with **PostgreSQL** provides type-safe queries, migrations, soft deletes, audit fields, composite keys, and denormalization.
 
 ### Frontend Architecture
-Built with **React 18** and TypeScript, it uses **Wouter** for routing, **TanStack Query** for server state, and **React Hook Form + Zod** for validation. UI is **shadcn/ui + Tailwind CSS**, following a **mobile-first design** with responsive breakpoints. The application is configured as a **Progressive Web App (PWA)** for mobile installation, enabling standalone mode.
+Built with **React 18** and TypeScript, it uses **Wouter** for routing, **TanStack Query** for server state, and **React Hook Form + Zod** for validation. The UI utilizes **shadcn/ui + Tailwind CSS**, follows a **mobile-first design**, and is configured as a **Progressive Web App (PWA)**.
 
 ### Backend Architecture
-Provides **RESTful API endpoints** with modular routing. Key services include a **Route Optimization Service** (using Turf.js), a **Recurring Orders Service**, and a **Storage Service** for company-scoped operations.
+Provides **RESTful API endpoints** with modular routing. Key services include a **Route Optimization Service** (using Turf.js), a **Recurring Orders Service**, and a **Storage Service**.
 
 ### Real-Time Features
 **WebSockets** facilitate real-time driver location tracking and route status updates.
 
 ### Geographic Data Management
-A **hierarchical address system** integrates with **Leaflet Maps** for interactive route planning, visualization, and precise customer location capture.
+A **hierarchical address system** integrates with **Leaflet Maps** for interactive route planning and visualization.
 
 ### File Upload Handling
-**Multer Middleware** manages in-memory file uploads (e.g., company logos, product images) with a 5MB limit.
+**Multer Middleware** manages in-memory file uploads with a 5MB limit.
 
-### PDF Generation & Printing
-The system uses **HTML-to-Canvas** (html2canvas + jsPDF) for complex PDF layouts and **Direct jsPDF Generation** for simpler documents.
+### PDF Generation
+**HTML-to-Canvas** (html2canvas + jsPDF) is used for complex PDF layouts, and **Direct jsPDF Generation** for simpler documents.
 
 ### Internationalization (i18n)
-**react-i18next** supports multilingualism (English and Spanish) with locale file management and session persistence for language preferences.
+**react-i18next** supports multilingualism (English and Spanish).
 
 ### Accessibility & Testing Standards
-Adheres to **WCAG 2.1** guidelines, including `aria-label` for icon-only buttons and `data-testid` for interactive elements. Features comprehensive testing coverage and a mobile-first responsive design.
+Adheres to **WCAG 2.1** guidelines and features comprehensive testing coverage.
 
 ### UI/UX Design Approach
-Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience across all devices. A comprehensive user manual with intelligent search and PDF export functionality is also integrated.
+Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience.
 
 ### Invoice & Payment Systems
-The system automates invoice generation upon delivery, handling dynamic tax calculation, concurrency control, and automatic payment processing for cash invoices. It supports partial cash payments via the mobile app, a prepaid invoice system to prevent redundant payment collection, and a unified transaction ledger for all financial documents. Customer balances are calculated in real-time using PostgreSQL triggers and stored in the `customers.balance` field.
-The system also includes a comprehensive advance payment (anticipos) system for tracking and applying customer prepayments, restricted if pending invoices exist. The billing interface integrates customer balances and supports mixed payment scenarios.
-An automated "Abono a Cuenta" (Account Payment) system allows applying a single payment across multiple pending invoices from oldest to newest, automatically creating advances for excess payments and updating invoice statuses. The account payment interface is implemented as a **dedicated full-page route** (`/payments/account-payment`) with **mobile-first responsive design** that displays the customer's actual balance from the database (not a calculated sum of pending invoices) to provide accurate financial information including all transactions. All interactive elements meet **WCAG 2.1 Level AAA touch target standards** (minimum 44px) for mobile accessibility.
+Automates invoice generation, handles dynamic tax calculation, concurrency control, automatic payment processing for cash invoices, partial cash payments via mobile app, and a prepaid invoice system. It includes a unified transaction ledger and a comprehensive advance payment (anticipos) system. An automated "Abono a Cuenta" (Account Payment) system allows applying payments across multiple pending invoices.
 
 ### Timezone Configuration
-The system is configured to use **América/Santo_Domingo timezone (UTC-4)** for all date and time operations across backend and frontend, ensuring consistent and accurate date/time handling. Dedicated RD timezone-aware utility functions are used for all date formatting.
+The system uses **América/Santo_Domingo timezone (UTC-4)** for all date and time operations.
 
 ### Payment Method Business Rules
-Enforces specific payment method rules: default "Crédito", automatic "Donación" for charitable institutions, and blocks advance payments if customers have pending invoices.
+Enforces specific payment method rules, including default "Crédito", automatic "Donación" for charity, and restrictions on advance payments.
 
 ### Unreturned Bottles Tracking System
-Provides comprehensive tracking and visualization of unreturned returnable bottles with visual alerts, dedicated reports, real-time dashboard statistics, and an API endpoint (`/api/bottle-returns/pending`). Allows manual marking of orders as "bottles not returned".
+Provides tracking and visualization of unreturned bottles with alerts, reports, and real-time dashboard statistics.
 
 ### Offline-First Mobile Architecture
-The mobile driver app implements an **offline-first architecture** with:
--   **IndexedDB Persistent Storage**: For client-side data persistence (routes, orders, customers, products, pending actions).
--   **Intelligent Sync Service**: Automatically downloads route data when online, queues offline actions with retry logic, auto-syncs every 30 seconds when connected, and monitors connection status.
--   **Enhanced Service Worker**: Multi-cache strategy for static resources, dynamic content, and map tiles (cache-first for maps/static, network-first for HTML, offline fallback).
--   **Conflict Resolution System**: Detects and resolves data conflicts using timestamps, with driver-authoritative strategy for deliveries/payments and server-authoritative for master data.
--   **User Experience Features**: Visual online/offline indicators, sync status, manual sync controls, and toast notifications.
+The mobile driver app implements an **offline-first architecture** with **IndexedDB Persistent Storage**, an **Intelligent Sync Service**, an **Enhanced Service Worker** (multi-cache strategy), and a **Conflict Resolution System**.
 
 ### Daily Cash Reconciliation System
-The system includes a comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) for end-of-day financial management:
--   **Automatic Sales Summary**: Displays total sales, credit vs. cash invoices, and all payment types (RI, ANT) with real-time calculations from the day's transactions.
--   **Manual Input Fields**: Accepts initial cash, actual cash counted, lost water gallons (integer format, informative only), and donated water gallons (auto-calculated from charity customer orders).
--   **Automatic Calculations**: Uses formula **Efectivo Esperado = Inicial + RI + ANT** (excluding FT cash invoices), then calculates surplus/shortage as **Efectivo Caja - Efectivo Esperado**. If result = 0: balanced, > 0: surplus (green badge), < 0: shortage (red badge).
--   **Lost Water Field**: Integer-only format (no decimals), fixed price of 30 per gallon, displayed as informational field only and NOT included in reconciliation calculations.
--   **Donated Water Field**: Auto-calculated from **delivered** orders with charity customers (status='delivered', paymentMethod='donation' and isCharity=true), counting only water products (products with names containing 'botellón', 'agua', or 'galón'), integer format, informational only.
--   **One Per Day Validation**: Enforces business rule allowing only one reconciliation per day, with detection of existing reconciliations and edit functionality. Frontend maintains dates in YYYY-MM-DD format to avoid timezone drift. Backend validates date format with strict regex and uses direct string comparison to prevent SQL injection and timezone conversion issues.
--   **Historical Records**: Maintains queryable history of all reconciliations with modern detail view dialog showing complete financial breakdown, notes, and audit information. Detail view features prominent result display at the top with color-coded badges (emerald for perfect, green for surplus, red for shortage), followed by organized sections with icons and gradients for Sales Summary (blue), Payments Received (purple), Cash Reconciliation (amber), Lost/Donated Water (slate/teal), and Notes (gray).
--   **Edit Mode**: Allows modification of existing reconciliations while preserving original sales and payment values. Only editable fields (initial cash, actual cash, lost water gallons, notes) can be changed.
--   **Print & PDF Functionality**: Comprehensive print and PDF generation features accessible from the detail view. Both formats display the reconciliation result prominently at the top with color-coded background (green for perfect/surplus, red for shortage), followed by complete financial breakdown including sales summary, payments received, cash reconciliation, water information (lost and donated), and notes. Uses company settings for header information and generates professional 80mm format documents suitable for thermal printers.
--   **Modern UI**: Tabbed interface ("Nuevo Cuadre" and "Historial") with icons from lucide-react, responsive design, gradients, color-coded status indicators, and accessible from billing module via dedicated "Cuadre de Caja" button. Detail dialog features modern design with gradient backgrounds, icon-based sections, and prominent result display.
--   **Multi-tenant Support**: All reconciliations are isolated by company using the standard companyId mechanism.
--   **Date Handling**: Uses custom RD timezone utility functions (`parseDateStringRD()`) and maintains dates as YYYY-MM-DD strings throughout the application to prevent timezone shift issues in date picker controls.
-
-## Recent Changes
-
-### November 11, 2025 - Mobile Order Editing Improvements
-
-#### Total Update After Editing Products
-Fixed issue where edited order totals were not reflecting in the UI after saving changes:
--   **Root Cause**: The `saveProductChanges` function was manually updating local state instead of reloading data from the server, causing the displayed total to remain stale even though the database was correctly updated.
--   **Solution**: Modified `saveProductChanges` to call `loadDeliveryDetails()` after successfully saving changes, ensuring all order data (including the recalculated total) is refreshed from the server.
--   **Impact**: Order totals now update immediately and accurately after editing products, maintaining data consistency between frontend and backend.
-
-#### Product Deletion in Edit Mode
-Added functionality to remove products from orders during editing:
--   **Zero-Quantity Filtering**: Products with quantity 0 are automatically filtered out before sending to the server, preventing invalid order states.
--   **Delete Button**: Added explicit delete button (trash icon) for each product in edit mode, providing clear visual affordance for product removal.
--   **Validation**: Added validation to ensure at least one product with quantity > 0 remains in the order before saving.
--   **Impact**: Users can now remove unwanted products from orders either by setting quantity to 0 or clicking the delete button, improving order editing flexibility.
-
-### November 7, 2025 - Mobile Payment Processing Fixes
-
-#### Mobile Delivery Flow Parity with Web
-Fixed critical issues in the mobile delivery process (`/mobile-app/entregas/[id]`) to achieve exact parity with the web implementation:
--   **Invoice Creation**: All invoices now created as 'pending' status first, enabling advance payment application before final status determination.
--   **Advance Payment Application**: Mobile flow now correctly applies customer advance payments (`storage.applyAdvancePaymentsToInvoice`) before calculating remaining balance and creating payment records.
--   **Payment Logic**: Automatic payment creation only occurs for cash orders with remaining balance > $0.01 after applying advances.
--   **Transaction Creation**: FT (Factura) transactions created for all invoices; RI (Recibo de Ingreso) transactions only when actual payments recorded.
--   **Status Workflow**: Invoices created → advances applied → balance calculated → payment created (if cash) → final status updated.
-
-#### UI Blocking Bug Fix
-Resolved critical user interface blocking issue in mobile delivery confirmation:
--   **Root Cause**: When processing partial payments, if the API request failed, the confirmation dialog remained open with `isLoading=true`, causing the entire component to render only a loading spinner. This prevented all touch interactions.
--   **Solution**: Added dialog cleanup in error catch blocks for both `executeDeliveryProcess` and `executeDeliveryProcessPrepaid` functions. Dialogs (`showDeliveryConfirm`, `showPartialPaymentConfirm`) now automatically close on API errors, preventing UI lock-up.
--   **Impact**: Users can now cancel or retry operations after errors, maintaining app responsiveness and preventing frustration from locked screens.
+A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) provides automatic sales summaries, manual input fields, automatic calculations of surplus/shortage, one-per-day validation, historical records, edit mode, print/PDF functionality, and a modern UI.
 
 ## External Dependencies
 
@@ -127,10 +75,10 @@ Resolved critical user interface blocking issue in mobile delivery confirmation:
 -   **OpenStreetMap tiles**: Map data.
 
 #### Email Service
--   **Resend API**: Powers email notifications for contact and lead forms.
+-   **Resend API**: Email notifications.
 
 #### Payment Processing
--   **Stripe Integration**: For membership billing.
+-   **Stripe Integration**: Membership billing.
 
 #### UI Component Libraries
 -   **Radix UI**: Accessible component primitives.
