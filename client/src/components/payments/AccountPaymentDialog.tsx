@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -52,9 +52,10 @@ interface PendingInvoicesResponse {
 interface AccountPaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preselectedCustomerId?: number | null;
 }
 
-export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialogProps) {
+export function AccountPaymentDialog({ open, onOpenChange, preselectedCustomerId }: AccountPaymentDialogProps) {
   const { toast } = useToast();
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -68,6 +69,18 @@ export function AccountPaymentDialog({ open, onOpenChange }: AccountPaymentDialo
     queryKey: ["/api/customers"],
     enabled: open,
   });
+
+  // Efecto para preseleccionar cliente cuando se proporciona preselectedCustomerId
+  // Solo aplica la preselección cuando el diálogo se abre y no hay un cliente ya seleccionado
+  useEffect(() => {
+    if (open && preselectedCustomerId && customers.length > 0 && !selectedCustomerId) {
+      const customer = customers.find(c => c.id === preselectedCustomerId);
+      if (customer) {
+        setSelectedCustomerId(preselectedCustomerId);
+        setCustomerSearch(customer.businessname);
+      }
+    }
+  }, [open, preselectedCustomerId, customers, selectedCustomerId]);
 
   // Cargar facturas pendientes y balance del cliente seleccionado
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery<PendingInvoicesResponse>({

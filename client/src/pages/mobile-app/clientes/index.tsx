@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search, Users, MapPin, Phone, Mail, DollarSign, Navigation, MapPinned, AlertCircle } from "lucide-react";
+import { Search, Users, MapPin, Phone, Mail, DollarSign, Navigation, MapPinned, AlertCircle, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CustomerBalance } from "@/components/customers/CustomerBalance";
+import { AccountPaymentDialog } from "@/components/payments/AccountPaymentDialog";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ export default function MobileAppClientesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isCapturingLocation, setIsCapturingLocation] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const { companyName } = useCompanySettings();
   const queryClient = useQueryClient();
@@ -406,14 +407,49 @@ export default function MobileAppClientesPage() {
                 </CardContent>
               </Card>
 
-              <CustomerBalance 
-                customerId={selectedCustomer.id}
-                customerName={selectedCustomer.businessname || ""}
-              />
+              {/* Botón Abono a Cuenta */}
+              <Card className="border-2 border-green-200 bg-green-50/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                    Pagos y Balance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="bg-white p-3 rounded-lg border">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Balance Actual:</span>
+                      <span className="text-lg font-bold text-red-600">
+                        RD$ {parseFloat(selectedCustomer.balance || "0").toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Aplica pagos directamente a las facturas pendientes del cliente
+                    </p>
+                  </div>
+                  
+                  <Button
+                    onClick={() => setShowPaymentDialog(true)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-base"
+                    size="lg"
+                    data-testid="button-abono-cuenta"
+                  >
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    Abono a Cuenta
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Account Payment Dialog */}
+      <AccountPaymentDialog 
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        preselectedCustomerId={selectedCustomerId}
+      />
 
       <MobileFooter />
     </div>
