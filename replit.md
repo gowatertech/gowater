@@ -83,6 +83,21 @@ The system includes a comprehensive **daily cash reconciliation module** (`/cash
 
 ## Recent Changes
 
+### November 11, 2025 - Mobile Order Editing Improvements
+
+#### Total Update After Editing Products
+Fixed issue where edited order totals were not reflecting in the UI after saving changes:
+-   **Root Cause**: The `saveProductChanges` function was manually updating local state instead of reloading data from the server, causing the displayed total to remain stale even though the database was correctly updated.
+-   **Solution**: Modified `saveProductChanges` to call `loadDeliveryDetails()` after successfully saving changes, ensuring all order data (including the recalculated total) is refreshed from the server.
+-   **Impact**: Order totals now update immediately and accurately after editing products, maintaining data consistency between frontend and backend.
+
+#### Product Deletion in Edit Mode
+Added functionality to remove products from orders during editing:
+-   **Zero-Quantity Filtering**: Products with quantity 0 are automatically filtered out before sending to the server, preventing invalid order states.
+-   **Delete Button**: Added explicit delete button (trash icon) for each product in edit mode, providing clear visual affordance for product removal.
+-   **Validation**: Added validation to ensure at least one product with quantity > 0 remains in the order before saving.
+-   **Impact**: Users can now remove unwanted products from orders either by setting quantity to 0 or clicking the delete button, improving order editing flexibility.
+
 ### November 7, 2025 - Mobile Payment Processing Fixes
 
 #### Mobile Delivery Flow Parity with Web
