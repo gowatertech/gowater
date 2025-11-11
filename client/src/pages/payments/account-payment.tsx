@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateRD } from "@/lib/date-utils";
@@ -45,6 +45,7 @@ interface PendingInvoicesResponse {
 
 export default function AccountPaymentPage() {
   const [, navigate] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -52,11 +53,31 @@ export default function AccountPaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "transfer">("cash");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const hasPreselectedFromUrl = useRef(false);
 
   // Cargar clientes
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
+
+  // Efecto para preseleccionar el cliente desde la URL (solo una vez)
+  useEffect(() => {
+    if (hasPreselectedFromUrl.current) return;
+    
+    const params = new URLSearchParams(searchString);
+    const customerIdParam = params.get('customerId');
+    
+    if (customerIdParam && customers.length > 0) {
+      const customerId = parseInt(customerIdParam, 10);
+      if (!isNaN(customerId)) {
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) {
+          setSelectedCustomerId(customerId);
+          hasPreselectedFromUrl.current = true;
+        }
+      }
+    }
+  }, [searchString, customers]);
 
   // Cargar facturas pendientes y balance del cliente seleccionado
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery<PendingInvoicesResponse>({

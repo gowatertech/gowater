@@ -69,17 +69,17 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 #### Simplified Customer Balance View
 Streamlined the mobile clientes detail view for improved user experience:
 -   **UI Simplification**: Replaced the detailed CustomerBalance component with a clean Card showing current balance and a direct action button.
--   **New Feature**: Added "Abono a Cuenta" button that opens the AccountPaymentDialog directly from the customer details view.
+-   **New Feature**: Added "Abono a Cuenta" button that navigates to the existing account payment page (`/payments/account-payment`) with customer preselected.
 -   **Better UX**: Reduced cognitive load by eliminating the detailed transaction history from the modal, focusing on the most common action (making payments).
 -   **Impact**: Drivers can now quickly access the payment functionality for any customer with fewer taps and less visual clutter.
 
-#### AccountPaymentDialog Preselection Enhancement
-Enhanced AccountPaymentDialog to support automatic customer preselection:
--   **New Prop**: Added optional `preselectedCustomerId` prop to AccountPaymentDialog component.
--   **Auto-Selection Logic**: When opened from mobile clientes, the dialog automatically selects the customer and displays their name in the search input.
--   **Smart Guard**: Implemented `!selectedCustomerId` guard in the useEffect to prevent unwanted re-selection when TanStack Query refetches data (e.g., on window focus or after mutations).
--   **User Control**: Users can still manually change to a different customer if needed, and the selection remains stable across refetches.
--   **Impact**: Seamless workflow where the customer is already selected when the payment dialog opens, reducing manual steps while preserving flexibility.
+#### Account Payment Page Preselection Enhancement
+Enhanced the existing account payment page to support automatic customer preselection from URL parameters:
+-   **URL Parameter**: The page now reads `customerId` from the URL query string (e.g., `/payments/account-payment?customerId=123`).
+-   **Auto-Selection Logic**: When navigated from mobile clientes, the customer is automatically selected without requiring manual search.
+-   **Smart Guard**: Implemented `!selectedCustomerId` guard in the useEffect to prevent unwanted re-selection when TanStack Query refetches data.
+-   **Unified Flow**: Reuses the existing, fully-tested account payment functionality instead of creating duplicate logic.
+-   **Impact**: Seamless workflow where drivers tap a customer's "Abono a Cuenta" button and land directly on the payment page with that customer pre-selected, reducing manual steps while preserving the ability to change customers if needed.
 
 ### November 11, 2025 - Mobile Order Editing and List Synchronization
 

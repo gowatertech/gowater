@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Search, Users, MapPin, Phone, Mail, DollarSign, Navigation, MapPinned, AlertCircle, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { AccountPaymentDialog } from "@/components/payments/AccountPaymentDialog";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useToast } from "@/hooks/use-toast";
@@ -16,10 +16,10 @@ import { apiRequest } from "@/lib/api";
 import type { Customer } from "@shared/schema";
 
 export default function MobileAppClientesPage() {
+  const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isCapturingLocation, setIsCapturingLocation] = useState(false);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { toast } = useToast();
   const { companyName } = useCompanySettings();
   const queryClient = useQueryClient();
@@ -429,7 +429,7 @@ export default function MobileAppClientesPage() {
                   </div>
                   
                   <Button
-                    onClick={() => setShowPaymentDialog(true)}
+                    onClick={() => navigate(`/payments/account-payment?customerId=${selectedCustomer.id}`)}
                     className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                     size="lg"
                     data-testid="button-abono-cuenta"
@@ -443,13 +443,6 @@ export default function MobileAppClientesPage() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Account Payment Dialog */}
-      <AccountPaymentDialog 
-        open={showPaymentDialog}
-        onOpenChange={setShowPaymentDialog}
-        preselectedCustomerId={selectedCustomerId}
-      />
 
       <MobileFooter />
     </div>
