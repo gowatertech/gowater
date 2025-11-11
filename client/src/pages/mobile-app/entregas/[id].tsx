@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getTimestampRD, formatTimeRD, formatDateRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { getDB } from "@/lib/offline-db";
@@ -461,6 +461,9 @@ export default function DeliveryDetails() {
       // Recargar los datos completos desde el servidor para asegurar consistencia
       await loadDeliveryDetails();
       
+      // Invalidar el caché de la lista de entregas para que se actualice cuando el usuario regrese
+      await queryClient.invalidateQueries({ queryKey: ["/api/mobile/deliveries"] });
+      
       setIsEditing(false);
       
       toast({
@@ -558,6 +561,9 @@ export default function DeliveryDetails() {
         status: "delivered"
       });
       
+      // Invalidar el caché de la lista de entregas para que se actualice el estado
+      await queryClient.invalidateQueries({ queryKey: ["/api/mobile/deliveries"] });
+      
       // Resetear estado de edición
       setIsEditing(false);
       
@@ -626,6 +632,9 @@ export default function DeliveryDetails() {
         ...delivery,
         status: "delivered"
       });
+      
+      // Invalidar el caché de la lista de entregas para que se actualice el estado
+      await queryClient.invalidateQueries({ queryKey: ["/api/mobile/deliveries"] });
       
       // Resetear estado de edición
       setIsEditing(false);

@@ -62,6 +62,32 @@ The mobile driver app implements an **offline-first architecture** with **Indexe
 ### Daily Cash Reconciliation System
 A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) provides automatic sales summaries, manual input fields, automatic calculations of surplus/shortage, one-per-day validation, historical records, edit mode, print/PDF functionality, and a modern UI.
 
+## Recent Changes
+
+### November 11, 2025 - Mobile Order Editing and List Synchronization
+
+#### Total Update After Editing Products
+Fixed issue where edited order totals were not reflecting in the UI after saving changes:
+-   **Root Cause**: The `saveProductChanges` function was manually updating local state instead of reloading data from the server, causing the displayed total to remain stale even though the database was correctly updated.
+-   **Solution**: Modified `saveProductChanges` to call `loadDeliveryDetails()` after successfully saving changes, ensuring all order data (including the recalculated total) is refreshed from the server.
+-   **Impact**: Order totals now update immediately and accurately after editing products, maintaining data consistency between frontend and backend.
+
+#### Product Deletion in Edit Mode
+Added functionality to remove products from orders during editing:
+-   **Zero-Quantity Filtering**: Products with quantity 0 are automatically filtered out before sending to the server, preventing invalid order states.
+-   **Delete Button**: Added explicit delete button (trash icon) for each product in edit mode, providing clear visual affordance for product removal.
+-   **Validation**: Added validation to ensure at least one product with quantity > 0 remains in the order before saving.
+-   **Impact**: Users can now remove unwanted products from orders either by setting quantity to 0 or clicking the delete button, improving order editing flexibility.
+
+#### Cache Invalidation for Delivery List
+Fixed issue where the delivery list showed outdated totals and statuses after editing or completing deliveries:
+-   **Root Cause**: TanStack Query cache for the delivery list (`/api/mobile/deliveries`) was not being invalidated after making changes to individual deliveries, causing stale data to persist when navigating back to the list.
+-   **Solution**: Added `queryClient.invalidateQueries({ queryKey: ["/api/mobile/deliveries"] })` after three critical operations:
+    1. Saving product changes (`saveProductChanges`)
+    2. Completing delivery with invoicing (`executeDeliveryProcess`)
+    3. Completing prepaid delivery (`executeDeliveryProcessPrepaid`)
+-   **Impact**: The delivery list now always shows current totals and statuses immediately after any changes, eliminating the need for manual refresh and providing accurate real-time data.
+
 ## External Dependencies
 
 ### Core Infrastructure
