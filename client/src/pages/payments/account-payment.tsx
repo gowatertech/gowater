@@ -112,7 +112,7 @@ export default function AccountPaymentPage() {
   // Calcular la distribución del pago (preview)
   const paymentPreview = useMemo(() => {
     const paymentAmount = parseFloat(amount) || 0;
-    if (paymentAmount <= 0 || pendingInvoices.length === 0) {
+    if (paymentAmount <= 0) {
       return { invoices: [], remaining: 0 };
     }
 
@@ -349,13 +349,17 @@ export default function AccountPaymentPage() {
                         <p className="text-lg font-medium mb-2">Cliente con balance CXC inicial</p>
                         <p className="text-sm text-muted-foreground">
                           Este cliente tiene un balance pendiente pero no tiene facturas registradas.
-                          Puede aplicar un pago directamente al balance.
+                          Puede aplicar un pago directamente al balance o crear un anticipo.
                         </p>
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                        <p className="text-lg font-medium">Este cliente no tiene facturas pendientes</p>
+                      <div className="text-center py-8 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                        <CheckCircle2 className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+                        <p className="text-lg font-medium mb-2">Cliente al día</p>
+                        <p className="text-sm text-muted-foreground">
+                          Este cliente no tiene facturas pendientes. 
+                          Puede crear un anticipo que se aplicará automáticamente a sus futuras facturas.
+                        </p>
                       </div>
                     )
                   ) : (
@@ -408,7 +412,7 @@ export default function AccountPaymentPage() {
         )}
 
         {/* Detalles del Pago */}
-        {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance) > 0) && (
+        {selectedCustomerId && (
           <Card>
             <CardHeader>
               <CardTitle>Detalles del Pago</CardTitle>

@@ -114,7 +114,7 @@ export default function MobileAbonoACuentaPage() {
   // Calcular la distribución del pago (preview)
   const paymentPreview = useMemo(() => {
     const paymentAmount = parseFloat(amount) || 0;
-    if (paymentAmount <= 0 || pendingInvoices.length === 0) {
+    if (paymentAmount <= 0) {
       return { invoices: [], remaining: 0 };
     }
 
@@ -345,13 +345,17 @@ export default function MobileAbonoACuentaPage() {
                           <p className="text-sm font-medium mb-1">Cliente con balance CXC inicial</p>
                           <p className="text-xs text-muted-foreground px-4">
                             Este cliente tiene un balance pendiente pero no tiene facturas registradas.
-                            Puede aplicar un pago directamente al balance.
+                            Puede aplicar un pago directamente al balance o crear un anticipo.
                           </p>
                         </div>
                       ) : (
-                        <div className="text-center py-6">
-                          <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                          <p className="text-sm font-medium">Este cliente no tiene facturas pendientes</p>
+                        <div className="text-center py-6 bg-blue-50 dark:bg-blue-950 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                          <CheckCircle2 className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+                          <p className="text-sm font-medium mb-1">Cliente al día</p>
+                          <p className="text-xs text-muted-foreground px-4">
+                            Este cliente no tiene facturas pendientes. 
+                            Puede crear un anticipo para futuras facturas.
+                          </p>
                         </div>
                       )
                     ) : (
@@ -404,7 +408,7 @@ export default function MobileAbonoACuentaPage() {
           )}
 
           {/* Detalles del Pago */}
-          {selectedCustomerId && (pendingInvoices.length > 0 || parseFloat(customerBalance) > 0) && (
+          {selectedCustomerId && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Detalles del Pago</CardTitle>
