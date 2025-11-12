@@ -71,6 +71,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 
 export default function Users() {
   const { t } = useTranslation();
@@ -125,6 +126,7 @@ export default function Users() {
       password: "",
       role: "admin",
       companyId: currentUser?.companyId || undefined,
+      hasCommission: true,
       phone: "",
       license: "",
       licenseExpiry: "",
@@ -379,6 +381,7 @@ export default function Users() {
       password: "",
       role: user.role,
       companyId: currentUser?.companyId,
+      hasCommission: (user as any).hasCommission !== undefined ? (user as any).hasCommission : true,
       phone: user.phone || "",
       license: user.license || "",
       licenseExpiry: user.licenseExpiry ? format(new Date(user.licenseExpiry), "yyyy-MM-dd") : "",
@@ -405,6 +408,7 @@ export default function Users() {
       password: "",
       role: "admin",
       companyId: currentUser?.companyId,
+      hasCommission: true,
       phone: "",
       license: "",
       licenseExpiry: "",
@@ -960,6 +964,29 @@ export default function Users() {
                             </FormItem>
                           )}
                         />
+                        {(form.watch("role") === "driver" || form.watch("role") === "assistant") && (
+                          <FormField
+                            control={form.control}
+                            name="hasCommission"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-background">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Aplica Comisión</FormLabel>
+                                  <div className="text-sm text-muted-foreground">
+                                    ¿Este vendedor/conductor recibe comisiones?
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    data-testid="switch-has-commission"
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        )}
                       </div>
                     </div>
 
