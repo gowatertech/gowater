@@ -435,14 +435,14 @@ export default function NewOrder() {
             <div className="space-y-2">
               <div className="text-sm font-medium">Responsable de Entrega (Opcional)</div>
               <Select
-                value={selectedSalespersonId?.toString() || ""}
-                onValueChange={(value) => setSelectedSalespersonId(value ? parseInt(value) : null)}
+                value={selectedSalespersonId?.toString() || "unassigned"}
+                onValueChange={(value) => setSelectedSalespersonId(value === "unassigned" ? null : parseInt(value))}
               >
                 <SelectTrigger className="h-9" data-testid="select-salesperson">
                   <SelectValue placeholder="Sin asignar - se detectará automáticamente" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="unassigned">Sin asignar</SelectItem>
                   {salespeople.map((salesperson: any) => (
                     <SelectItem key={salesperson.id} value={salesperson.id.toString()}>
                       {salesperson.name} - {salesperson.role === 'driver' ? 'Conductor' : 'Ayudante'}
