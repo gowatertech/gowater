@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { getStartOfWeekRD, getEndOfWeekRD } from '@/lib/date-utils';
+import { formatDateRD } from '@/lib/date-utils';
 
 // Componente simple sin dependencias complejas
 const SimpleCommissionGenerator = () => {
-  // Estado básico para el formulario
-  const [startDate, setStartDate] = useState(() => {
-    return getStartOfWeekRD(1);
-  });
-  
-  const [endDate, setEndDate] = useState(() => {
-    return getEndOfWeekRD(1);
+  // Estado básico para el formulario - Modelo diario: una sola fecha
+  const [commissionDate, setCommissionDate] = useState(() => {
+    // Fecha de hoy en formato YYYY-MM-DD
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
   
   const [userRole, setUserRole] = useState('driver');
@@ -26,10 +24,9 @@ const SimpleCommissionGenerator = () => {
     setSuccess('');
     
     try {
-      // Preparar los datos para el envío
+      // Preparar los datos para el envío - Modelo diario
       const data: Record<string, any> = {
-        weekStartDate: startDate,
-        weekEndDate: endDate,
+        date: commissionDate, // Una sola fecha para comisión diaria
         userRole
       };
       
@@ -65,12 +62,17 @@ const SimpleCommissionGenerator = () => {
       }
       
       console.log('Respuesta recibida:', result);
-      setSuccess(`Se han oficializado ${result.commissions?.length || 0} comisiones correctamente. Ahora están disponibles para pago.`);
+      const count = result.commissions?.length || 0;
+      if (count === 0) {
+        setSuccess('No se encontraron comisiones calculadas para la fecha seleccionada. Verifique que existan pedidos entregados con productos comisionables.');
+      } else {
+        setSuccess(`✅ Se han oficializado ${count} comisión(es) correctamente. Las comisiones ahora están guardadas en la base de datos con estado "PENDIENTE" y listas para pago.`);
+      }
       
       // Redireccionar después de un tiempo
       setTimeout(() => {
         window.location.href = '/commissions';
-      }, 2000);
+      }, 3000);
       
     } catch (err: any) {
       console.error('Error al generar comisiones:', err);
@@ -85,9 +87,9 @@ const SimpleCommissionGenerator = () => {
       <div className="rounded-lg border bg-card shadow-sm">
         <div className="p-6 sm:p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold sm:text-3xl">Oficializar Comisiones</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Oficializar Comisiones Diarias</h1>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-              Complete el formulario para oficializar las comisiones calculadas y marcarlas como pagables
+              Seleccione una fecha para oficializar las comisiones calculadas de ese día y marcarlas como pendientes de pago
             </p>
           </div>
           
@@ -111,33 +113,21 @@ const SimpleCommissionGenerator = () => {
           
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div>
-              <label htmlFor="startDate" className="block mb-2 text-sm font-medium">
-                Fecha de inicio
+              <label htmlFor="commissionDate" className="block mb-2 text-sm font-medium">
+                Fecha de Comisión
               </label>
               <input
-                id="startDate"
+                id="commissionDate"
                 type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                value={commissionDate}
+                onChange={(e) => setCommissionDate(e.target.value)}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 required
-                data-testid="input-start-date"
+                data-testid="input-commission-date"
               />
-            </div>
-            
-            <div>
-              <label htmlFor="endDate" className="block mb-2 text-sm font-medium">
-                Fecha de fin
-              </label>
-              <input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                required
-                data-testid="input-end-date"
-              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Seleccione la fecha para la cual desea oficializar comisiones
+              </p>
             </div>
             
             <div>
