@@ -566,6 +566,7 @@ class RecurringOrdersService {
       paymentMethod: recurringOrder.paymentMethod,
       date: new Date(),
       routeId: null,
+      salespersonId: null, // Los pedidos recurrentes no tienen vendedor asignado automáticamente
       notes: `Pedido generado automáticamente desde pedido recurrente #${safeId}: ${recurringOrder.name}`,
       cashCollected: "0.00",
       driverCommission: "0.00",

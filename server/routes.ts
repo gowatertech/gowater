@@ -5798,7 +5798,26 @@ export async function registerRoutes(router: express.Router) {
         console.warn(`⚠️ Cliente ${req.body.customerId} no tiene coordenadas registradas`);
       }
 
-      // Preparar datos del pedido (incluyendo coordenadas)
+      // Determinar el vendedor responsable
+      let salespersonId = req.body.salespersonId || null;
+      
+      // Si hay ruta pero no salespersonId, obtener el conductor de la ruta
+      if (req.body.routeId && !salespersonId) {
+        const routeQuery = `SELECT driver_id FROM routes WHERE id = $1 AND company_id = $2`;
+        const routeResult = await pool.query(routeQuery, [parseInt(req.body.routeId), companyId]);
+        if (routeResult.rows.length > 0) {
+          salespersonId = routeResult.rows[0].driver_id;
+          console.log(`📍 Vendedor asignado desde ruta: ${salespersonId}`);
+        }
+      }
+      
+      // Si no hay salespersonId y el usuario en sesión es conductor/vendedor, usarlo
+      if (!salespersonId && req.session?.user?.id && ['driver', 'assistant'].includes(req.session.user.role)) {
+        salespersonId = req.session.user.id;
+        console.log(`📍 Vendedor asignado desde sesión: ${salespersonId}`);
+      }
+
+      // Preparar datos del pedido (incluyendo coordenadas y vendedor)
       const orderData = {
         customerId: parseInt(req.body.customerId),
         total: req.body.total,
@@ -5806,6 +5825,7 @@ export async function registerRoutes(router: express.Router) {
         paymentMethod: req.body.paymentMethod || "cash",
         date: req.body.date ? new Date(req.body.date).toISOString() : getTimestampRD(),
         routeId: req.body.routeId || null,
+        salespersonId: salespersonId,
         notes: req.body.notes || "",
         deliveryCoordinates: customerCoordinates,
         companyId: companyId
@@ -5830,13 +5850,13 @@ export async function registerRoutes(router: express.Router) {
       await client.query('BEGIN');
       console.log("🔄 Transacción iniciada");
       
-      // 1. Crear la orden (con coordenadas de entrega)
+      // 1. Crear la orden (con coordenadas de entrega y vendedor)
       const orderQuery = `
         INSERT INTO orders (
           company_id, customer_id, total, status, payment_method, date, 
-          route_id, notes, delivery_coordinates, cash_collected, driver_commission, assistant_commission
+          route_id, salesperson_id, notes, delivery_coordinates, cash_collected, driver_commission, assistant_commission
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
         ) RETURNING *
       `;
       
@@ -5848,6 +5868,7 @@ export async function registerRoutes(router: express.Router) {
         orderData.paymentMethod,
         orderData.date,
         orderData.routeId,
+        orderData.salespersonId,
         orderData.notes,
         orderData.deliveryCoordinates,  // Coordenadas copiadas del cliente
         '0.00',  // cash_collected
