@@ -5,7 +5,7 @@ import {
   routes, vehicleLoading, customers, settings,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
 import { getNowRD } from '../date-utils';
@@ -977,6 +977,340 @@ export function createMobileApiEndpoints(): Router {
     } catch (error) {
       console.error("Error al obtener deliveries:", error);
       res.status(500).json({ error: "Error al obtener entregas", details: String(error) });
+    }
+  });
+
+  /**
+   * GET /api/mobile/customers/:id/pending-invoices
+   * Obtiene las facturas pendientes de un cliente específico
+   */
+  router.get('/customers/:id/pending-invoices', async (req, res) => {
+    try {
+      let companyId = getCurrentCompanyId();
+      
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      const customerId = parseInt(req.params.id);
+      
+      if (!customerId || isNaN(customerId)) {
+        return res.status(400).json({ error: "ID de cliente inválido" });
+      }
+      
+      // Obtener el balance del cliente
+      const [customer] = await db
+        .select({ balance: customers.balance })
+        .from(customers)
+        .where(and(eq(customers.id, customerId), eq(customers.companyId, companyId)));
+      
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      const customerBalance = customer.balance.toString();
+      
+      // Obtener todas las facturas del cliente
+      const customerInvoices = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.customerId, customerId),
+            eq(invoices.companyId, companyId)
+          )
+        )
+        .orderBy(invoices.date);
+      
+      // Para cada factura, calcular el monto pendiente
+      const invoicesWithBalance = await Promise.all(
+        customerInvoices.map(async (invoice) => {
+          const paymentsForInvoice = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.invoiceId, invoice.id));
+          
+          const totalPaid = paymentsForInvoice.reduce(
+            (sum, p) => sum + parseFloat(p.amount.toString()),
+            0
+          );
+          
+          const pending = (parseFloat(invoice.total) - totalPaid).toFixed(2);
+          
+          return {
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            date: invoice.date,
+            total: invoice.total,
+            pending,
+          };
+        })
+      );
+      
+      // Filtrar solo las que tienen saldo pendiente
+      const pendingInvoices = invoicesWithBalance.filter(
+        inv => parseFloat(inv.pending) > 0
+      );
+      
+      res.json({
+        customerBalance,
+        pendingInvoices
+      });
+    } catch (error) {
+      console.error("Error al obtener facturas pendientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  /**
+   * POST /api/mobile/payments/account-payment
+   * Aplica un pago a cuenta distribuido automáticamente entre las facturas pendientes
+   */
+  router.post('/payments/account-payment', async (req, res) => {
+    let companyId: number | undefined;
+    
+    try {
+      companyId = getCurrentCompanyId();
+      
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      // Establecer el contexto para storage.createTransaction
+      setCurrentCompanyId(companyId);
+      
+      const { customerId, amount, paymentMethod, reference, notes } = req.body;
+      
+      if (!customerId || !amount || !paymentMethod) {
+        return res.status(400).json({ 
+          error: "Faltan datos requeridos: customerId, amount, paymentMethod" 
+        });
+      }
+      
+      let remainingAmount = parseFloat(amount);
+      
+      if (remainingAmount <= 0) {
+        return res.status(400).json({ error: "El monto debe ser mayor a 0" });
+      }
+      
+      // Obtener el balance del cliente
+      const [customer] = await db
+        .select({ balance: customers.balance, businessname: customers.businessname })
+        .from(customers)
+        .where(and(eq(customers.id, customerId), eq(customers.companyId, companyId)));
+      
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      const customerBalance = parseFloat(customer.balance.toString());
+      
+      console.log(`[Mobile Account Payment] Cliente: ${customer.businessname}, Balance: ${customerBalance}, Monto a pagar: ${remainingAmount}`);
+      
+      // Obtener facturas pendientes del cliente ordenadas por fecha (más antigua primero)
+      const customerInvoices = await db
+        .select()
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.customerId, customerId),
+            eq(invoices.companyId, companyId)
+          )
+        )
+        .orderBy(invoices.date);
+      
+      const paymentsCreated = [];
+      const invoicesUpdated = [];
+      
+      // Aplicar el pago a cada factura desde la más antigua
+      for (const invoice of customerInvoices) {
+        if (remainingAmount <= 0.01) break;
+        
+        // Calcular saldo pendiente de esta factura
+        const paymentsForInvoice = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.invoiceId, invoice.id));
+        
+        const totalPaid = paymentsForInvoice.reduce(
+          (sum, p) => sum + parseFloat(p.amount.toString()),
+          0
+        );
+        
+        const pendingAmount = parseFloat(invoice.total) - totalPaid;
+        
+        if (pendingAmount <= 0.01) continue;
+        
+        // Determinar cuánto aplicar a esta factura
+        const amountToApply = Math.min(remainingAmount, pendingAmount);
+        
+        // Crear el pago
+        const [payment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            invoiceId: invoice.id,
+            amount: amountToApply.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || `Abono a cuenta - Factura #${invoice.invoiceNumber}`,
+            isAdvance: false,
+            date: getNowRD(),
+          })
+          .returning();
+        
+        paymentsCreated.push(payment);
+        
+        // Crear transacción RI
+        await storage.createTransaction({
+          companyId,
+          documentType: 'RI',
+          customerId,
+          invoiceId: invoice.id,
+          paymentId: payment.id,
+          amount: amountToApply.toFixed(2),
+          type: 'credit',
+          description: `Pago a cuenta - Factura #${invoice.invoiceNumber}`,
+          notes: notes || null,
+          date: getNowRD(),
+        });
+        
+        remainingAmount -= amountToApply;
+        
+        // Actualizar estado de la factura si quedó completamente pagada
+        const newTotalPaid = totalPaid + amountToApply;
+        if (newTotalPaid >= parseFloat(invoice.total) - 0.01) {
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(eq(invoices.id, invoice.id));
+          
+          invoicesUpdated.push({
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            status: 'paid'
+          });
+        }
+      }
+      
+      // Si no aplicó pago a facturas PERO el cliente tiene balance CXC
+      if (paymentsCreated.length === 0 && customerBalance > 0) {
+        console.log(`[Mobile Account Payment] Cliente sin facturas pero con CXC. Creando RI directo...`);
+        
+        const amountToApplyCXC = Math.min(remainingAmount, customerBalance);
+        
+        const [payment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            invoiceId: null,
+            amount: amountToApplyCXC.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || "Pago a cuenta - Abono a CXC",
+            isAdvance: false,
+            date: getNowRD(),
+          })
+          .returning();
+        
+        paymentsCreated.push(payment);
+        
+        await storage.createTransaction({
+          companyId,
+          documentType: 'RI',
+          customerId,
+          paymentId: payment.id,
+          amount: amountToApplyCXC.toFixed(2),
+          type: 'credit',
+          description: `Pago a cuenta - Abono a CXC`,
+          notes: notes || null,
+          date: getNowRD(),
+        });
+        
+        remainingAmount -= amountToApplyCXC;
+      }
+      
+      // Si queda dinero sobrante, crear un anticipo
+      let advancePayment = null;
+      if (remainingAmount > 0.01) {
+        console.log(`[Mobile Account Payment] Creando anticipo por sobrante: ${remainingAmount}`);
+        
+        const lastAdvance = await db
+          .select()
+          .from(payments)
+          .where(
+            and(
+              eq(payments.companyId, companyId),
+              eq(payments.isAdvance, true)
+            )
+          )
+          .orderBy(desc(payments.id))
+          .limit(1);
+        
+        let documentNumber = "ANT-001";
+        if (lastAdvance.length > 0 && lastAdvance[0].documentNumber) {
+          const match = lastAdvance[0].documentNumber.match(/ANT-(\d+)/);
+          if (match) {
+            const nextNumber = parseInt(match[1]) + 1;
+            documentNumber = `ANT-${nextNumber.toString().padStart(3, '0')}`;
+          }
+        }
+        
+        [advancePayment] = await db
+          .insert(payments)
+          .values({
+            companyId,
+            customerId,
+            amount: remainingAmount.toFixed(2),
+            paymentMethod: paymentMethod as any,
+            reference: reference || null,
+            notes: notes || "Anticipo - Sobrante de abono a cuenta",
+            isAdvance: true,
+            invoiceId: null,
+            documentNumber,
+            date: getNowRD(),
+          })
+          .returning();
+        
+        await storage.createTransaction({
+          companyId,
+          documentType: 'ANT',
+          customerId,
+          paymentId: advancePayment.id,
+          amount: remainingAmount.toFixed(2),
+          type: 'credit',
+          description: `Anticipo - ${documentNumber}`,
+          notes: notes || null,
+          date: getNowRD(),
+        });
+      }
+      
+      res.json({
+        success: true,
+        paymentsCreated,
+        invoicesUpdated,
+        advancePayment,
+        totalApplied: (parseFloat(amount) - remainingAmount).toFixed(2),
+        remainingAsAdvance: remainingAmount > 0.01 ? remainingAmount.toFixed(2) : '0.00',
+      });
+      
+    } catch (error) {
+      console.error("Error al aplicar pago a cuenta:", error);
+      res.status(500).json({ error: String(error) });
+    } finally {
+      if (companyId) {
+        setCurrentCompanyId(undefined);
+      }
     }
   });
 

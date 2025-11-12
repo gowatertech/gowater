@@ -429,7 +429,7 @@ export default function MobileAppClientesPage() {
                   </div>
                   
                   <Button
-                    onClick={() => navigate(`/payments/account-payment?customerId=${selectedCustomer.id}`)}
+                    onClick={() => navigate(`/mobile-app/payments/abono-cuenta?customerId=${selectedCustomer.id}`)}
                     className="w-full bg-green-600 hover:bg-green-700 text-sm sm:text-base"
                     size="lg"
                     data-testid="button-abono-cuenta"

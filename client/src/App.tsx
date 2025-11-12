@@ -77,6 +77,7 @@ import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
 import MobilePayments from "@/pages/mobile-app/payments";
+import MobileAbonoACuentaPage from "@/pages/mobile-app/payments/abono-cuenta";
 import MobileProfile from "@/pages/mobile-app/perfil";
 import MobileNewOrder from "@/pages/mobile-app/new-order";
 // Lazy loaded components
@@ -218,6 +219,7 @@ function Router() {
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
         <Route path="/mobile-app/pagos" component={MobilePayments} />
+        <Route path="/mobile-app/payments/abono-cuenta" component={MobileAbonoACuentaPage} />
         <Route path="/mobile-app/payments" component={MobilePayments} />
         <Route path="/mobile-app/perfil" component={MobileProfile} />
         <Route path="/mobile-app/new-order" component={MobileNewOrder} />
