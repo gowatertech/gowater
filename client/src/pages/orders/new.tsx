@@ -77,6 +77,7 @@ export default function NewOrder() {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("credit");
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
+  const [selectedSalespersonId, setSelectedSalespersonId] = useState<number | null>(null);
 
   // Detectar si el cliente es institución benéfica y cambiar método de pago automáticamente
   useEffect(() => {
@@ -122,6 +123,21 @@ export default function NewOrder() {
         method: "GET",
         url: "/api/settings"
       });
+    }
+  });
+
+  // Cargar vendedores (conductores y ayudantes) para asignación manual
+  const { data: salespeople = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      const users = await apiRequest({
+        method: "GET",
+        url: "/api/users"
+      });
+      // Filtrar solo conductores y ayudantes activos
+      return users.filter((u: any) => 
+        (u.role === 'driver' || u.role === 'helper') && u.active
+      );
     }
   });
 
@@ -223,6 +239,7 @@ export default function NewOrder() {
         paymentMethod: paymentMethod as "cash" | "credit" | "card" | "donation",
         date: dateStr, // Formato ISO completo
         routeId: null,
+        salespersonId: selectedSalespersonId, // Asignar vendedor seleccionado manualmente
         notes: notes || "",
         items: formattedItems // Incluir los items directamente en el payload
         // Eliminar companyId estático para que el backend lo obtenga del contexto de sesión
@@ -254,6 +271,7 @@ export default function NewOrder() {
       setSelectedCustomer(null);
       setCustomerSearchTerm("");
       setNotes("");
+      setSelectedSalespersonId(null);
       setOrderItems([
         { code: "", description: "", quantity: 0, price: 0, total: 0 },
         { code: "", description: "", quantity: 0, price: 0, total: 0 },
@@ -411,6 +429,32 @@ export default function NewOrder() {
               )}
             </div>
           </div>
+
+          {/* Responsable de Entrega - Solo para usuarios administrativos */}
+          {user?.role === 'admin' && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Responsable de Entrega (Opcional)</div>
+              <Select
+                value={selectedSalespersonId?.toString() || ""}
+                onValueChange={(value) => setSelectedSalespersonId(value ? parseInt(value) : null)}
+              >
+                <SelectTrigger className="h-9" data-testid="select-salesperson">
+                  <SelectValue placeholder="Sin asignar - se detectará automáticamente" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin asignar</SelectItem>
+                  {salespeople.map((salesperson: any) => (
+                    <SelectItem key={salesperson.id} value={salesperson.id.toString()}>
+                      {salesperson.name} - {salesperson.role === 'driver' ? 'Conductor' : 'Ayudante'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Si no selecciona, se asignará automáticamente según quien entregue el pedido
+              </p>
+            </div>
+          )}
 
           {/* Método de Pago */}
           <div className="space-y-2">
