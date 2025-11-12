@@ -45,7 +45,7 @@ export interface IStorage {
   getCustomer(id: number): Promise<Customer | undefined>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   listCustomers(): Promise<Customer[]>;
-  updateCustomerBalance(id: number, amount: number): Promise<Customer>;
+  updateCustomerBalance(customerId: number, tx?: any): Promise<void>;
 
   // Products
   getProduct(id: number): Promise<Product | undefined>;
@@ -212,24 +212,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(customers.companyId, companyId || 0));
   }
 
-  async updateCustomerBalance(id: number, amount: number): Promise<Customer> {
-    const [customer] = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.id, id));
-
-    if (!customer) throw new Error("Cliente no encontrado");
-
-    // Actualizar el límite de crédito en lugar del balance
-    const newCreditLimit = (parseFloat(customer.creditlimit) - amount).toFixed(2);
-    const [updatedCustomer] = await db
-      .update(customers)
-      .set({ creditlimit: newCreditLimit })
-      .where(eq(customers.id, id))
-      .returning();
-
-    return updatedCustomer;
-  }
 
   // Products
   async getProduct(id: number): Promise<Product | undefined> {
@@ -990,22 +972,23 @@ export class DatabaseStorage implements IStorage {
     
     const creditLimit = customer?.creditLimit || "0.00";
     
-    // CALCULAR BALANCE DESDE TRANSACCIONES (igual que en Transacciones Históricas)
+    // CALCULAR BALANCE DESDE TRANSACCIONES usando SQL con tipos NUMERIC (precisión exacta)
     // Balance = Total Débitos - Total Créditos
-    const customerTransactions = await this.getCustomerTransactions(customerId);
+    const balanceResult = await db
+      .select({
+        totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+        totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.customerId, customerId),
+          eq(transactions.companyId, companyId)
+        )
+      );
     
-    let totalDebits = 0;
-    let totalCredits = 0;
-    
-    customerTransactions.forEach(transaction => {
-      const amount = parseFloat(transaction.amount.toString());
-      if (transaction.type === "debit") {
-        totalDebits += amount;
-      } else {
-        totalCredits += amount;
-      }
-    });
-    
+    const totalDebits = parseFloat(balanceResult[0].totalDebits || "0");
+    const totalCredits = parseFloat(balanceResult[0].totalCredits || "0");
     const balanceFromTransactions = (totalDebits - totalCredits).toFixed(2);
     
     // Calcular total de facturas pendientes (para mostrar en la UI)
@@ -1415,7 +1398,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Usar transacción DB para garantizar numeración secuencial, inserción y actualización de balance atómicas
-    const [transaction] = await db.transaction(async (tx) => {
+    const transaction = await db.transaction(async (tx) => {
       // Lockear la tabla para evitar race conditions en numeración
       // Esto asegura que solo una transacción pueda generar números a la vez
       await tx.execute(sql`LOCK TABLE ${transactions} IN SHARE ROW EXCLUSIVE MODE`);
@@ -1437,21 +1420,28 @@ export class DatabaseStorage implements IStorage {
       const nextNumber = maxNumber + 1;
       const documentNumber = `${transactionData.documentType}-${nextNumber.toString().padStart(4, '0')}`;
 
+      // Separar date del resto para manejo explícito de tipos
+      const { date, ...restTransactionData } = transactionData;
+      const parsedDate = date ? new Date(date) : new Date(getNowRD());
+
       // Insertar con el número generado dentro de la transacción
       const [newTransaction] = await tx.insert(transactions).values({
-        ...transactionData,
+        ...restTransactionData,
         companyId,
         documentNumber,
-        date: transactionData.date || getNowRD()
+        date: parsedDate
       }).returning();
       
       // Actualizar el balance del cliente dentro de la misma transacción (atomicidad garantizada)
-      await this.updateCustomerBalance(transactionData.customerId, tx);
+      // Solo si la transacción tiene customerId (algunas transacciones pueden no tenerlo)
+      if (transactionData.customerId) {
+        await this.updateCustomerBalance(transactionData.customerId, tx);
+      }
       
       return newTransaction;
     });
 
-    console.log(`✅ Transacción ${transaction.documentNumber} creada y balance actualizado atómicamente`);
+    console.log(`✅ Transacción ${transaction.documentNumber} creada${transactionData.customerId ? ' y balance actualizado atómicamente' : ''}`);
     
     return transaction;
   }
@@ -1504,19 +1494,22 @@ export class DatabaseStorage implements IStorage {
     // Obtener todas las transacciones del cliente
     const customerTransactions = await this.getCustomerTransactions(customerId);
 
-    // Calcular totales
-    let totalDebits = 0;
-    let totalCredits = 0;
+    // Calcular totales usando SQL con tipos NUMERIC (precisión exacta)
+    const balanceResult = await db
+      .select({
+        totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+        totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.customerId, customerId),
+          eq(transactions.companyId, companyId)
+        )
+      );
 
-    customerTransactions.forEach(transaction => {
-      const amount = parseFloat(transaction.amount.toString());
-      if (transaction.type === "debit") {
-        totalDebits += amount;
-      } else {
-        totalCredits += amount;
-      }
-    });
-
+    const totalDebits = parseFloat(balanceResult[0].totalDebits || "0");
+    const totalCredits = parseFloat(balanceResult[0].totalCredits || "0");
     const balance = totalDebits - totalCredits;
 
     return {

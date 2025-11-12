@@ -41,10 +41,10 @@ A **hierarchical address system** integrates with **Leaflet Maps** for interacti
 Adheres to **WCAG 2.1** guidelines and features comprehensive testing coverage.
 
 ### UI/UX Design Approach
-Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience.
+Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, responsive, and accessible user experience. The system also includes responsive layouts for mobile devices, such as the Customer Transaction History.
 
 ### Invoice & Payment Systems
-Automates invoice generation, handles dynamic tax calculation, concurrency control, automatic payment processing for cash invoices, partial cash payments via mobile app, and a prepaid invoice system. It includes a unified transaction ledger, a comprehensive advance payment (anticipos) system, and an automated "Abono a Cuenta" (Account Payment) system that allows applying payments across multiple pending invoices and creating advance payments even without pending invoices. A centralized `recalculateInvoiceStatus()` utility ensures accurate invoice status based on persisted payment data.
+Automates invoice generation, handles dynamic tax calculation, concurrency control, automatic payment processing for cash invoices, partial cash payments via mobile app, and a prepaid invoice system. It includes a unified transaction ledger, a comprehensive advance payment (anticipos) system, and an automated "Abono a Cuenta" (Account Payment) system that allows applying payments across multiple pending invoices and creating advance payments even without pending invoices. A centralized `recalculateInvoiceStatus()` utility ensures accurate invoice status based on persisted payment data. The system also includes automatic synchronization of `customers.balance` with transactions and allows for advance payments without pending invoices.
 
 ### Timezone Configuration
 The system uses **América/Santo_Domingo timezone (UTC-4)** for all date and time operations.
@@ -57,6 +57,9 @@ Provides tracking and visualization of unreturned bottles with alerts, reports, 
 
 ### Daily Cash Reconciliation System
 A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) provides automatic sales summaries, manual input fields, automatic calculations of surplus/shortage, one-per-day validation, historical records, edit mode, print/PDF functionality, and a modern UI.
+
+### Daily Commission System
+Implemented a comprehensive daily commission system for delivery personnel based on commissionable products. This includes database fields for `users.hasCommission`, `orders.salespersonId`, and product-specific commission values (`isCommissionable`, `driverCommissionValue`, `helperCommissionValue`). Commissions are calculated in real-time from delivered orders, aggregated daily, and controlled at the user level. The system features a redesigned commissions dashboard with quick filters, custom date ranges, advanced filters, summary statistics, visual analytics, and a detailed daily breakdown. Salesperson visibility and editing are integrated into order management views to support commission tracking.
 
 ## External Dependencies
 ### Core Infrastructure
@@ -78,112 +81,3 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 -   **Radix UI**: Accessible component primitives.
 -   **Lucide React**: Icon system.
 -   **shadcn/ui**: Customizable UI components.
-
-## Recent Changes
-
-### November 12, 2025 - Daily Commission System Implementation
-
-#### Commission Control & Tracking
-Implemented a comprehensive daily commission system for delivery personnel based on commissionable products:
-
-**Database Schema Changes:**
--   **users.hasCommission**: Boolean field to control which users (drivers/helpers) receive commissions
--   **orders.salespersonId**: Tracks the responsible delivery person for commission assignment
--   **commissions table**: Converted from weekly to daily tracking (using `date` field instead of `weekStartDate/weekEndDate`)
--   **products commission fields**:
-    - `isCommissionable`: Boolean to mark commissionable products
-    - `driverCommissionValue`: Commission amount for drivers (RD$)
-    - `helperCommissionValue`: Commission amount for helpers (RD$)
-
-**Business Logic:**
--   **Automatic salesperson assignment**: Orders automatically assign `salespersonId` based on:
-    1. Route driver (if order has a route)
-    2. Manually selected salesperson (for admin-created orders)
-    3. Logged-in user (for individual orders created by drivers/helpers)
--   **Commission calculation**: Only products marked as `isCommissionable` generate commissions
--   **Role-based commission values**: Different commission amounts for drivers vs helpers
--   **User-level commission control**: `hasCommission` toggle enables/disables commission for individual users
--   **Daily aggregation**: Commissions grouped by (userId, date) with real-time calculation from delivered orders
-
-**User Interfaces:**
--   **User Management** (`/users`): Added "Aplica Comisión" checkbox for drivers and helpers
--   **Order Creation** (`/orders/new`): Added "Responsable de Entrega" selector for administrative users to manually assign delivery person
--   **Product Management** (`/inventory`): Added "Configuración de Comisiones" section with:
-    - "Es Comisionable" checkbox
-    - "Comisión Chofer" and "Comisión Ayudante" input fields (disabled when product is not commissionable)
--   **Commissions Dashboard** (`/commissions`): Complete redesign with daily model featuring:
-    - **Quick Filter Tabs**: "Hoy", "Esta Semana", "Este Mes" for rapid date range selection
-    - **Custom Date Range**: Dual DatePicker for precise from/to date selection
-    - **Advanced Filters**: Filter by specific user or role (Choferes/Ayudantes)
-    - **Summary Statistics**: 4 gradient cards showing Total Choferes, Total Ayudantes, Total General, and Productos Vendidos
-    - **Visual Analytics**: Bar chart displaying daily commission distribution across selected date range
-    - **Detailed View**: Responsive table (desktop) / cards (mobile) showing per-user-per-day commission breakdown
-    - **Clear Filters**: One-click button to reset user and role filters
-    - **Real-time Calculation**: Displays calculated commissions from delivered orders before official payment
-
-**API Enhancements:**
--   **GET /api/commissions**: Accepts `startDate`, `endDate`, `userId` (optional), `userRole` (optional) query parameters
--   Returns array of daily commission records with status indicators (calculated/pending/paid/cancelled)
--   Efficient date-range queries with user and role filtering
-
-**Testing:**
--   End-to-end testing verified complete UI functionality including filters, charts, and data display
--   Architect-reviewed commission calculation logic and dashboard implementation
--   Confirmed responsive design works on both desktop and mobile viewports
-
-**Impact**: The system now supports flexible daily commission tracking for delivery personnel, with product-level commission values and user-level commission control, replacing the previous weekly commission model. The new dashboard provides comprehensive analytics and filtering capabilities for management oversight.
-
-### November 12, 2025 - Enhanced Order Views: Salesperson Display and Editing
-
-#### Complete Salesperson Visibility Across Order Management
-Extended the order management interface to display and edit the responsible delivery person (salesperson) throughout the order lifecycle:
-
--   **Backend API Enhancement (GET /api/orders/:id)**:
-    - Added LEFT JOIN to users table to retrieve `salespersonId` and `salespersonName`
-    - Ensures backwards compatibility by handling null values for orders without assigned salesperson
--   **Backend API Enhancement (PUT /api/orders/:id)**:
-    - Added `salesperson_id` to the UPDATE query to persist salesperson changes
-    - Supports updating salesperson assignment when editing existing orders
--   **Order Details View**:
-    - Added "Responsable de Entrega" field displaying salesperson name or "Sin asignar"
-    - Provides visibility into who is responsible for each order's delivery
--   **Order Edit View**:
-    - Added "Responsable de Entrega" dropdown selector
-    - Populates with all users having driver or helper roles
-    - Loads existing salesperson from order data
-    - Sends salespersonId in update mutation to persist changes
-    - Supports "unassigned" state for orders without a designated salesperson
--   **Testing**: Architect-verified end-to-end data flow (GET→display, edit→PUT→persist)
-
-**Impact**: Users can now view and modify the delivery person responsible for each order directly in the order details and edit interfaces, providing complete visibility and control over salesperson assignments. This complements the automatic assignment logic in order creation and supports commission tracking requirements.
-
-### November 12, 2025 - Responsive Customer Transaction History
-
-#### Mobile-Friendly Transaction Display
-Implemented responsive design for the CustomerTransactionHistory component to improve usability on mobile devices:
-
--   **Responsive Layout**: Uses `useIsMobile()` hook to detect viewport width and switch between layouts
--   **Mobile View (< 768px)**: Displays transactions as compact cards with:
-    - First line: Document number, type badge, and date
-    - Second line: Transaction description (truncated at 2 lines)
-    - Third section: Grid showing Débito, Crédito, and Balance
--   **Desktop View (≥ 768px)**: Maintains original table layout with 7 columns
--   **Visual Consistency**: Preserved color coding (red for débitos, green for créditos) and iconography across both views
--   **Testing**: Successfully tested on both mobile (375x667) and desktop (1280x720) viewports
--   **Impact**: Customers can now easily view their transaction history on mobile devices without horizontal scrolling, improving the mobile experience significantly.
-
-### November 12, 2025 - Enhanced Account Payment: Allow Advance Payments Without Pending Invoices
-
-#### Enable Anticipos for All Customers
-Modified the account payment (Abono a Cuenta) feature to allow creating advance payments (anticipos) even when customers have no pending invoices or zero balance:
-
--   **Web & Mobile Consistency**: Updated both web (`client/src/pages/payments/account-payment.tsx`) and mobile (`client/src/pages/mobile-app/payments/abono-cuenta.tsx`) versions to support this functionality.
--   **Removed Restrictions**: 
-    1. Eliminated `pendingInvoices.length === 0` check from `paymentPreview` useMemo
-    2. Removed conditional hiding of "Detalles del Pago" section based on invoice/balance status
--   **Clear User Messaging**: 
-    - For customers with balance 0 and no invoices: "Cliente al día - Puede crear un anticipo que se aplicará automáticamente a sus futuras facturas"
-    - For customers with balance > 0 but no invoices: "Puede aplicar un pago directamente al balance o crear un anticipo"
--   **Backend Support**: The existing backend endpoint already handled advance payment creation correctly when no invoices absorb the full payment amount.
--   **Testing**: Successfully tested creating advance payment (ANT-002) for RD$ 50.00 for customer "Clínica Dr Jacobo" with zero balance and no pending invoices.
--   **Impact**: Sales teams and drivers can now accept payments from any customer at any time, even if they don't currently owe money. These anticipos automatically apply to future invoices, improving cash flow and customer service flexibility.

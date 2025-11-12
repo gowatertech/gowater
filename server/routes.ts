@@ -5245,6 +5245,60 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
+  // Endpoint para recalcular todos los balances de clientes desde transacciones
+  router.post("/customers/recalculate-all-balances", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+
+      console.log(`🔄 Iniciando recálculo de balances para companyId=${companyId}`);
+      
+      const results = {
+        customersProcessed: 0,
+        customersUpdated: 0,
+        errors: [] as string[],
+      };
+
+      // Obtener todos los clientes de la compañía
+      const allCustomers = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.companyId, companyId));
+
+      console.log(`👥 Encontrados ${allCustomers.length} clientes`);
+
+      // Recalcular el balance de cada cliente
+      for (const customer of allCustomers) {
+        try {
+          results.customersProcessed++;
+          
+          // Llamar al método que recalcula el balance desde transacciones
+          await storage.updateCustomerBalance(customer.id);
+          
+          results.customersUpdated++;
+          console.log(`✅ Balance recalculado para cliente #${customer.id} (${customer.businessname})`);
+        } catch (error) {
+          const errorMsg = `Error al recalcular balance para cliente #${customer.id}: ${error}`;
+          console.error(`❌ ${errorMsg}`);
+          results.errors.push(errorMsg);
+        }
+      }
+
+      console.log(`✅ Recálculo completado: ${results.customersUpdated}/${results.customersProcessed} clientes actualizados`);
+      res.json({
+        success: true,
+        message: `Se recalcularon ${results.customersUpdated} balances de ${results.customersProcessed} clientes`,
+        ...results
+      });
+    } catch (error) {
+      console.error("Error al recalcular balances:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Endpoint para reconstruir transacciones desde datos existentes
   router.post("/transactions/rebuild", async (req, res) => {
     try {
