@@ -22,6 +22,7 @@ export const users = pgTable("users", {
     enum: ["admin", "supervisor", "cashier", "driver", "assistant"]
   }).notNull(),
   active: boolean("active").notNull().default(true),
+  hasCommission: boolean("has_commission").notNull().default(true), // Si aplica comisión para este vendedor/conductor
   phone: text("phone"),
   license: text("license"),
   licenseExpiry: timestamp("license_expiry", { mode: 'string' }),
@@ -41,6 +42,7 @@ export const insertUserSchema = z.object({
     z.number().int().positive(),
     z.string().transform(val => parseInt(val))
   ]),
+  hasCommission: z.boolean().default(true),
   phone: z.string().optional(),
   license: z.string().optional(),
   licenseExpiry: z.string().optional(),
@@ -312,6 +314,7 @@ export const orders = pgTable("orders", {
   companyId: integer("company_id").notNull(), // Añadido companyId
   customerId: integer("customer_id").notNull(),
   routeId: integer("route_id"),
+  salespersonId: integer("salesperson_id"), // Vendedor/conductor responsable (obligatorio para comisiones)
   invoiceId: integer("invoice_id"), // Vincula con factura prepagada (nullable)
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "in_transit", "delivered", "cancelled"] }).notNull(),
@@ -1090,16 +1093,14 @@ export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
 export type RecurringOrderItem = typeof recurringOrderItems.$inferSelect;
 export type InsertRecurringOrderItem = z.infer<typeof insertRecurringOrderItemSchema>;
 
-// Comisiones
+// Comisiones (Diarias)
 export const commissions = pgTable("commissions", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(), // Añadido companyId
   userId: integer("user_id").references(() => users.id),
   userRole: text("user_role", { enum: ["driver", "helper"] }),
-  routeId: integer("route_id").references(() => routes.id),
-  weekStartDate: timestamp("week_start_date"), // Lunes
-  weekEndDate: timestamp("week_end_date"),     // Domingo
-  productCount: integer("product_count"), // Total de productos entregados
+  date: timestamp("date").notNull(), // Fecha de la comisión (diaria)
+  productCount: integer("product_count"), // Total de productos comisionables entregados
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
   status: text("status", { enum: ["pending", "paid", "cancelled"] }).default("pending"),
   paymentDate: timestamp("payment_date"),
@@ -1126,10 +1127,6 @@ export const commissionsRelations = relations(commissions, ({ one, many }) => ({
     fields: [commissions.userId],
     references: [users.id],
   }),
-  route: one(routes, {
-    fields: [commissions.routeId],
-    references: [routes.id],
-  }),
   items: many(commissionItems),
 }));
 
@@ -1151,9 +1148,7 @@ export const commissionItemsRelations = relations(commissionItems, ({ one }) => 
 export const insertCommissionSchema = z.object({
   userId: z.number({ required_error: "El usuario es requerido" }),
   userRole: z.enum(["driver", "helper"], { required_error: "El rol es requerido" }),
-  routeId: z.number({ required_error: "La ruta es requerida" }),
-  weekStartDate: z.string().datetime("La fecha debe estar en formato ISO"),
-  weekEndDate: z.string().datetime("La fecha debe estar en formato ISO"),
+  date: z.string().datetime("La fecha debe estar en formato ISO"),
   productCount: z.number().default(0),
   totalAmount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]).default("pending"),
