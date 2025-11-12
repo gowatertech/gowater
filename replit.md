@@ -64,22 +64,31 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 
 ## Recent Changes
 
+### November 12, 2025 - Dedicated Mobile Account Payment Page
+
+#### Mobile-Specific "Abono a Cuenta" Implementation
+Created a dedicated mobile version of the account payment functionality to maintain consistent mobile UX:
+-   **New Mobile Page**: Created `/mobile-app/payments/abono-cuenta.tsx` with full account payment functionality optimized for mobile devices.
+-   **Mobile UI Components**: Integrated MobileHeader (with back button) and MobileFooter for consistent mobile navigation experience.
+-   **Touch-Optimized Design**: Adjusted spacing, padding, and button sizes (min-h-[44px]) for better touch interaction.
+-   **Mobile API Endpoints**: Created two new backend endpoints in `server/routes/mobile-api.ts`:
+    1. `GET /api/mobile/customers/:id/pending-invoices` - Returns customer balance and pending invoices
+    2. `POST /api/mobile/payments/account-payment` - Processes payment with automatic distribution
+-   **Navigation Flow**: Maintains mobile context throughout the flow (mobile clientes → mobile account payment → back to mobile clientes).
+-   **URL Preselection**: Preserves customer preselection via `?customerId=X` parameter with ref-based guard against refetch interference.
+-   **Null-Safe Filtering**: Customer search handles null values in managername and phone fields (`?? ""` guards).
+-   **Cache Management**: Invalidates mobile-specific query keys (`/api/mobile/customers`, `/api/mobile/payments`) for real-time updates.
+-   **Functional Parity**: Backend logic mirrors web version exactly, handling invoice distribution, advance creation, CXC direct payments, and transaction ledger entries.
+-   **Impact**: Drivers can now make account payments without breaking out of the mobile experience, improving workflow consistency and reducing navigation friction.
+
 ### November 11, 2025 - Mobile Clientes UI Simplification with Account Payment Integration
 
 #### Simplified Customer Balance View
 Streamlined the mobile clientes detail view for improved user experience:
 -   **UI Simplification**: Replaced the detailed CustomerBalance component with a clean Card showing current balance and a direct action button.
--   **New Feature**: Added "Abono a Cuenta" button that navigates to the existing account payment page (`/payments/account-payment`) with customer preselected.
+-   **New Feature**: Added "Abono a Cuenta" button that navigates to the mobile account payment page (`/mobile-app/payments/abono-cuenta`) with customer preselected.
 -   **Better UX**: Reduced cognitive load by eliminating the detailed transaction history from the modal, focusing on the most common action (making payments).
 -   **Impact**: Drivers can now quickly access the payment functionality for any customer with fewer taps and less visual clutter.
-
-#### Account Payment Page Preselection Enhancement
-Enhanced the existing account payment page to support automatic customer preselection from URL parameters:
--   **URL Parameter**: The page now reads `customerId` from the URL query string (e.g., `/payments/account-payment?customerId=123`).
--   **Auto-Selection Logic**: When navigated from mobile clientes, the customer is automatically selected without requiring manual search.
--   **Smart Guard**: Implemented `!selectedCustomerId` guard in the useEffect to prevent unwanted re-selection when TanStack Query refetches data.
--   **Unified Flow**: Reuses the existing, fully-tested account payment functionality instead of creating duplicate logic.
--   **Impact**: Seamless workflow where drivers tap a customer's "Abono a Cuenta" button and land directly on the payment page with that customer pre-selected, reducing manual steps while preserving the ability to change customers if needed.
 
 ### November 11, 2025 - Mobile Order Editing and List Synchronization
 
