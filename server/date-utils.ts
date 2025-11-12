@@ -80,28 +80,20 @@ export function toRD(date: Date): Date {
  * @returns String en formato ISO con offset de timezone RD
  */
 export function getTimestampRD(): string {
+  // Método robusto: obtener componentes UTC y ajustar manualmente
   const now = new Date();
   
-  // Obtener el timestamp en formato ISO de RD usando toLocaleString
-  // Esto es más robusto que formatToParts que a veces retorna hour:24
-  const rdString = now.toLocaleString('en-US', {
-    timeZone: 'America/Santo_Domingo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
+  // RD está en UTC-4, entonces restamos 4 horas a UTC
+  const rdTime = new Date(now.getTime() - (4 * 60 * 60 * 1000));
   
-  // Parsear el string: "MM/DD/YYYY, HH:MM:SS"
-  const [datePart, timePart] = rdString.split(', ');
-  const [month, day, year] = datePart.split('/');
-  const [hour, minute, second] = timePart.split(':');
-  
-  // Obtener milisegundos
-  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  // Obtener componentes en UTC (que ahora representan hora RD)
+  const year = rdTime.getUTCFullYear();
+  const month = String(rdTime.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(rdTime.getUTCDate()).padStart(2, '0');
+  const hour = String(rdTime.getUTCHours()).padStart(2, '0');
+  const minute = String(rdTime.getUTCMinutes()).padStart(2, '0');
+  const second = String(rdTime.getUTCSeconds()).padStart(2, '0');
+  const ms = String(rdTime.getUTCMilliseconds()).padStart(3, '0');
   
   // Construir timestamp con offset de RD (-04:00)
   // CRÍTICO: Incluir offset para que PostgreSQL interprete correctamente
