@@ -269,9 +269,11 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     
     // Query para obtener la orden
     const orderQuery = `
-      SELECT o.*, o.invoice_id as "invoiceId", c.businessname as customer_name, c.phone as customer_phone, c.is_charity
+      SELECT o.*, o.invoice_id as "invoiceId", c.businessname as customer_name, c.phone as customer_phone, c.is_charity,
+             u.name as salesperson_name
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN users u ON o.salesperson_id = u.id
       WHERE o.id = $1 AND o.company_id = $2
     `;
     
@@ -331,6 +333,8 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       customerPhone: order.customer_phone,
       customerIsCharity: order.is_charity || false,
       routeId: order.route_id,
+      salespersonId: order.salesperson_id,
+      salespersonName: order.salesperson_name,
       total: order.total,
       status: order.status,
       paymentMethod: order.payment_method,
@@ -1778,8 +1782,9 @@ ordersRouter.put("/api/orders/:id", authMiddleware, async (req: Request, res: Re
         status = $3,
         payment_method = $4,
         notes = $5,
-        delivery_coordinates = $6
-      WHERE id = $7 AND company_id = $8
+        delivery_coordinates = $6,
+        salesperson_id = $7
+      WHERE id = $8 AND company_id = $9
       RETURNING *
     `;
     
@@ -1790,6 +1795,7 @@ ordersRouter.put("/api/orders/:id", authMiddleware, async (req: Request, res: Re
       req.body.paymentMethod || 'cash',
       req.body.notes || '',
       customerCoordinates,
+      req.body.salespersonId || null,
       orderId,
       companyId
     ];
