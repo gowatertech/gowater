@@ -5,7 +5,7 @@ import {
   routes, vehicleLoading, customers, settings,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
-import { eq, and, desc, isNotNull } from 'drizzle-orm';
+import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
 import { recalculateInvoiceStatus } from '../utils/invoice-status';
@@ -1013,10 +1013,13 @@ export function createMobileApiEndpoints(): Router {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
       
-      // Calcular el balance desde transacciones (fuente de verdad)
+      // Calcular el balance desde transacciones usando SQL con tipos NUMERIC (precisión exacta)
       // Balance = Total Débitos - Total Créditos
-      const customerTransactions = await db
-        .select()
+      const balanceResult = await db
+        .select({
+          totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+          totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+        })
         .from(transactions)
         .where(
           and(
@@ -1025,18 +1028,8 @@ export function createMobileApiEndpoints(): Router {
           )
         );
       
-      let totalDebits = 0;
-      let totalCredits = 0;
-      
-      customerTransactions.forEach(transaction => {
-        const amount = parseFloat(transaction.amount.toString());
-        if (transaction.type === "debit") {
-          totalDebits += amount;
-        } else {
-          totalCredits += amount;
-        }
-      });
-      
+      const totalDebits = parseFloat(balanceResult[0]?.totalDebits || "0");
+      const totalCredits = parseFloat(balanceResult[0]?.totalCredits || "0");
       const customerBalance = (totalDebits - totalCredits).toFixed(2);
       
       // Obtener todas las facturas del cliente
