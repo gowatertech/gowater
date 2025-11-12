@@ -8,6 +8,7 @@ import {
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
+import { recalculateInvoiceStatus } from '../utils/invoice-status';
 import { getNowRD } from '../date-utils';
 import { storage } from '../storage';
 
@@ -1186,20 +1187,14 @@ export function createMobileApiEndpoints(): Router {
         
         remainingAmount -= amountToApply;
         
-        // Actualizar estado de la factura si quedó completamente pagada
-        const newTotalPaid = totalPaid + amountToApply;
-        if (newTotalPaid >= parseFloat(invoice.total) - 0.01) {
-          await db
-            .update(invoices)
-            .set({ status: "paid" })
-            .where(eq(invoices.id, invoice.id));
-          
-          invoicesUpdated.push({
-            invoiceId: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            status: 'paid'
-          });
-        }
+        // Recalcular el estado de la factura basándose en el saldo real de la BD
+        const newStatus = await recalculateInvoiceStatus(invoice.id, companyId);
+        
+        invoicesUpdated.push({
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: newStatus
+        });
       }
       
       // Si no aplicó pago a facturas PERO el cliente tiene balance CXC

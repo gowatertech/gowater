@@ -25,6 +25,7 @@ import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, requireCompanyId } from './middleware/company-auth.middleware';
 import { safeParseInt, isPositiveInteger } from './utils/validation';
+import { recalculateInvoiceStatus } from './utils/invoice-status';
 
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -5076,20 +5077,14 @@ export async function registerRoutes(router: express.Router) {
         
         remainingAmount -= amountToApply;
         
-        // Actualizar estado de la factura si quedó completamente pagada
-        const newTotalPaid = totalPaid + amountToApply;
-        if (newTotalPaid >= parseFloat(invoice.total) - 0.01) {
-          await db
-            .update(invoices)
-            .set({ status: "paid" })
-            .where(eq(invoices.id, invoice.id));
-          
-          invoicesUpdated.push({
-            invoiceId: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            status: 'paid'
-          });
-        }
+        // Recalcular el estado de la factura basándose en el saldo real de la BD
+        const newStatus = await recalculateInvoiceStatus(invoice.id, companyId);
+        
+        invoicesUpdated.push({
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: newStatus
+        });
       }
       
       // NUEVO: Si no aplicó pago a facturas PERO el cliente tiene balance CXC
