@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Scroll, TrendingUp, TrendingDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface Transaction {
   id: number;
@@ -35,6 +36,8 @@ interface CustomerTransactionHistoryProps {
 }
 
 export function CustomerTransactionHistory({ customerId }: CustomerTransactionHistoryProps) {
+  const isMobile = useIsMobile();
+  
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/customers", customerId, "transactions"],
     queryFn: async () => {
@@ -115,6 +118,85 @@ export function CustomerTransactionHistory({ customerId }: CustomerTransactionHi
     );
   }
 
+  // Vista móvil con tarjetas
+  if (isMobile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Scroll className="h-4 w-4" />
+            Historial de Transacciones
+          </CardTitle>
+          <CardDescription className="text-xs">
+            {transactions.length} {transactions.length === 1 ? "transacción registrada" : "transacciones registradas"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {transactions.map((transaction) => (
+              <div 
+                key={transaction.id} 
+                className="border rounded-lg p-3 space-y-2"
+                data-testid={`transaction-card-${transaction.id}`}
+              >
+                {/* Primera línea: Documento, Tipo, Fecha */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="font-mono text-xs font-semibold">
+                      {transaction.documentNumber}
+                    </span>
+                    {getDocumentTypeBadge(transaction.documentType)}
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {format(new Date(transaction.date), "dd/MM/yy", { locale: es })}
+                  </span>
+                </div>
+
+                {/* Segunda línea: Descripción */}
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {transaction.description}
+                </p>
+
+                {/* Tercera línea: Débito, Crédito, Balance */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground mb-1">Débito</p>
+                    {transaction.debit ? (
+                      <p className="text-xs font-semibold text-red-600 flex items-center justify-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        {formatCurrency(transaction.debit)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">-</p>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground mb-1">Crédito</p>
+                    {transaction.credit ? (
+                      <p className="text-xs font-semibold text-green-600 flex items-center justify-center gap-1">
+                        <TrendingDown className="h-3 w-3" />
+                        {formatCurrency(transaction.credit)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">-</p>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted-foreground mb-1">Balance</p>
+                    <p className="text-xs font-bold">
+                      {formatCurrency(transaction.balance)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Vista desktop con tabla
   return (
     <Card>
       <CardHeader>
