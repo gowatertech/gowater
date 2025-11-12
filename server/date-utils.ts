@@ -32,10 +32,26 @@ export function getNowRD(): Date {
     }
   });
   
+  // Validar que todos los campos necesarios existan
+  if (!dateParts.year || !dateParts.month || !dateParts.day || 
+      !dateParts.hour || !dateParts.minute || !dateParts.second) {
+    console.error('❌ Error: formatToParts no retornó todos los campos necesarios:', dateParts);
+    // Fallback: usar la fecha actual del sistema
+    return now;
+  }
+  
   // Construir fecha SIN 'Z' para que se guarde como timestamp local en PostgreSQL
   // CRÍTICO: NO añadir 'Z' porque eso la convierte a UTC y causa desfase de 4 horas
   const rdTimeString = `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;
-  return new Date(rdTimeString);
+  
+  // Validar que la fecha resultante sea válida
+  const resultDate = new Date(rdTimeString);
+  if (isNaN(resultDate.getTime())) {
+    console.error('❌ Error: Fecha inválida generada:', rdTimeString);
+    return now;
+  }
+  
+  return resultDate;
 }
 
 /**
