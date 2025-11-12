@@ -113,15 +113,35 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           });
         }
         
-        const updateQuery = `
-          UPDATE orders 
-          SET status = $1 
-          WHERE id = $2 AND company_id = $3
-          RETURNING *
-        `;
+        // Preparar los parámetros del UPDATE
+        let updateQuery: string;
+        let updateParams: any[];
+        
+        if (status === "delivered") {
+          // Si se marca como "delivered", guardar actual_delivery_time
+          const deliveryTimestamp = getTimestampRD();
+          console.log(`📦 Marcando como delivered con timestamp: ${deliveryTimestamp}`);
+          
+          updateQuery = `
+            UPDATE orders 
+            SET status = $1, actual_delivery_time = $2
+            WHERE id = $3 AND company_id = $4
+            RETURNING *
+          `;
+          updateParams = [status, deliveryTimestamp, orderIdNum, companyId];
+        } else {
+          // Para otros estados, solo actualizar status (y limpiar actual_delivery_time si se revierte)
+          updateQuery = `
+            UPDATE orders 
+            SET status = $1, actual_delivery_time = NULL
+            WHERE id = $2 AND company_id = $3
+            RETURNING *
+          `;
+          updateParams = [status, orderIdNum, companyId];
+        }
         
         console.log(`Ejecutando actualización a "${status}"...`);
-        const result = await client.query(updateQuery, [status, orderIdNum, companyId]);
+        const result = await client.query(updateQuery, updateParams);
         updatedOrder = result.rows[0];
         
         console.log(`✅ Pedido actualizado - Status anterior: ${previousStatus}, Nuevo: ${updatedOrder.status}`);
