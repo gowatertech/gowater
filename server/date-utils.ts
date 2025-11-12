@@ -82,8 +82,9 @@ export function toRD(date: Date): Date {
 export function getTimestampRD(): string {
   const now = new Date();
   
-  // Obtener las partes de la fecha/hora en timezone RD directamente
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  // Obtener el timestamp en formato ISO de RD usando toLocaleString
+  // Esto es más robusto que formatToParts que a veces retorna hour:24
+  const rdString = now.toLocaleString('en-US', {
     timeZone: 'America/Santo_Domingo',
     year: 'numeric',
     month: '2-digit',
@@ -91,22 +92,20 @@ export function getTimestampRD(): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    fractionalSecondDigits: 3,
     hour12: false
   });
   
-  const parts = formatter.formatToParts(now);
-  const dateParts: Record<string, string> = {};
-  parts.forEach(part => {
-    if (part.type !== 'literal') {
-      dateParts[part.type] = part.value;
-    }
-  });
+  // Parsear el string: "MM/DD/YYYY, HH:MM:SS"
+  const [datePart, timePart] = rdString.split(', ');
+  const [month, day, year] = datePart.split('/');
+  const [hour, minute, second] = timePart.split(':');
   
-  // Construir string directamente SIN usar Date object
-  // CRÍTICO: Incluir offset de timezone (-04:00) para que PostgreSQL interprete correctamente
-  // la hora sin importar la timezone del servidor
-  return `${dateParts.year}-${dateParts.month}-${dateParts.day}T${dateParts.hour}:${dateParts.minute}:${dateParts.second}.${dateParts.fractionalSecond || '000'}-04:00`;
+  // Obtener milisegundos
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  
+  // Construir timestamp con offset de RD (-04:00)
+  // CRÍTICO: Incluir offset para que PostgreSQL interprete correctamente
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.${ms}-04:00`;
 }
 
 /**
