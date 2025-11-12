@@ -1032,17 +1032,22 @@ export function createMobileApiEndpoints(): Router {
       const totalCredits = parseFloat(balanceResult[0]?.totalCredits || "0");
       const customerBalance = (totalDebits - totalCredits).toFixed(2);
       
-      // Obtener todas las facturas del cliente
+      console.log(`[pending-invoices] Cliente #${customerId}: Débitos=${totalDebits}, Créditos=${totalCredits}, Balance=${customerBalance}`);
+      
+      // Obtener SOLO las facturas con estado 'pending' del cliente
       const customerInvoices = await db
         .select()
         .from(invoices)
         .where(
           and(
             eq(invoices.customerId, customerId),
-            eq(invoices.companyId, companyId)
+            eq(invoices.companyId, companyId),
+            eq(invoices.status, "pending")
           )
         )
         .orderBy(invoices.date);
+      
+      console.log(`[pending-invoices] Cliente #${customerId}: Se encontraron ${customerInvoices.length} facturas con estado 'pending'`);
       
       // Para cada factura, calcular el monto pendiente
       const invoicesWithBalance = await Promise.all(
@@ -1059,6 +1064,8 @@ export function createMobileApiEndpoints(): Router {
           
           const pending = (parseFloat(invoice.total) - totalPaid).toFixed(2);
           
+          console.log(`[pending-invoices] Factura #${invoice.invoiceNumber}: Total=${invoice.total}, Pagado=${totalPaid}, Pendiente=${pending}`);
+          
           return {
             id: invoice.id,
             invoiceNumber: invoice.invoiceNumber,
@@ -1073,6 +1080,8 @@ export function createMobileApiEndpoints(): Router {
       const pendingInvoices = invoicesWithBalance.filter(
         inv => parseFloat(inv.pending) > 0
       );
+      
+      console.log(`[pending-invoices] Cliente #${customerId}: ${pendingInvoices.length} facturas con saldo pendiente. Balance total: ${customerBalance}`);
       
       res.json({
         customerBalance,
