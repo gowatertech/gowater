@@ -103,15 +103,35 @@ Implemented a comprehensive daily commission system for delivery personnel based
 -   **Commission calculation**: Only products marked as `isCommissionable` generate commissions
 -   **Role-based commission values**: Different commission amounts for drivers vs helpers
 -   **User-level commission control**: `hasCommission` toggle enables/disables commission for individual users
+-   **Daily aggregation**: Commissions grouped by (userId, date) with real-time calculation from delivered orders
 
 **User Interfaces:**
--   **User Management**: Added "Aplica Comisión" checkbox for drivers and helpers
--   **Order Creation**: Added "Responsable de Entrega" selector for administrative users to manually assign delivery person
--   **Product Management**: Added "Configuración de Comisiones" section with:
+-   **User Management** (`/users`): Added "Aplica Comisión" checkbox for drivers and helpers
+-   **Order Creation** (`/orders/new`): Added "Responsable de Entrega" selector for administrative users to manually assign delivery person
+-   **Product Management** (`/inventory`): Added "Configuración de Comisiones" section with:
     - "Es Comisionable" checkbox
     - "Comisión Chofer" and "Comisión Ayudante" input fields (disabled when product is not commissionable)
+-   **Commissions Dashboard** (`/commissions`): Complete redesign with daily model featuring:
+    - **Quick Filter Tabs**: "Hoy", "Esta Semana", "Este Mes" for rapid date range selection
+    - **Custom Date Range**: Dual DatePicker for precise from/to date selection
+    - **Advanced Filters**: Filter by specific user or role (Choferes/Ayudantes)
+    - **Summary Statistics**: 4 gradient cards showing Total Choferes, Total Ayudantes, Total General, and Productos Vendidos
+    - **Visual Analytics**: Bar chart displaying daily commission distribution across selected date range
+    - **Detailed View**: Responsive table (desktop) / cards (mobile) showing per-user-per-day commission breakdown
+    - **Clear Filters**: One-click button to reset user and role filters
+    - **Real-time Calculation**: Displays calculated commissions from delivered orders before official payment
 
-**Impact**: The system now supports flexible daily commission tracking for delivery personnel, with product-level commission values and user-level commission control, replacing the previous weekly commission model.
+**API Enhancements:**
+-   **GET /api/commissions**: Accepts `startDate`, `endDate`, `userId` (optional), `userRole` (optional) query parameters
+-   Returns array of daily commission records with status indicators (calculated/pending/paid/cancelled)
+-   Efficient date-range queries with user and role filtering
+
+**Testing:**
+-   End-to-end testing verified complete UI functionality including filters, charts, and data display
+-   Architect-reviewed commission calculation logic and dashboard implementation
+-   Confirmed responsive design works on both desktop and mobile viewports
+
+**Impact**: The system now supports flexible daily commission tracking for delivery personnel, with product-level commission values and user-level commission control, replacing the previous weekly commission model. The new dashboard provides comprehensive analytics and filtering capabilities for management oversight.
 
 ### November 12, 2025 - Enhanced Order Views: Salesperson Display and Editing
 
