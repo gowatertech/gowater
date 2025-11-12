@@ -4857,10 +4857,10 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de cliente inválido" });
       }
       
-      // Obtener el balance del cliente desde la tabla customers
+      // Verificar que el cliente existe
       const [customer] = await db
         .select({
-          balance: customers.balance,
+          id: customers.id,
           businessname: customers.businessname
         })
         .from(customers)
@@ -4875,19 +4875,41 @@ export async function registerRoutes(router: express.Router) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
       
-      const customerBalance = parseFloat(customer.balance.toString()).toFixed(2);
+      // Calcular el balance desde transacciones usando SQL con tipos NUMERIC (precisión exacta)
+      // Balance = Total Débitos - Total Créditos
+      const balanceResult = await db
+        .select({
+          totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+          totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.customerId, customerId),
+            eq(transactions.companyId, companyId)
+          )
+        );
       
-      // Obtener todas las facturas del cliente (incluyendo parcialmente pagadas)
+      const totalDebits = parseFloat(balanceResult[0]?.totalDebits || "0");
+      const totalCredits = parseFloat(balanceResult[0]?.totalCredits || "0");
+      const customerBalance = (totalDebits - totalCredits).toFixed(2);
+      
+      console.log(`[Web pending-invoices] Cliente #${customerId}: Débitos=${totalDebits}, Créditos=${totalCredits}, Balance=${customerBalance}`);
+      
+      // Obtener SOLO las facturas con estado 'pending' del cliente
       const customerInvoices = await db
         .select()
         .from(invoices)
         .where(
           and(
             eq(invoices.customerId, customerId),
-            eq(invoices.companyId, companyId)
+            eq(invoices.companyId, companyId),
+            eq(invoices.status, "pending")
           )
         )
         .orderBy(invoices.date); // Ordenar por fecha (más antigua primero)
+      
+      console.log(`[Web pending-invoices] Cliente #${customerId}: Se encontraron ${customerInvoices.length} facturas con estado 'pending'`);
       
       // Calcular saldo pendiente para cada factura
       const invoicesWithBalance = await Promise.all(
@@ -4904,6 +4926,8 @@ export async function registerRoutes(router: express.Router) {
           );
           
           const pendingAmount = parseFloat(invoice.total) - totalPaid;
+          
+          console.log(`[Web pending-invoices] Factura #${invoice.invoiceNumber}: Total=${invoice.total}, Pagado=${totalPaid}, Pendiente=${pendingAmount.toFixed(2)}`);
           
           return {
             id: invoice.id,
@@ -4922,9 +4946,7 @@ export async function registerRoutes(router: express.Router) {
         inv => parseFloat(inv.pending) > 0
       );
       
-      console.log(`[Account Payment] Customer: ${customer.businessname}, Balance: ${customerBalance}`);
-      console.log(`[Account Payment] Returning ${pendingInvoices.length} pending invoices for customer ${customerId}`);
-      console.log(`[Account Payment] Sample invoice:`, JSON.stringify(pendingInvoices[0], null, 2));
+      console.log(`[Web pending-invoices] Cliente #${customerId}: ${pendingInvoices.length} facturas con saldo pendiente. Balance total: ${customerBalance}`);
       
       // Devolver el balance del cliente y las facturas pendientes
       res.json({

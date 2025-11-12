@@ -81,7 +81,7 @@ export default function AccountPaymentPage() {
 
   // Cargar facturas pendientes y balance del cliente seleccionado
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery<PendingInvoicesResponse>({
-    queryKey: [`/api/mobile/customers/${selectedCustomerId}/pending-invoices`],
+    queryKey: [`/api/customers/${selectedCustomerId}/pending-invoices`],
     enabled: !!selectedCustomerId,
   });
   
@@ -165,7 +165,7 @@ export default function AccountPaymentPage() {
       
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/mobile/customers/${selectedCustomerId}/pending-invoices`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/customers/${selectedCustomerId}/pending-invoices`] });
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       
       // Resetear el formulario y volver a la página de pagos
