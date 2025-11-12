@@ -136,7 +136,7 @@ export default function NewOrder() {
       });
       // Filtrar solo conductores y ayudantes activos
       return users.filter((u: any) => 
-        (u.role === 'driver' || u.role === 'helper') && u.active
+        (u.role === 'driver' || u.role === 'assistant') && u.active
       );
     }
   });

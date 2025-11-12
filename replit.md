@@ -81,6 +81,38 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 
 ## Recent Changes
 
+### November 12, 2025 - Daily Commission System Implementation
+
+#### Commission Control & Tracking
+Implemented a comprehensive daily commission system for delivery personnel based on commissionable products:
+
+**Database Schema Changes:**
+-   **users.hasCommission**: Boolean field to control which users (drivers/helpers) receive commissions
+-   **orders.salespersonId**: Tracks the responsible delivery person for commission assignment
+-   **commissions table**: Converted from weekly to daily tracking (using `date` field instead of `weekStartDate/weekEndDate`)
+-   **products commission fields**:
+    - `isCommissionable`: Boolean to mark commissionable products
+    - `driverCommissionValue`: Commission amount for drivers (RD$)
+    - `helperCommissionValue`: Commission amount for helpers (RD$)
+
+**Business Logic:**
+-   **Automatic salesperson assignment**: Orders automatically assign `salespersonId` based on:
+    1. Route driver (if order has a route)
+    2. Manually selected salesperson (for admin-created orders)
+    3. Logged-in user (for individual orders created by drivers/helpers)
+-   **Commission calculation**: Only products marked as `isCommissionable` generate commissions
+-   **Role-based commission values**: Different commission amounts for drivers vs helpers
+-   **User-level commission control**: `hasCommission` toggle enables/disables commission for individual users
+
+**User Interfaces:**
+-   **User Management**: Added "Aplica Comisión" checkbox for drivers and helpers
+-   **Order Creation**: Added "Responsable de Entrega" selector for administrative users to manually assign delivery person
+-   **Product Management**: Added "Configuración de Comisiones" section with:
+    - "Es Comisionable" checkbox
+    - "Comisión Chofer" and "Comisión Ayudante" input fields (disabled when product is not commissionable)
+
+**Impact**: The system now supports flexible daily commission tracking for delivery personnel, with product-level commission values and user-level commission control, replacing the previous weekly commission model.
+
 ### November 12, 2025 - Responsive Customer Transaction History
 
 #### Mobile-Friendly Transaction Display

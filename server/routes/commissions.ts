@@ -8,10 +8,9 @@ import { format } from 'date-fns';
 
 const router = Router();
 
-// Esquema para generar comisiones
+// Esquema para generar comisiones diarias
 const generateCommissionsSchema = z.object({
-  weekStartDate: z.string(), // formato YYYY-MM-DD
-  weekEndDate: z.string(),   // formato YYYY-MM-DD
+  date: z.string(), // formato YYYY-MM-DD para comisión diaria
   userId: z.number().optional(),
   userRole: z.enum(['driver', 'helper']), // Nota: 'helper' es el valor que viene del frontend, pero internamente usamos 'assistant'
 });
@@ -24,7 +23,7 @@ const updateCommissionStatusSchema = z.object({
   notes: z.string().optional(),
 });
 
-// Obtener comisiones calculadas en tiempo real desde órdenes delivered
+// Obtener comisiones calculadas en tiempo real desde órdenes delivered (por día)
 router.get('/', async (req, res) => {
   try {
     // Get company ID from context for multi-tenant security
@@ -37,203 +36,227 @@ router.get('/', async (req, res) => {
     // Parsear parámetros de consulta
     const { userRole, startDate, endDate, userId } = req.query;
     
-    // Calcular semana actual (lunes a domingo) si no se especifican fechas
-    let weekStart: Date;
-    let weekEnd: Date;
+    // Generar lista de días a consultar (por defecto hoy)
+    let dateRangeStart: Date;
+    let dateRangeEnd: Date;
     
     if (startDate && endDate) {
-      weekStart = new Date(startDate as string);
-      weekEnd = new Date(endDate as string);
+      dateRangeStart = new Date(startDate as string);
+      dateRangeEnd = new Date(endDate as string);
     } else {
-      // Obtener semana actual (lunes a domingo)
+      // Por defecto usar hoy
       const today = new Date();
-      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      
-      weekStart = new Date(today);
-      weekStart.setDate(today.getDate() + mondayOffset);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
+      dateRangeStart = new Date(today);
+      dateRangeStart.setHours(0, 0, 0, 0);
+      dateRangeEnd = new Date(today);
+      dateRangeEnd.setHours(23, 59, 59, 999);
     }
     
-    console.log('Calculando comisiones para el rango:', weekStart, 'hasta', weekEnd);
+    console.log('Calculando comisiones diarias desde', dateRangeStart, 'hasta', dateRangeEnd);
     
     // Obtener todos los empleados (choferes y ayudantes) filtrados según los parámetros
+    // IMPORTANTE: Solo incluir usuarios con hasCommission = true
     const roleFilter = userRole ? (userRole === 'helper' ? 'assistant' : userRole as string) : null;
     
-    let usersQuery = db
+    // Construir condiciones de filtro
+    const baseConditions = [
+      eq(users.companyId, companyId),
+      eq(users.active, true),
+      eq(users.hasCommission, true) // Solo usuarios con comisión habilitada
+    ];
+    
+    // Filtrar por rol si se especifica
+    if (roleFilter) {
+      baseConditions.push(eq(users.role, roleFilter));
+    } else {
+      // Si no se especifica rol, buscar solo choferes y ayudantes
+      baseConditions.push(
+        inArray(users.role, ['driver', 'assistant'] as const)
+      );
+    }
+    
+    // Filtrar por userId si se especifica
+    if (userId) {
+      baseConditions.push(eq(users.id, parseInt(userId as string)));
+    }
+    
+    const employeesList = await db
       .select({
         id: users.id,
         name: users.name,
         role: users.role,
       })
       .from(users)
-      .where(and(
-        eq(users.companyId, companyId),
-        eq(users.active, true)
-      ));
-    
-    // Filtrar por rol si se especifica
-    if (roleFilter) {
-      usersQuery = usersQuery.where(eq(users.role, roleFilter)) as any;
-    } else {
-      // Si no se especifica rol, buscar solo choferes y ayudantes
-      usersQuery = usersQuery.where(or(
-        eq(users.role, 'driver'),
-        eq(users.role, 'assistant')
-      )) as any;
-    }
-    
-    // Filtrar por userId si se especifica
-    if (userId) {
-      usersQuery = usersQuery.where(eq(users.id, parseInt(userId as string))) as any;
-    }
-    
-    const employeesList = await usersQuery;
+      .where(and(...baseConditions));
     
     console.log(`Encontrados ${employeesList.length} empleados`);
     
-    // Array para almacenar comisiones calculadas
-    const calculatedCommissions = [];
+    // Array para almacenar comisiones calculadas por usuario/día
+    const calculatedCommissions: any[] = [];
     
-    // Para cada empleado, calcular sus comisiones desde órdenes delivered
+    // Generar lista de días en el rango
+    const daysToProcess: Date[] = [];
+    let currentDate = new Date(dateRangeStart);
+    while (currentDate <= dateRangeEnd) {
+      daysToProcess.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // Para cada empleado, calcular comisiones por día
     for (const employee of employeesList) {
       const employeeRole = employee.role === 'driver' ? 'driver' : 'helper';
       
-      // Buscar órdenes entregadas en el período por este empleado
-      let deliveredOrders;
-      
-      if (employee.role === 'driver') {
-        deliveredOrders = await db
-          .select({
-            id: orders.id,
-            routeId: orders.routeId,
-            actualDeliveryTime: orders.actualDeliveryTime,
-          })
-          .from(orders)
-          .leftJoin(routes, eq(orders.routeId, routes.id))
-          .where(
-            and(
-              eq(orders.status, 'delivered'),
-              eq(orders.companyId, companyId),
-              eq(routes.companyId, companyId),
-              sql`${orders.actualDeliveryTime} >= ${weekStart}`,
-              sql`${orders.actualDeliveryTime} <= ${weekEnd}`,
-              eq(routes.driverId, employee.id)
-            )
-          );
-      } else {
-        // Para ayudantes
-        deliveredOrders = await db
-          .select({
-            id: orders.id,
-            routeId: orders.routeId,
-            actualDeliveryTime: orders.actualDeliveryTime,
-          })
-          .from(orders)
-          .leftJoin(routes, eq(orders.routeId, routes.id))
-          .where(
-            and(
-              eq(orders.status, 'delivered'),
-              eq(orders.companyId, companyId),
-              eq(routes.companyId, companyId),
-              sql`${orders.actualDeliveryTime} >= ${weekStart}`,
-              sql`${orders.actualDeliveryTime} <= ${weekEnd}`,
-              eq(routes.assistantId, employee.id),
-              sql`${routes.assistantId} IS NOT NULL`
-            )
-          );
+      // Para cada día en el rango
+      for (const targetDate of daysToProcess) {
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        // Buscar órdenes entregadas en este día por este empleado
+        // Incluir tanto órdenes de ruta como órdenes asignadas directamente vía salespersonId
+        let deliveredOrders;
+        
+        if (employee.role === 'driver') {
+          deliveredOrders = await db
+            .select({
+              id: orders.id,
+              routeId: orders.routeId,
+              actualDeliveryTime: orders.actualDeliveryTime,
+            })
+            .from(orders)
+            .leftJoin(routes, eq(orders.routeId, routes.id))
+            .where(
+              and(
+                eq(orders.status, 'delivered'),
+                eq(orders.companyId, companyId),
+                sql`${orders.actualDeliveryTime} >= ${startOfDay}`,
+                sql`${orders.actualDeliveryTime} <= ${endOfDay}`,
+                or(
+                  // Órdenes de ruta donde es el driver
+                  and(
+                    eq(routes.companyId, companyId),
+                    eq(routes.driverId, employee.id)
+                  ),
+                  // Órdenes directas donde es el salesperson
+                  eq(orders.salespersonId, employee.id)
+                )
+              )
+            );
+        } else {
+          // Para ayudantes
+          deliveredOrders = await db
+            .select({
+              id: orders.id,
+              routeId: orders.routeId,
+              actualDeliveryTime: orders.actualDeliveryTime,
+            })
+            .from(orders)
+            .leftJoin(routes, eq(orders.routeId, routes.id))
+            .where(
+              and(
+                eq(orders.status, 'delivered'),
+                eq(orders.companyId, companyId),
+                sql`${orders.actualDeliveryTime} >= ${startOfDay}`,
+                sql`${orders.actualDeliveryTime} <= ${endOfDay}`,
+                or(
+                  // Órdenes de ruta donde es el assistant
+                  and(
+                    eq(routes.companyId, companyId),
+                    eq(routes.assistantId, employee.id),
+                    sql`${routes.assistantId} IS NOT NULL`
+                  ),
+                  // Órdenes directas donde es el salesperson
+                  eq(orders.salespersonId, employee.id)
+                )
+              )
+            );
+        }
+        
+        if (deliveredOrders.length === 0) {
+          continue; // Sin órdenes para este empleado en este día
+        }
+        
+        const orderIds = deliveredOrders.map(o => o.id);
+        
+        // Buscar productos comisionables en esas órdenes
+        let commissionableItems;
+        
+        if (employee.role === 'driver') {
+          commissionableItems = await db
+            .select({
+              productId: orderItems.productId,
+              productName: products.name,
+              quantity: orderItems.quantity,
+              commissionValue: products.driverCommissionValue,
+              actualDeliveryTime: orders.actualDeliveryTime,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .leftJoin(orders, eq(orderItems.orderId, orders.id))
+            .where(
+              and(
+                inArray(orderItems.orderId, orderIds),
+                eq(products.companyId, companyId),
+                eq(products.isCommissionable, true),
+                sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
+              )
+            );
+        } else {
+          commissionableItems = await db
+            .select({
+              productId: orderItems.productId,
+              productName: products.name,
+              quantity: orderItems.quantity,
+              commissionValue: products.helperCommissionValue,
+              actualDeliveryTime: orders.actualDeliveryTime,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .leftJoin(orders, eq(orderItems.orderId, orders.id))
+            .where(
+              and(
+                inArray(orderItems.orderId, orderIds),
+                eq(products.companyId, companyId),
+                eq(products.isCommissionable, true),
+                sql`${products.helperCommissionValue} IS NOT NULL`,
+                sql`CAST(${products.helperCommissionValue} AS DECIMAL) > 0`
+              )
+            );
+        }
+        
+        if (commissionableItems.length === 0) {
+          continue; // Sin productos comisionables para este empleado en este día
+        }
+        
+        // Calcular total de comisiones y cantidad de productos
+        let totalAmount = 0;
+        let productCount = 0;
+        
+        for (const item of commissionableItems) {
+          const commissionValue = parseFloat(item.commissionValue || '0');
+          const quantity = item.quantity || 0;
+          totalAmount += commissionValue * quantity;
+          productCount += quantity;
+        }
+        
+        // Crear registro de comisión calculada para este usuario/día
+        calculatedCommissions.push({
+          id: null, // No es un registro en BD, es calculado
+          userId: employee.id,
+          userName: employee.name,
+          userRole: employeeRole,
+          date: startOfDay.toISOString().split('T')[0], // Formato YYYY-MM-DD
+          productCount,
+          totalAmount: parseFloat(totalAmount.toFixed(2)),
+          status: 'calculated', // Estado especial para indicar que es calculado, no generado
+          paymentDate: null,
+          createdAt: null,
+        });
       }
-      
-      if (deliveredOrders.length === 0) {
-        continue; // Sin órdenes para este empleado
-      }
-      
-      const orderIds = deliveredOrders.map(o => o.id);
-      
-      // Buscar productos comisionables en esas órdenes
-      let commissionableItems;
-      
-      if (employee.role === 'driver') {
-        commissionableItems = await db
-          .select({
-            productId: orderItems.productId,
-            productName: products.name,
-            quantity: orderItems.quantity,
-            commissionValue: products.driverCommissionValue,
-            actualDeliveryTime: orders.actualDeliveryTime,
-          })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .leftJoin(orders, eq(orderItems.orderId, orders.id))
-          .where(
-            and(
-              inArray(orderItems.orderId, orderIds),
-              eq(products.companyId, companyId),
-              eq(products.isCommissionable, true),
-              sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
-            )
-          );
-      } else {
-        commissionableItems = await db
-          .select({
-            productId: orderItems.productId,
-            productName: products.name,
-            quantity: orderItems.quantity,
-            commissionValue: products.helperCommissionValue,
-            actualDeliveryTime: orders.actualDeliveryTime,
-          })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .leftJoin(orders, eq(orderItems.orderId, orders.id))
-          .where(
-            and(
-              inArray(orderItems.orderId, orderIds),
-              eq(products.companyId, companyId),
-              eq(products.isCommissionable, true),
-              sql`${products.helperCommissionValue} IS NOT NULL`,
-              sql`CAST(${products.helperCommissionValue} AS DECIMAL) > 0`
-            )
-          );
-      }
-      
-      if (commissionableItems.length === 0) {
-        continue; // Sin productos comisionables
-      }
-      
-      // Calcular total de comisiones y cantidad de productos
-      let totalAmount = 0;
-      let productCount = 0;
-      
-      for (const item of commissionableItems) {
-        const commissionValue = parseFloat(item.commissionValue || '0');
-        const quantity = item.quantity || 0;
-        totalAmount += commissionValue * quantity;
-        productCount += quantity;
-      }
-      
-      // Crear registro de comisión calculada
-      calculatedCommissions.push({
-        id: null, // No es un registro en BD, es calculado
-        userId: employee.id,
-        userName: employee.name,
-        userRole: employeeRole,
-        weekStartDate: weekStart,
-        weekEndDate: weekEnd,
-        productCount,
-        totalAmount: parseFloat(totalAmount.toFixed(2)),
-        status: 'calculated', // Estado especial para indicar que es calculado, no generado
-        paymentDate: null,
-        routeName: null,
-        routeId: null,
-        createdAt: null,
-      });
     }
     
-    console.log(`Comisiones calculadas: ${calculatedCommissions.length}`);
+    console.log(`Comisiones calculadas: ${calculatedCommissions.length} registros (${employeesList.length} empleados x ${daysToProcess.length} días)`);
     
     res.json(calculatedCommissions);
   } catch (error) {
@@ -260,20 +283,16 @@ router.get('/:id', async (req, res) => {
       userId: commissions.userId,
       userName: users.name,
       userRole: commissions.userRole,
-      weekStartDate: commissions.weekStartDate,
-      weekEndDate: commissions.weekEndDate,
+      date: commissions.date,
       productCount: commissions.productCount,
       totalAmount: commissions.totalAmount,
       status: commissions.status,
       paymentDate: commissions.paymentDate,
       paymentReference: commissions.paymentReference,
-      routeName: routes.name,
-      routeId: commissions.routeId,
       notes: commissions.notes,
     })
     .from(commissions)
     .leftJoin(users, eq(commissions.userId, users.id))
-    .leftJoin(routes, eq(commissions.routeId, routes.id))
     .where(and(
       eq(commissions.id, commissionId),
       eq(commissions.companyId, companyId)
@@ -453,23 +472,16 @@ router.post('/check-existing', async (req, res) => {
       });
     }
     
-    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
+    const { date: commissionDate, userId, userRole } = result.data;
     
-    // Convertir fechas a objetos Date
-    const startDate = new Date(weekStartDate);
-    const endDate = new Date(weekEndDate);
-    
-    // Verificar que la fecha de inicio es anterior a la fecha de fin
-    if (startDate > endDate) {
-      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-    }
+    // Convertir fecha a objeto Date
+    const targetDate = new Date(commissionDate);
 
     // Construir la consulta para buscar comisiones existentes (filtradas por compañía)
     const conditions = [
       eq(commissions.companyId, companyId),
       eq(commissions.userRole, userRole),
-      sql`${commissions.weekStartDate} = ${startDate}`,
-      sql`${commissions.weekEndDate} = ${endDate}`
+      sql`DATE(${commissions.date}) = DATE(${targetDate})`
     ];
     
     // Filtrar por userId si se proporciona
@@ -480,8 +492,7 @@ router.post('/check-existing', async (req, res) => {
     let query = db.select({
       id: commissions.id,
       status: commissions.status,
-      weekStartDate: commissions.weekStartDate,
-      weekEndDate: commissions.weekEndDate,
+      date: commissions.date,
       userRole: commissions.userRole,
       userName: users.name,
       totalAmount: commissions.totalAmount,
@@ -499,14 +510,14 @@ router.post('/check-existing', async (req, res) => {
         exists: true, 
         commissions: existingCommissions,
         message: existingCommissions[0].status === 'paid' 
-          ? `Ya existe una comisión pagada para este período (${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}).`
-          : `Ya existe una comisión pendiente para este período (${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}).`
+          ? `Ya existe una comisión pagada para esta fecha (${format(targetDate, 'dd/MM/yyyy')}).`
+          : `Ya existe una comisión pendiente para esta fecha (${format(targetDate, 'dd/MM/yyyy')}).`
       });
     } else {
       // No hay comisiones existentes
       return res.status(200).json({ 
         exists: false, 
-        message: "No existen comisiones para este período. Puede generar nuevas comisiones."
+        message: "No existen comisiones para esta fecha. Puede generar nuevas comisiones."
       });
     }
   } catch (error) {
@@ -534,46 +545,37 @@ router.post('/generate', async (req, res) => {
       });
     }
     
-    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
+    const { date: commissionDate, userId, userRole } = result.data;
     
-    // Convertir fechas a objetos Date
-    const startDate = new Date(weekStartDate);
-    const endDate = new Date(weekEndDate);
-    
-    // Verificar que la fecha de inicio es anterior a la fecha de fin
-    if (startDate > endDate) {
-      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
-    }
+    // Convertir fecha a objeto Date (inicio y fin del día)
+    const targetDate = new Date(commissionDate);
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
     
     // Construir la consulta para obtener usuarios según los filtros (filtrados por compañía)
-    // Vamos a mapear los roles del frontend a los roles de la base de datos
-    
-    // Si viene el rol "helper" del frontend, buscar usuarios con rol "assistant" en BD
-    // Aquí definimos el mapeo entre roles del frontend y roles de la BD
-    // Mantener consistencia usando 'helper' en toda la aplicación
-    const roleValue = userRole;
-    console.log(`Rol a usar: "${roleValue}" para compañía ${companyId}`);
-    
-    // Consulta inicial con tipado seguro
-    let usersQuery;
-    
     // Mapear 'helper' a 'assistant' para la consulta en BD
-    const dbRole = roleValue === 'helper' ? 'assistant' : roleValue;
-    console.log(`Rol para consulta en BD: "${dbRole}"`);
+    const dbRole = userRole === 'helper' ? 'assistant' : userRole;
+    console.log(`Rol para consulta en BD: "${dbRole}" para compañía ${companyId}`);
     
-    usersQuery = db
-      .select()
-      .from(users)
-      .where(and(
-        eq(users.role, dbRole),
-        eq(users.companyId, companyId)
-      ));
+    // Consulta para obtener usuarios con hasCommission = true
+    const usersConditions = [
+      eq(users.role, dbRole),
+      eq(users.companyId, companyId),
+      eq(users.hasCommission, true) // Solo usuarios con comisión habilitada
+    ];
     
     // Filtrar por ID de usuario si se proporciona
     if (userId) {
       console.log(`Buscando específicamente usuario con ID: ${userId}`);
-      usersQuery = usersQuery.where(eq(users.id, userId));
+      usersConditions.push(eq(users.id, userId));
     }
+    
+    const usersQuery = db
+      .select()
+      .from(users)
+      .where(and(...usersConditions));
     
     // Obtener la lista de usuarios
     const usersList = await usersQuery;
@@ -588,11 +590,12 @@ router.post('/generate', async (req, res) => {
     // Para cada usuario, generar su comisión
     for (const user of usersList) {
       // Buscar órdenes entregadas en el período especificado por este usuario
+      // Incluir tanto órdenes de ruta como órdenes asignadas directamente vía salespersonId
       let deliveredOrders;
       
       // Consulta personalizada según el rol del usuario (filtrada por compañía)
       if (userRole === 'driver') {
-        // Para conductores, buscar órdenes donde son conductores
+        // Para conductores, buscar órdenes donde son conductores (ruta o salesperson)
         deliveredOrders = await db
           .select({
             id: orders.id,
@@ -607,14 +610,21 @@ router.post('/generate', async (req, res) => {
             and(
               eq(orders.status, 'delivered'),
               eq(orders.companyId, companyId),
-              eq(routes.companyId, companyId),
               // Ajustamos el rango para incluir todo el día de la fecha final
-              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`,
-              eq(routes.driverId, user.id)
+              sql`${orders.actualDeliveryTime} >= ${startOfDay} AND ${orders.actualDeliveryTime} <= ${endOfDay}`,
+              or(
+                // Órdenes de ruta donde es el driver
+                and(
+                  eq(routes.companyId, companyId),
+                  eq(routes.driverId, user.id)
+                ),
+                // Órdenes directas donde es el salesperson
+                eq(orders.salespersonId, user.id)
+              )
             )
           );
       } else {
-        // Para ayudantes, buscar órdenes donde son ayudantes y el campo no es nulo
+        // Para ayudantes, buscar órdenes donde son ayudantes (ruta o salesperson)
         deliveredOrders = await db
           .select({
             id: orders.id,
@@ -629,12 +639,17 @@ router.post('/generate', async (req, res) => {
             and(
               eq(orders.status, 'delivered'),
               eq(orders.companyId, companyId),
-              eq(routes.companyId, companyId),
               // Ajustamos el rango para incluir todo el día de la fecha final
-              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`,
-              and(
-                eq(routes.assistantId, user.id),
-                sql`${routes.assistantId} IS NOT NULL`
+              sql`${orders.actualDeliveryTime} >= ${startOfDay} AND ${orders.actualDeliveryTime} <= ${endOfDay}`,
+              or(
+                // Órdenes de ruta donde es el assistant
+                and(
+                  eq(routes.companyId, companyId),
+                  eq(routes.assistantId, user.id),
+                  sql`${routes.assistantId} IS NOT NULL`
+                ),
+                // Órdenes directas donde es el salesperson
+                eq(orders.salespersonId, user.id)
               )
             )
           );
@@ -642,15 +657,13 @@ router.post('/generate', async (req, res) => {
       
       // Log específico para ayudantes
       if (userRole === 'helper') {
-        console.log(`Consultando órdenes para ayudante ${user.name} (ID: ${user.id}) entre ${startDate} y ${endDate}`);
-        // Construir fecha fin para incluir el día completo
-        const endDatePlusDay = new Date(endDate);
-        endDatePlusDay.setDate(endDatePlusDay.getDate() + 1);
+        console.log(`Consultando órdenes para ayudante ${user.name} (ID: ${user.id}) para fecha ${commissionDate}`);
         
         // No construir consulta SQL directa, solo mostrar información básica para depuración
-        console.log(`Consultando órdenes entre: 
-           Inicio: ${startDate.toISOString()} 
-           Fin: ${endDatePlusDay.toISOString()}
+        console.log(`Consultando órdenes para: 
+           Fecha: ${targetDate.toISOString()} 
+           Inicio del día: ${startOfDay.toISOString()} 
+           Fin del día: ${endOfDay.toISOString()}
            Para ayudante con ID: ${user.id}`);
       }
       
@@ -826,7 +839,7 @@ router.post('/generate', async (req, res) => {
       // sin hacer el mapeo automático a "assistant"
       const searchRoleValue = userRole;
       
-      console.log(`Buscando comisión existente para usuario ${user.name} con rol ${searchRoleValue} entre ${startDate} y ${endDate}`);
+      console.log(`Buscando comisión existente para usuario ${user.name} con rol ${searchRoleValue} para fecha ${commissionDate}`);
       
       const [existingCommission] = await db
         .select()
@@ -836,8 +849,7 @@ router.post('/generate', async (req, res) => {
             eq(commissions.userId, user.id),
             eq(commissions.userRole, searchRoleValue),
             eq(commissions.companyId, companyId),
-            sql`${commissions.weekStartDate} = ${startDate}`,
-            sql`${commissions.weekEndDate} = ${endDate}`
+            sql`DATE(${commissions.date}) = DATE(${targetDate})`
           )
         );
       
@@ -851,7 +863,7 @@ router.post('/generate', async (req, res) => {
         continue;
       }
       
-      // Crear una nueva comisión (con companyId para multi-tenant security)
+      // Crear una nueva comisión diaria (con companyId para multi-tenant security)
       // Mantener el rol del frontend para comisiones en BD
       const commissionRole = userRole;
       
@@ -861,12 +873,10 @@ router.post('/generate', async (req, res) => {
           userId: user.id,
           userRole: commissionRole, // Guardamos el rol como lo espera la BD
           companyId: companyId,
-          weekStartDate: startDate,
-          weekEndDate: endDate,
+          date: targetDate, // Fecha de la comisión diaria
           productCount: commissionItemsData.length,
           totalAmount: totalCommissionAmount.toFixed(2),
           status: 'pending',
-          routeId: deliveredOrders[0].routeId, // Usar el primer routeId encontrado
           createdAt: new Date(),
         })
         .returning();
@@ -886,7 +896,7 @@ router.post('/generate', async (req, res) => {
     }
     
     // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados (filtradas por compañía)
-    let generatedCommissionsWithDetails = [];
+    let generatedCommissionsWithDetails: any[] = [];
     
     if (generatedCommissions.length > 0) {
       generatedCommissionsWithDetails = await db.select({
@@ -894,19 +904,15 @@ router.post('/generate', async (req, res) => {
         userId: commissions.userId,
         userName: users.name,
         userRole: commissions.userRole,
-        weekStartDate: commissions.weekStartDate,
-        weekEndDate: commissions.weekEndDate,
+        date: commissions.date,
         productCount: commissions.productCount,
         totalAmount: commissions.totalAmount,
         status: commissions.status,
         paymentDate: commissions.paymentDate,
-        routeName: routes.name,
-        routeId: commissions.routeId,
         createdAt: commissions.createdAt,
       })
       .from(commissions)
       .leftJoin(users, eq(commissions.userId, users.id))
-      .leftJoin(routes, eq(commissions.routeId, routes.id))
       .where(
         and(
           inArray(
