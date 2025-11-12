@@ -64,6 +64,33 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 
 ## Recent Changes
 
+### November 12, 2025 - Critical Fix: Invoice Status Calculation Bug
+
+#### Centralized Invoice Status Recalculation System
+Fixed critical bug where invoices were incorrectly marked as "paid" after receiving partial payments:
+
+-   **Root Cause**: Multiple code locations were using in-memory arithmetic to calculate invoice balance and update status, without verifying the actual persisted payment total in the database. This caused invoices to be marked "paid" prematurely when partial payments were recorded.
+
+-   **Solution**: Created centralized `recalculateInvoiceStatus()` utility function in `server/utils/invoice-status.ts` that:
+    1. Fetches the actual invoice total and sum of payments **directly from the database**
+    2. Calculates remaining balance using persisted data only
+    3. Uses tolerance threshold (0.01) for decimal rounding comparison
+    4. Only updates status to "paid" if balance ≤ 0.01
+    5. Includes detailed logging for debugging
+
+-   **Code Changes**: Replaced 5 critical locations where invoice status was incorrectly calculated:
+    1. `server/routes.ts` (~line 5084): Web account payment endpoint `/api/payments/account-payment`
+    2. `server/routes/mobile-api.ts` (~line 1194): Mobile account payment endpoint `/api/mobile/payments/account-payment`
+    3. `server/storage.ts` (~line 862): `registerPayment()` function (critical - was marking ALL invoices as paid)
+    4. `server/storage.ts` (~line 1209): `applyAdvancePaymentsToInvoice()` function
+    5. `server/routes.ts` (~line 4767): Single payment endpoint
+
+-   **Design Pattern**: All invoice status updates must now use `recalculateInvoiceStatus(invoiceId, companyId)` to ensure consistency and prevent premature "paid" status.
+
+-   **Database Validation**: SQL diagnostic query confirmed no existing invoices are incorrectly marked as "paid" in the current database.
+
+-   **Impact**: Invoices now maintain accurate status based on actual payment balance, preventing accounting discrepancies and ensuring reliable financial reporting.
+
 ### November 12, 2025 - Dedicated Mobile Account Payment Page
 
 #### Mobile-Specific "Abono a Cuenta" Implementation
