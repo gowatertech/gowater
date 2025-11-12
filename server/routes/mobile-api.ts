@@ -231,7 +231,7 @@ export function createMobileApiEndpoints(): Router {
   
   /**
    * GET /api/mobile/customers
-   * Obtiene todos los clientes para la empresa actual
+   * Obtiene todos los clientes para la empresa actual con balance calculado desde transacciones
    */
   router.get('/customers', async (req, res) => {
     try {
@@ -249,16 +249,47 @@ export function createMobileApiEndpoints(): Router {
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
       }
       
-      console.log(`MobileAPI - Obteniendo clientes para compañía #${companyId}`);
+      console.log(`[Mobile customers] Obteniendo clientes con balances calculados para compañía #${companyId}`);
       
-      // Usar db en lugar de companyDb para diagnóstico
-      const result = await db.select()
+      // Obtener todos los clientes
+      const allCustomers = await db.select()
         .from(customers)
         .where(eq(customers.companyId, companyId))
         .orderBy(customers.businessname);
       
-      console.log(`MobileAPI - Se encontraron ${result.length} clientes`);
-      res.json(result);
+      console.log(`[Mobile customers] Se encontraron ${allCustomers.length} clientes`);
+      
+      // Calcular el balance real desde transacciones para cada cliente
+      const customersWithBalance = await Promise.all(
+        allCustomers.map(async (customer) => {
+          // Calcular balance desde transacciones: débitos - créditos
+          const balanceResult = await db
+            .select({
+              totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+              totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.customerId, customer.id),
+                eq(transactions.companyId, companyId)
+              )
+            );
+          
+          const totalDebits = parseFloat(balanceResult[0]?.totalDebits || "0");
+          const totalCredits = parseFloat(balanceResult[0]?.totalCredits || "0");
+          const calculatedBalance = (totalDebits - totalCredits).toFixed(2);
+          
+          // Retornar el cliente con el balance calculado
+          return {
+            ...customer,
+            balance: calculatedBalance // Sobreescribir el campo balance con el valor calculado
+          };
+        })
+      );
+      
+      console.log(`[Mobile customers] Balances calculados exitosamente para ${customersWithBalance.length} clientes`);
+      res.json(customersWithBalance);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
       res.status(500).json({ error: "Error al obtener clientes", details: String(error) });
