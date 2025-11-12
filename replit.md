@@ -64,6 +64,34 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 
 ## Recent Changes
 
+### November 12, 2025 - Enhanced Account Payment: Allow Advance Payments Without Pending Invoices
+
+#### Enable Anticipos for All Customers
+Modified the account payment (Abono a Cuenta) feature to allow creating advance payments (anticipos) even when customers have no pending invoices or zero balance:
+
+-   **Web & Mobile Consistency**: Updated both web (`client/src/pages/payments/account-payment.tsx`) and mobile (`client/src/pages/mobile-app/payments/abono-cuenta.tsx`) versions to support this functionality.
+-   **Removed Restrictions**: 
+    1. Eliminated `pendingInvoices.length === 0` check from `paymentPreview` useMemo
+    2. Removed conditional hiding of "Detalles del Pago" section based on invoice/balance status
+-   **Clear User Messaging**: 
+    - For customers with balance 0 and no invoices: "Cliente al día - Puede crear un anticipo que se aplicará automáticamente a sus futuras facturas"
+    - For customers with balance > 0 but no invoices: "Puede aplicar un pago directamente al balance o crear un anticipo"
+-   **Backend Support**: The existing backend endpoint already handled advance payment creation correctly when no invoices absorb the full payment amount.
+-   **Testing**: Successfully tested creating advance payment (ANT-002) for RD$ 50.00 for customer "Clínica Dr Jacobo" with zero balance and no pending invoices.
+-   **Impact**: Sales teams and drivers can now accept payments from any customer at any time, even if they don't currently owe money. These anticipos automatically apply to future invoices, improving cash flow and customer service flexibility.
+
+### November 12, 2025 - Mobile Clientes List Simplification & Duplicate Cleanup
+
+#### Compact Customer List View
+Simplified the mobile client list (`/mobile-app/clientes`) for improved usability:
+-   **Database Cleanup**: Removed 5 duplicate customer records (4 duplicates of "Clínica jose", 1 duplicate of "Clínica Dr Jacobo")
+-   **Compact UI**: Redesigned customer cards to show only:
+    - Customer business name and manager name (if different)
+    - Current balance with visual badge ("Debe" for positive balance, "Al día" for zero/negative)
+-   **Improved Scan-ability**: Reduced card padding and removed secondary information (phone, email, address) from list view
+-   **Detail Modal Preserved**: Full customer information and actions (GPS location, account payments) remain accessible via tap on customer card
+-   **Impact**: Drivers can scan through customer lists faster with less scrolling and visual clutter, while maintaining access to all functionality.
+
 ### November 12, 2025 - Critical Fix: Invoice Status Calculation Bug
 
 #### Centralized Invoice Status Recalculation System
