@@ -1003,9 +1003,9 @@ export function createMobileApiEndpoints(): Router {
         return res.status(400).json({ error: "ID de cliente inválido" });
       }
       
-      // Obtener el balance del cliente
+      // Verificar que el cliente existe
       const [customer] = await db
-        .select({ balance: customers.balance })
+        .select({ id: customers.id })
         .from(customers)
         .where(and(eq(customers.id, customerId), eq(customers.companyId, companyId)));
       
@@ -1013,7 +1013,31 @@ export function createMobileApiEndpoints(): Router {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
       
-      const customerBalance = customer.balance.toString();
+      // Calcular el balance desde transacciones (fuente de verdad)
+      // Balance = Total Débitos - Total Créditos
+      const customerTransactions = await db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.customerId, customerId),
+            eq(transactions.companyId, companyId)
+          )
+        );
+      
+      let totalDebits = 0;
+      let totalCredits = 0;
+      
+      customerTransactions.forEach(transaction => {
+        const amount = parseFloat(transaction.amount.toString());
+        if (transaction.type === "debit") {
+          totalDebits += amount;
+        } else {
+          totalCredits += amount;
+        }
+      });
+      
+      const customerBalance = (totalDebits - totalCredits).toFixed(2);
       
       // Obtener todas las facturas del cliente
       const customerInvoices = await db

@@ -1364,6 +1364,49 @@ export class DatabaseStorage implements IStorage {
     return `${documentType}-${nextNumber.toString().padStart(4, '0')}`;
   }
 
+  // Actualizar el balance del cliente usando SQL agregados (evita errores de punto flotante)
+  async updateCustomerBalance(customerId: number, tx?: any): Promise<void> {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      throw new Error("No se encontró companyId para actualizar balance");
+    }
+    
+    const dbContext = tx || db;
+    
+    // Calcular balance usando SQL con tipos NUMERIC (precisión decimal)
+    // Balance = SUM(débitos) - SUM(créditos)
+    const balanceResult = await dbContext
+      .select({
+        totalDebits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'debit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`,
+        totalCredits: sql<string>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'credit' THEN ${transactions.amount}::numeric ELSE 0 END), 0)`
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.customerId, customerId),
+          eq(transactions.companyId, companyId)
+        )
+      );
+    
+    const totalDebits = parseFloat(balanceResult[0].totalDebits || "0");
+    const totalCredits = parseFloat(balanceResult[0].totalCredits || "0");
+    const balance = (totalDebits - totalCredits).toFixed(2);
+    
+    // Actualizar el campo balance en la tabla customers
+    await dbContext
+      .update(customers)
+      .set({ balance })
+      .where(
+        and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        )
+      );
+    
+    console.log(`✅ Balance actualizado para cliente ${customerId}: ${balance} (Débitos: ${totalDebits}, Créditos: ${totalCredits})`);
+  }
+  
   async createTransaction(transactionData: InsertTransaction): Promise<Transaction> {
     const companyId = getCurrentCompanyId();
     
@@ -1371,7 +1414,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error("No se encontró companyId para crear transacción");
     }
 
-    // Usar transacción DB para garantizar numeración secuencial segura ante concurrencia
+    // Usar transacción DB para garantizar numeración secuencial, inserción y actualización de balance atómicas
     const [transaction] = await db.transaction(async (tx) => {
       // Lockear la tabla para evitar race conditions en numeración
       // Esto asegura que solo una transacción pueda generar números a la vez
@@ -1395,15 +1438,21 @@ export class DatabaseStorage implements IStorage {
       const documentNumber = `${transactionData.documentType}-${nextNumber.toString().padStart(4, '0')}`;
 
       // Insertar con el número generado dentro de la transacción
-      return await tx.insert(transactions).values({
+      const [newTransaction] = await tx.insert(transactions).values({
         ...transactionData,
         companyId,
         documentNumber,
         date: transactionData.date || getNowRD()
       }).returning();
+      
+      // Actualizar el balance del cliente dentro de la misma transacción (atomicidad garantizada)
+      await this.updateCustomerBalance(transactionData.customerId, tx);
+      
+      return newTransaction;
     });
 
-    console.log(`✅ Transacción ${transaction.documentNumber} creada exitosamente`);
+    console.log(`✅ Transacción ${transaction.documentNumber} creada y balance actualizado atómicamente`);
+    
     return transaction;
   }
 
