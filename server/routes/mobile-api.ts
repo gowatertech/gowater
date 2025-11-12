@@ -2,7 +2,7 @@ import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
 import { 
   orders, invoices, invoiceItems, payments, orderItems,
-  routes, vehicleLoading, customers, settings,
+  routes, vehicleLoading, customers, settings, transactions,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
