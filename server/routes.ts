@@ -5634,6 +5634,8 @@ export async function registerRoutes(router: express.Router) {
           o.driver_commission as "driverCommission", 
           o.assistant_commission as "assistantCommission",
           o.invoice_id as "invoiceId",
+          o.salesperson_id as "salespersonId",
+          sp.name as "salespersonName",
           c.businessname as "customerName", 
           c.email as "customerEmail", 
           c.phone as "customerPhone",
@@ -5641,6 +5643,7 @@ export async function registerRoutes(router: express.Router) {
           c.is_charity as "customerIsCharity"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
+        LEFT JOIN users sp ON o.salesperson_id = sp.id
         WHERE o.id = $1 AND o.company_id = $2
         LIMIT 1
       `;
@@ -6067,9 +6070,10 @@ export async function registerRoutes(router: express.Router) {
           total = $2,
           status = $3,
           payment_method = $4,
-          notes = $5,
-          delivery_coordinates = $6
-        WHERE id = $7 AND company_id = $8
+          salesperson_id = $5,
+          notes = $6,
+          delivery_coordinates = $7
+        WHERE id = $8 AND company_id = $9
         RETURNING *
       `;
       
@@ -6078,6 +6082,7 @@ export async function registerRoutes(router: express.Router) {
         req.body.total,
         req.body.status || existingOrder.status,
         req.body.paymentMethod || 'cash',
+        req.body.salespersonId !== undefined ? req.body.salespersonId : null,
         req.body.notes || '',
         customerCoordinates,
         orderId,

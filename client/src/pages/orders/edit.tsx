@@ -72,6 +72,7 @@ export default function EditOrder() {
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("credit");
+  const [selectedSalesperson, setSelectedSalesperson] = useState<string>("unassigned");
   const [openCustomerPopover, setOpenCustomerPopover] = useState(false);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { code: "", description: "", quantity: 0, price: 0, total: 0 }
@@ -122,6 +123,18 @@ export default function EditOrder() {
     }
   });
 
+  // Obtener usuarios que pueden ser responsables (drivers y helpers)
+  const { data: salespeople = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      return apiRequest({
+        method: "GET",
+        url: "/api/users"
+      });
+    },
+    select: (users) => users.filter((u: any) => u.role === 'driver' || u.role === 'helper')
+  });
+
   // Cargar datos del pedido cuando se obtiene
   useEffect(() => {
     if (order && customers.length > 0 && products.length > 0) {
@@ -152,9 +165,10 @@ export default function EditOrder() {
         setSelectedCustomer(customer);
       }
 
-      // Establecer método de pago y notas
+      // Establecer método de pago, notas y responsable de entrega
       setPaymentMethod(order.paymentMethod || "credit");
       setNotes(order.notes || "");
+      setSelectedSalesperson(order.salespersonId ? order.salespersonId.toString() : "unassigned");
 
       // Cargar items del pedido
       if (order.items && order.items.length > 0) {
@@ -294,6 +308,7 @@ export default function EditOrder() {
         total: total.toFixed(2),
         status: order?.status || "pending",
         paymentMethod: paymentMethod as "cash" | "credit" | "card" | "donation",
+        salespersonId: selectedSalesperson === "unassigned" ? null : parseInt(selectedSalesperson),
         notes: notes || "",
         items: formattedItems
       };
@@ -553,6 +568,27 @@ export default function EditOrder() {
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Responsable de Entrega */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Responsable de Entrega</div>
+            <Select
+              value={selectedSalesperson}
+              onValueChange={setSelectedSalesperson}
+            >
+              <SelectTrigger data-testid="select-salesperson">
+                <SelectValue placeholder="Seleccionar responsable" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Sin asignar</SelectItem>
+                {salespeople.map((person: any) => (
+                  <SelectItem key={person.id} value={person.id.toString()}>
+                    {person.name} ({person.role === 'driver' ? 'Chofer' : 'Ayudante'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Productos - Vista Móvil */}

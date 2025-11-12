@@ -113,6 +113,30 @@ Implemented a comprehensive daily commission system for delivery personnel based
 
 **Impact**: The system now supports flexible daily commission tracking for delivery personnel, with product-level commission values and user-level commission control, replacing the previous weekly commission model.
 
+### November 12, 2025 - Enhanced Order Views: Salesperson Display and Editing
+
+#### Complete Salesperson Visibility Across Order Management
+Extended the order management interface to display and edit the responsible delivery person (salesperson) throughout the order lifecycle:
+
+-   **Backend API Enhancement (GET /api/orders/:id)**:
+    - Added LEFT JOIN to users table to retrieve `salespersonId` and `salespersonName`
+    - Ensures backwards compatibility by handling null values for orders without assigned salesperson
+-   **Backend API Enhancement (PUT /api/orders/:id)**:
+    - Added `salesperson_id` to the UPDATE query to persist salesperson changes
+    - Supports updating salesperson assignment when editing existing orders
+-   **Order Details View**:
+    - Added "Responsable de Entrega" field displaying salesperson name or "Sin asignar"
+    - Provides visibility into who is responsible for each order's delivery
+-   **Order Edit View**:
+    - Added "Responsable de Entrega" dropdown selector
+    - Populates with all users having driver or helper roles
+    - Loads existing salesperson from order data
+    - Sends salespersonId in update mutation to persist changes
+    - Supports "unassigned" state for orders without a designated salesperson
+-   **Testing**: Architect-verified end-to-end data flow (GET→display, edit→PUT→persist)
+
+**Impact**: Users can now view and modify the delivery person responsible for each order directly in the order details and edit interfaces, providing complete visibility and control over salesperson assignments. This complements the automatic assignment logic in order creation and supports commission tracking requirements.
+
 ### November 12, 2025 - Responsive Customer Transaction History
 
 #### Mobile-Friendly Transaction Display

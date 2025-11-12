@@ -603,6 +603,13 @@ export default function OrderDetails() {
                 <div className="text-sm font-semibold">RD$ {parseFloat(order.total).toFixed(2)}</div>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Responsable de Entrega</div>
+                <div className="text-sm">{order.salespersonName || "Sin asignar"}</div>
+              </div>
+            </div>
           </div>
 
           {/* Sección de notas */}
