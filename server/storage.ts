@@ -22,6 +22,7 @@ import { db } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
 import { getNowRD } from "./date-utils";
 import { eq, inArray, and, sql, isNotNull, desc } from "drizzle-orm";
+import { recalculateInvoiceStatus } from "./utils/invoice-status";
 
 export interface DriverLocation {
   latitude: number;
@@ -853,17 +854,9 @@ export class DatabaseStorage implements IStorage {
         .values(validationResult.data)
         .returning();
       
-      // Solo actualizar el estado de la factura si no es un anticipo
+      // Solo recalcular el estado de la factura si no es un anticipo
       if (payment.invoiceId && !payment.isAdvance) {
-        await db
-          .update(invoices)
-          .set({ status: "paid" })
-          .where(
-            and(
-              eq(invoices.id, payment.invoiceId),
-              eq(invoices.companyId, companyId)
-            )
-          ); // Asegurar que solo se actualice la factura de la misma empresa
+        await recalculateInvoiceStatus(payment.invoiceId, companyId);
       }
       
       return newPayment;
@@ -1209,15 +1202,8 @@ export class DatabaseStorage implements IStorage {
     // El balance ya fue ajustado cuando se registró el anticipo (balance -= anticipo)
     // Solo se debe aumentar el balance con el monto pendiente que quede (esto se hace en routes.ts)
     
-    // Si la factura quedó completamente pagada con los anticipos, actualizar su estado
-    if (remainingBalance <= 0.01) { // Tolerancia de 1 centavo por redondeo
-      await db
-        .update(invoices)
-        .set({ status: "paid" })
-        .where(eq(invoices.id, invoiceId));
-      
-      console.log(`✅ Factura #${invoiceId} marcada como pagada después de aplicar anticipos`);
-    }
+    // Recalcular el estado de la factura basándose en el saldo real desde la BD
+    await recalculateInvoiceStatus(invoiceId, companyId);
     
     return {
       appliedAmount: totalApplied.toFixed(2),
