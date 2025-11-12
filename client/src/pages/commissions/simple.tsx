@@ -6,16 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Definir tipos básicos
 interface Commission {
-  id: number;
+  id: number | null;
   userId: number;
   userName: string;
   userRole: string;
-  weekStartDate: string;
-  weekEndDate: string;
+  date: string;
   productCount: number;
-  totalAmount: string;
-  status: 'pending' | 'paid' | 'cancelled';
-  routeName?: string;
+  totalAmount: string | number;
+  status: 'calculated' | 'pending' | 'paid' | 'cancelled';
+  paymentDate: string | null;
+  createdAt: string | null;
 }
 
 export default function SimpleCommissionsPage() {
@@ -79,8 +79,8 @@ export default function SimpleCommissionsPage() {
       <h1 className="mb-6 text-2xl font-bold">Comisiones (Vista Simple)</h1>
       
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {commissions.map((commission) => (
-          <Card key={commission.id} className="overflow-hidden">
+        {commissions.map((commission, index) => (
+          <Card key={commission.id ?? `calc-${commission.userId}-${commission.date}-${index}`} className="overflow-hidden">
             <CardHeader className="bg-primary/5 pb-2">
               <CardTitle className="text-base">
                 {commission.userName} - {commission.userRole === 'driver' ? 'Chofer' : 'Ayudante'}
@@ -89,29 +89,31 @@ export default function SimpleCommissionsPage() {
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold">Fecha:</span>{' '}
-                {formatDateRD(commission.weekStartDate, { day: '2-digit', month: 'short' })} -{' '}
-                {formatDateRD(commission.weekEndDate, { day: '2-digit', month: 'short', year: 'numeric' })}
+                {formatDateRD(commission.date, { day: '2-digit', month: 'short', year: 'numeric' })}
               </p>
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold">Productos:</span> {commission.productCount}
               </p>
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold">Ruta:</span> {commission.routeName || 'N/A'}
-              </p>
               <div className="mt-2 text-xl font-bold">
-                ${parseFloat(commission.totalAmount).toFixed(2)}
+                RD$ {typeof commission.totalAmount === 'number' 
+                  ? commission.totalAmount.toFixed(2) 
+                  : parseFloat(commission.totalAmount).toFixed(2)}
               </div>
               <div className="mt-2">
                 <span 
                   className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
-                    commission.status === 'pending' 
+                    commission.status === 'calculated'
+                      ? 'bg-blue-100 text-blue-800'
+                      : commission.status === 'pending' 
                       ? 'bg-amber-100 text-amber-800' 
                       : commission.status === 'paid' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {commission.status === 'pending' 
+                  {commission.status === 'calculated'
+                    ? 'Calculado'
+                    : commission.status === 'pending' 
                     ? 'Pendiente' 
                     : commission.status === 'paid' 
                     ? 'Pagado' 

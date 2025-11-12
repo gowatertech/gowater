@@ -97,8 +97,15 @@ const SimpleCommissionGenerator = () => {
             </div>
           )}
           {success && (
-            <div className="mb-5 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 sm:p-4">
-              {success}
+            <div className="mb-5 rounded-md border border-green-200 bg-green-50 p-3 sm:p-4">
+              <p className="text-sm text-green-800">{success}</p>
+              <button
+                onClick={() => window.location.href = '/commissions'}
+                className="mt-3 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+                data-testid="button-back-to-dashboard"
+              >
+                Volver al Dashboard de Comisiones
+              </button>
             </div>
           )}
           
