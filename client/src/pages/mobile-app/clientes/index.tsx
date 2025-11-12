@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Search, Users, MapPin, Phone, Mail, DollarSign, Navigation, MapPinned, AlertCircle, CreditCard } from "lucide-react";
+import { Search, Users, DollarSign, Navigation, MapPinned, AlertCircle, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -138,7 +138,7 @@ export default function MobileAppClientesPage() {
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000, // Aumentado a 15 segundos
+          timeout: 15000,
           maximumAge: 0
         }
       );
@@ -174,37 +174,37 @@ export default function MobileAppClientesPage() {
         {/* Stats Summary */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90">Total Clientes</p>
+                  <p className="text-xs opacity-90">Total</p>
                   <p className="text-2xl font-bold">{customers.length}</p>
                 </div>
-                <Users className="h-10 w-10 opacity-80" />
+                <Users className="h-8 w-8 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90">Encontrados</p>
+                  <p className="text-xs opacity-90">Encontrados</p>
                   <p className="text-2xl font-bold">{filteredCustomers.length}</p>
                 </div>
-                <Search className="h-10 w-10 opacity-80" />
+                <Search className="h-8 w-8 opacity-80" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Customer List */}
+        {/* Customer List - Vista Compacta */}
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => (
               <Card key={i}>
-                <CardContent className="p-4">
-                  <Skeleton className="h-20 w-full" />
+                <CardContent className="p-3">
+                  <Skeleton className="h-12 w-full" />
                 </CardContent>
               </Card>
             ))}
@@ -224,74 +224,52 @@ export default function MobileAppClientesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {filteredCustomers.map((customer) => (
-              <Card
-                key={customer.id}
-                className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-primary"
-                onClick={() => setSelectedCustomerId(customer.id)}
-                data-testid={`card-customer-${customer.id}`}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg font-bold text-primary">
-                        {customer.businessname}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {customer.managername}
-                      </p>
+          <div className="space-y-2">
+            {filteredCustomers.map((customer) => {
+              const balance = parseFloat(customer.balance || "0");
+              const debe = balance > 0;
+              
+              return (
+                <Card
+                  key={customer.id}
+                  className="hover:shadow-md transition-all cursor-pointer border-l-4 border-l-primary"
+                  onClick={() => setSelectedCustomerId(customer.id)}
+                  data-testid={`card-customer-${customer.id}`}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-base text-primary truncate">
+                          {customer.businessname}
+                        </p>
+                        {customer.managername && customer.managername !== customer.businessname && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {customer.managername}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4 text-yellow-600" />
+                          <span className={`text-sm font-bold ${debe ? 'text-red-600' : 'text-gray-600'}`}>
+                            {balance.toFixed(2)}
+                          </span>
+                        </div>
+                        {debe ? (
+                          <Badge variant="destructive" className="text-xs px-2 py-0">
+                            Debe
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs px-2 py-0 bg-green-100 text-green-700">
+                            Al día
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    {customer.isCharity && (
-                      <Badge variant="secondary" className="bg-pink-100 text-pink-700 border-pink-300">
-                        Benéfica
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {customer.phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-4 w-4 text-blue-500" />
-                      <span>{customer.phone}</span>
-                    </div>
-                  )}
-                  
-                  {customer.email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="h-4 w-4 text-green-500" />
-                      <span className="truncate">{customer.email}</span>
-                    </div>
-                  )}
-                  
-                  {customer.street && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-red-500" />
-                      <span className="truncate">
-                        {customer.street} {customer.streetnumber && `#${customer.streetnumber}`}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 text-sm pt-2 border-t">
-                    <DollarSign className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium">
-                      Balance: RD$ {parseFloat(customer.balance || "0").toFixed(2)}
-                    </span>
-                    {parseFloat(customer.balance || "0") > 0 && (
-                      <Badge variant="destructive" className="ml-auto">
-                        Debe
-                      </Badge>
-                    )}
-                    {parseFloat(customer.balance || "0") < 0 && (
-                      <Badge variant="default" className="ml-auto bg-green-500">
-                        Favor
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -330,9 +308,8 @@ export default function MobileAppClientesPage() {
                     <div className="space-y-2">
                       {/* Info de coordenadas - Responsive */}
                       <div className="flex flex-col sm:flex-row sm:items-start gap-2 text-sm bg-white p-3 rounded-lg border">
-                        <MapPin className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-gray-700 text-xs sm:text-sm">Coordenadas GPS registradas:</p>
+                          <p className="font-medium text-gray-700 text-xs sm:text-sm">Coordenadas GPS:</p>
                           <p className="text-gray-600 font-mono text-xs break-all mt-1">
                             {selectedCustomer.coordinates}
                           </p>
@@ -342,7 +319,6 @@ export default function MobileAppClientesPage() {
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline text-xs mt-2 inline-flex items-center gap-1"
                           >
-                            <MapPin className="h-3 w-3" />
                             Ver en Google Maps →
                           </a>
                         </div>
@@ -375,9 +351,9 @@ export default function MobileAppClientesPage() {
                       <div className="flex items-start gap-2 text-sm bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-yellow-800 text-xs sm:text-sm">Sin ubicación GPS registrada</p>
+                          <p className="font-medium text-yellow-800 text-xs sm:text-sm">Sin ubicación GPS</p>
                           <p className="text-yellow-700 text-xs mt-1">
-                            Captura la ubicación GPS del cliente para facilitar futuras entregas
+                            Captura la ubicación GPS del cliente
                           </p>
                         </div>
                       </div>
