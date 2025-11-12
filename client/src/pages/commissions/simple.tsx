@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { formatDateRD } from '@/lib/date-utils';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 // Definir tipos básicos
 interface Commission {
@@ -76,7 +77,19 @@ export default function SimpleCommissionsPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="mb-6 text-2xl font-bold">Comisiones (Vista Simple)</h1>
+      <div className="mb-6 flex items-center gap-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.href = '/commissions'}
+          className="gap-2"
+          data-testid="button-back-to-dashboard"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
+        <h1 className="text-2xl font-bold">Comisiones (Vista Simple)</h1>
+      </div>
       
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {commissions.map((commission, index) => (
