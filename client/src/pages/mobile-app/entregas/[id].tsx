@@ -493,13 +493,19 @@ export default function DeliveryDetails() {
     if (delivery) {
       // Detectar si es una donación y setear método de pago apropiado
       const isDonation = delivery.customerIsCharity && delivery.paymentMethod === 'donation';
-      setPaymentMethod(isDonation ? "donation" : "cash");
+      // Pre-seleccionar el método de pago según cómo se creó el pedido
+      const initialPaymentMethod = isDonation 
+        ? "donation" 
+        : (delivery.paymentMethod === "credit" ? "credit" : "cash");
+      setPaymentMethod(initialPaymentMethod as "cash" | "credit" | "donation");
       setPaymentReceived(delivery.total);
       setUpdateCustomerBalance(true);
       setShowDeliveryConfirm(true);
       
       // Log para depuración
       console.log("Abriendo diálogo de confirmación, total a cobrar:", delivery.total);
+      console.log("Método de pago original del pedido:", delivery.paymentMethod);
+      console.log("Método de pago pre-seleccionado:", initialPaymentMethod);
       if (isDonation) {
         console.log("Este es un pedido de DONACIÓN");
       }
