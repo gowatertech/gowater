@@ -213,8 +213,8 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
           
           // Crear la factura con subtotal, tax y total
-          // Usar fecha de República Dominicana
-          const invoiceDate = getNowRD();
+          // Usar fecha de República Dominicana con offset de timezone
+          const invoiceDate = getTimestampRD();
           
           const createInvoiceQuery = `
             INSERT INTO invoices (
@@ -276,7 +276,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           const nextFtNumber = ftResult.rows[0].max_num + 1;
           const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
           
-          const transactionDate = getNowRD();
+          const transactionDate = getTimestampRD();
           
           const createFtTransactionQuery = `
             INSERT INTO transactions (

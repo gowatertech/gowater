@@ -1130,7 +1130,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         const invoiceStatus = updatedOrder.payment_method === 'cash' ? 'paid' : 'pending';
         
         // Crear la factura con subtotal, tax y total
-        const invoiceDate = getNowRD();
+        const invoiceDate = getTimestampRD();
         
         const createInvoiceQuery = `
           INSERT INTO invoices (
@@ -1479,7 +1479,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       const invoiceStatus = paymentMethod === 'credit' ? 'pending' : 'paid';
       
       // Crear la factura con subtotal, tax y total
-      const invoiceDate = getNowRD();
+      const invoiceDate = getTimestampRD();
       
       const createInvoiceQuery = `
         INSERT INTO invoices (
@@ -1599,7 +1599,7 @@ ordersRouter.post("/api/orders/:orderId/create-prepaid-invoice", authMiddleware,
       const nextFtNumber = ftResult.rows[0].max_num + 1;
       const ftDocNumber = `FT-${String(nextFtNumber).padStart(4, '0')}`;
       
-      const transactionDate = getNowRD();
+      const transactionDate = getTimestampRD();
       
       const createFtTransactionQuery = `
         INSERT INTO transactions (
