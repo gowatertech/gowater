@@ -77,9 +77,14 @@ export default function GenerateCommissionsPage() {
       
       // Mostrar resultado exitoso
       setResult(responseData);
+      
+      const stats = responseData.stats || {};
+      const daysProcessed = stats.daysProcessed || 0;
+      const commissionsGenerated = stats.commissionsGenerated || 0;
+      
       toast({
         title: "Comisiones generadas",
-        description: `Se generaron ${responseData.commissions?.length || 0} comisiones correctamente`,
+        description: `Se generaron ${commissionsGenerated} comisiones para ${daysProcessed} día${daysProcessed !== 1 ? 's' : ''}`,
       });
       
       // Después de 2 segundos, redireccionar a la lista de comisiones
@@ -196,7 +201,7 @@ export default function GenerateCommissionsPage() {
             
             {result && (
               <div className="bg-green-50 p-3 rounded-md border border-green-200 text-green-600 text-sm">
-                ✓ Se generaron {result.commissions?.length || 0} comisiones correctamente.
+                ✓ Se generaron {result.stats?.commissionsGenerated || 0} comisiones para {result.stats?.daysProcessed || 0} día{result.stats?.daysProcessed !== 1 ? 's' : ''}.
                 Redirigiendo...
               </div>
             )}

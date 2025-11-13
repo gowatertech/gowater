@@ -8,10 +8,14 @@ import { format } from 'date-fns';
 
 const router = Router();
 
-// Esquema para generar comisiones diarias
+// Esquema para generar comisiones - acepta rango de fechas
 const generateCommissionsSchema = z.object({
-  date: z.string(), // formato YYYY-MM-DD para comisión diaria
-  userId: z.number().optional(),
+  weekStartDate: z.string(), // formato YYYY-MM-DD - fecha de inicio del rango
+  weekEndDate: z.string(), // formato YYYY-MM-DD - fecha de fin del rango
+  userId: z.union([z.string(), z.number()]).optional().transform(val => {
+    if (val === undefined || val === null || val === '') return undefined;
+    return typeof val === 'string' ? parseInt(val) : val;
+  }), // ID de usuario opcional - acepta string o número
   userRole: z.enum(['driver', 'helper']), // Nota: 'helper' es el valor que viene del frontend, pero internamente usamos 'assistant'
 });
 
@@ -472,16 +476,17 @@ router.post('/check-existing', async (req, res) => {
       });
     }
     
-    const { date: commissionDate, userId, userRole } = result.data;
+    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
     
-    // Convertir fecha a objeto Date
-    const targetDate = new Date(commissionDate);
-
-    // Construir la consulta para buscar comisiones existentes (filtradas por compañía)
+    // Convertir fechas a objetos Date
+    const rangeStart = new Date(weekStartDate);
+    const rangeEnd = new Date(weekEndDate);
+    
+    // Construir la consulta para buscar comisiones existentes en el rango (filtradas por compañía)
     const conditions = [
       eq(commissions.companyId, companyId),
       eq(commissions.userRole, userRole),
-      sql`DATE(${commissions.date}) = DATE(${targetDate})`
+      sql`DATE(${commissions.date}) >= DATE(${rangeStart}) AND DATE(${commissions.date}) <= DATE(${rangeEnd})`
     ];
     
     // Filtrar por userId si se proporciona
@@ -506,18 +511,22 @@ router.post('/check-existing', async (req, res) => {
     
     if (existingCommissions.length > 0) {
       // Hay comisiones existentes, devolver información sobre ellas
+      const startDateStr = format(rangeStart, 'dd/MM/yyyy');
+      const endDateStr = format(rangeEnd, 'dd/MM/yyyy');
+      const hasPaid = existingCommissions.some(c => c.status === 'paid');
+      
       return res.status(200).json({ 
         exists: true, 
         commissions: existingCommissions,
-        message: existingCommissions[0].status === 'paid' 
-          ? `Ya existe una comisión pagada para esta fecha (${format(targetDate, 'dd/MM/yyyy')}).`
-          : `Ya existe una comisión pendiente para esta fecha (${format(targetDate, 'dd/MM/yyyy')}).`
+        message: hasPaid
+          ? `Ya existen ${existingCommissions.length} comisiones (algunas pagadas) para el rango ${startDateStr} - ${endDateStr}.`
+          : `Ya existen ${existingCommissions.length} comisiones pendientes para el rango ${startDateStr} - ${endDateStr}.`
       });
     } else {
       // No hay comisiones existentes
       return res.status(200).json({ 
         exists: false, 
-        message: "No existen comisiones para esta fecha. Puede generar nuevas comisiones."
+        message: "No existen comisiones para este rango de fechas. Puede generar nuevas comisiones."
       });
     }
   } catch (error) {
@@ -545,14 +554,27 @@ router.post('/generate', async (req, res) => {
       });
     }
     
-    const { date: commissionDate, userId, userRole } = result.data;
+    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
     
-    // Convertir fecha a objeto Date (inicio y fin del día)
-    const targetDate = new Date(commissionDate);
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    console.log('[Generar Comisiones] Recibido rango:', { weekStartDate, weekEndDate, userId, userRole, companyId });
+    
+    // Validar que la fecha de inicio sea menor o igual a la fecha de fin
+    const rangeStart = new Date(weekStartDate);
+    const rangeEnd = new Date(weekEndDate);
+    
+    if (rangeStart > rangeEnd) {
+      return res.status(400).json({ error: 'La fecha de inicio debe ser menor o igual a la fecha de fin' });
+    }
+    
+    // Generar array de fechas en el rango (día por día)
+    const datesInRange: Date[] = [];
+    let currentDate = new Date(rangeStart);
+    while (currentDate <= rangeEnd) {
+      datesInRange.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log(`[Generar Comisiones] Procesando ${datesInRange.length} días`);
     
     // Construir la consulta para obtener usuarios según los filtros (filtrados por compañía)
     // Mapear 'helper' a 'assistant' para la consulta en BD
@@ -581,11 +603,34 @@ router.post('/generate', async (req, res) => {
     const usersList = await usersQuery;
     
     if (usersList.length === 0) {
-      return res.status(404).json({ error: 'No se encontraron usuarios para generar comisiones' });
+      // No hay usuarios elegibles - retornar respuesta exitosa con cero comisiones
+      console.log('[Generar Comisiones] No se encontraron usuarios elegibles - retornando resultado vacío');
+      return res.status(200).json({ 
+        message: 'No se encontraron usuarios elegibles para generar comisiones',
+        commissions: [],
+        stats: {
+          daysProcessed: datesInRange.length,
+          commissionsGenerated: 0
+        }
+      });
     }
     
-    // Array para almacenar las comisiones generadas
-    const generatedCommissions = [];
+    // Array para acumular todas las comisiones generadas a través del rango
+    const allGeneratedCommissions = [];
+    
+    // Iterar sobre cada fecha en el rango
+    for (const commissionDate of datesInRange) {
+      console.log(`[Generar Comisiones] Procesando día: ${commissionDate.toISOString().split('T')[0]}`);
+      
+      // Convertir fecha a objeto Date (inicio y fin del día)
+      const targetDate = new Date(commissionDate);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Array para almacenar las comisiones generadas en este día específico
+      const dailyGeneratedCommissions = [];
     
     // Para cada usuario, generar su comisión
     for (const user of usersList) {
@@ -858,8 +903,8 @@ router.post('/generate', async (req, res) => {
       
       if (existingCommission) {
         console.log(`Comisión existente encontrada para ${user.name} con rol ${existingRoleValue}`);
-        // Si ya existe, no crear una nueva
-        generatedCommissions.push(existingCommission);
+        // Si ya existe, no crear una nueva - añadir al acumulador diario
+        dailyGeneratedCommissions.push(existingCommission);
         continue;
       }
       
@@ -892,13 +937,19 @@ router.post('/generate', async (req, res) => {
           });
       }
       
-      generatedCommissions.push(newCommission);
+      dailyGeneratedCommissions.push(newCommission);
+      }
+      
+      // Añadir todas las comisiones de este día al acumulador total
+      allGeneratedCommissions.push(...dailyGeneratedCommissions);
+      
+      console.log(`[Generar Comisiones] Día ${commissionDate.toISOString().split('T')[0]}: ${dailyGeneratedCommissions.length} comisiones generadas`);
     }
     
     // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados (filtradas por compañía)
     let generatedCommissionsWithDetails: any[] = [];
     
-    if (generatedCommissions.length > 0) {
+    if (allGeneratedCommissions.length > 0) {
       generatedCommissionsWithDetails = await db.select({
         id: commissions.id,
         userId: commissions.userId,
@@ -917,7 +968,7 @@ router.post('/generate', async (req, res) => {
         and(
           inArray(
             commissions.id, 
-            generatedCommissions.map(c => c.id)
+            allGeneratedCommissions.map(c => c.id)
           ),
           eq(commissions.companyId, companyId)
         )
@@ -926,9 +977,15 @@ router.post('/generate', async (req, res) => {
       console.log("No se generaron comisiones nuevas, devolviendo lista vacía");
     }
     
+    console.log(`[Generar Comisiones] Total: ${allGeneratedCommissions.length} comisiones generadas para ${datesInRange.length} días`);
+    
     res.status(201).json({ 
-      message: `Se generaron ${generatedCommissions.length} comisiones correctamente`,
-      commissions: generatedCommissionsWithDetails
+      message: `Se generaron ${allGeneratedCommissions.length} comisiones correctamente para ${datesInRange.length} días`,
+      commissions: generatedCommissionsWithDetails,
+      stats: {
+        daysProcessed: datesInRange.length,
+        commissionsGenerated: allGeneratedCommissions.length
+      }
     });
   } catch (error) {
     console.error('Error al generar comisiones:', error);
