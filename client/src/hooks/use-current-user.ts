@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 
 // Exportamos el tipo User para poder usarlo en otros componentes
@@ -161,6 +161,15 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
         // Guardar usuario en localStorage para modo offline
         localStorage.setItem('offlineUser', JSON.stringify(result.user));
         set({ user: result.user, isLoading: false });
+        
+        // Invalidar todas las queries móviles para refrescar los datos automáticamente
+        console.log('[Login] Invalidando queries móviles para refrescar datos...');
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/routes'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/orders'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/customers'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/products'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/mobile/deliveries'] });
+        
         return {
           success: true,
           message: result.message || "Login exitoso",
