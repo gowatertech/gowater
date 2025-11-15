@@ -53,8 +53,6 @@ export default function MobileAppLogin() {
           title: "Login exitoso",
           description: "Bienvenido a GoWater Driver",
         });
-        // Esperar un momento para que las queries invalidadas se refresquen
-        await new Promise(resolve => setTimeout(resolve, 300));
         // Usar replace para que no se pueda volver atrás
         setLocation('/mobile-app', { replace: true });
       } else {

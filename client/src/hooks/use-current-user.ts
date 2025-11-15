@@ -162,13 +162,16 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
         localStorage.setItem('offlineUser', JSON.stringify(result.user));
         set({ user: result.user, isLoading: false });
         
-        // Invalidar todas las queries móviles para refrescar los datos automáticamente
-        console.log('[Login] Invalidando queries móviles para refrescar datos...');
-        queryClient.invalidateQueries({ queryKey: ['/api/mobile/routes'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/mobile/orders'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/mobile/customers'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/mobile/products'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/mobile/deliveries'] });
+        // Refrescar todas las queries móviles en paralelo y esperar a que terminen
+        console.log('[Login] Refrescando queries móviles...');
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: ['/api/mobile/routes'] }),
+          queryClient.refetchQueries({ queryKey: ['/api/mobile/orders'] }),
+          queryClient.refetchQueries({ queryKey: ['/api/mobile/customers'] }),
+          queryClient.refetchQueries({ queryKey: ['/api/mobile/products'] }),
+          queryClient.refetchQueries({ queryKey: ['/api/mobile/deliveries'] })
+        ]);
+        console.log('[Login] Queries refrescadas exitosamente');
         
         return {
           success: true,
