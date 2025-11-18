@@ -62,6 +62,7 @@ import TestRoutesPage from "@/pages/test-routes";
 import ManualPage from "@/pages/ManualPage";
 import LandingPage from "@/pages/landing";
 import DemoPage from "@/pages/demo";
+import DocumentationPage from "@/pages/documentation";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
@@ -450,6 +451,9 @@ function Router() {
         <Route path="/test-print" component={TestPage} />
         <Route path="/test-print-payment" component={TestPrintPayment} />
         <Route path="/test-billing" component={lazy(() => import('./pages/test-billing'))} />
+        
+        {/* Documentation page */}
+        <Route path="/documentation" component={DocumentationPage} />
 
         <Route component={NotFound} />
       </Switch>
