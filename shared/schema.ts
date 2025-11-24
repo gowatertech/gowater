@@ -526,6 +526,7 @@ export const invoices = pgTable("invoices", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "transfer"] }).notNull(),
+  saleType: text("sale_type", { enum: ["botellon_nuevo", "contrato", "domicilio", "otros", "ventanilla"] }).notNull().default("ventanilla"),
   date: timestamp("date").notNull().defaultNow(),
   notes: text("notes"),
 }, (table) => ({
@@ -551,6 +552,7 @@ export const insertInvoiceSchema = z.object({
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]).optional(),
   paymentMethod: z.enum(["cash", "credit", "card", "transfer"]),
+  saleType: z.enum(["botellon_nuevo", "contrato", "domicilio", "otros", "ventanilla"]).default("ventanilla"),
   notes: z.string().max(200).optional(),
   // La fecha se manejará en el servidor con defaultNow()
   // status es opcional - el backend lo determina automáticamente basado en paymentMethod
@@ -1235,6 +1237,9 @@ export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
   donatedWaterGallons: decimal("donated_water_gallons", { precision: 10, scale: 2 }).notNull().default("0"),
   donatedWaterValue: decimal("donated_water_value", { precision: 10, scale: 2 }).notNull().default("0"),
   
+  // Totales de cantidad por tipo de venta (JSON dinámico)
+  salesByType: text("sales_by_type").default("{}"),
+  
   // Resultado del cuadre
   surplus: decimal("surplus", { precision: 10, scale: 2 }).notNull().default("0"), // Sobrante
   shortage: decimal("shortage", { precision: 10, scale: 2 }).notNull().default("0"), // Faltante
@@ -1270,6 +1275,9 @@ export const insertDailyCashReconciliationSchema = z.object({
   lostWaterValue: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   surplus: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   shortage: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  
+  // Totales de cantidad por tipo de venta
+  salesByType: z.string().optional().default("{}"),
   
   notes: z.string().optional(),
 });

@@ -93,6 +93,7 @@ export default function Billing() {
   const [productSearchTerm, setProductSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card' | 'transfer' | 'donation'>('credit');
+  const [saleType, setSaleType] = useState<'botellon_nuevo' | 'contrato' | 'domicilio' | 'otros' | 'ventanilla'>('ventanilla');
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
@@ -228,6 +229,7 @@ export default function Billing() {
     setCart([]);
     setSelectedCustomer(null);
     setPaymentMethod('cash');
+    setSaleType('ventanilla');
   };
 
   // Cálculos
@@ -256,6 +258,7 @@ export default function Billing() {
         tax: tax.toFixed(2),
         total: total.toFixed(2),
         paymentMethod: finalPaymentMethod,
+        saleType: saleType,
       };
 
       const invoiceResponse = await fetch("/api/invoices", {
@@ -721,6 +724,24 @@ export default function Billing() {
                             <span className="text-xs">Transferencia</span>
                           </Button>
                         </div>
+                        
+                        {/* Tipo de Venta */}
+                        <div className="pt-3 border-t">
+                          <p className="text-sm font-medium mb-2">Tipo de Venta</p>
+                          <Select value={saleType} onValueChange={(value: any) => setSaleType(value)}>
+                            <SelectTrigger className="w-full" data-testid="select-sale-type">
+                              <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ventanilla" data-testid="select-sale-type-ventanilla">Ventanilla</SelectItem>
+                              <SelectItem value="domicilio" data-testid="select-sale-type-domicilio">Domicilio</SelectItem>
+                              <SelectItem value="contrato" data-testid="select-sale-type-contrato">Contrato</SelectItem>
+                              <SelectItem value="botellon_nuevo" data-testid="select-sale-type-botellon-nuevo">Botellón Nuevo</SelectItem>
+                              <SelectItem value="otros" data-testid="select-sale-type-otros">Otros</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
                         {/* Mostrar monto pendiente si hay saldo insuficiente */}
                         {selectedCustomer && totalAdvances > 0 && totalAdvances < total && total > 0 && (
                           <div className="mt-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-center">

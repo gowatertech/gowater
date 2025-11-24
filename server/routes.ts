@@ -7385,7 +7385,7 @@ export async function registerRoutes(router: express.Router) {
       // Usar getDayRangeRD para obtener el rango correcto del día en zona horaria RD
       const { startOfDay, endOfDay } = getDayRangeRD(date);
       
-      // Obtener facturas del día
+      // Obtener facturas del día con sus items
       const dailyInvoices = await db
         .select()
         .from(invoices)
@@ -7396,6 +7396,35 @@ export async function registerRoutes(router: express.Router) {
             lte(invoices.date, endOfDay)
           )
         );
+      
+      // Obtener items de las facturas del día para calcular totales por tipo de venta
+      const invoiceIds = dailyInvoices.map(inv => inv.id);
+      let salesByType: Record<string, number> = {
+        botellon_nuevo: 0,
+        contrato: 0,
+        domicilio: 0,
+        otros: 0,
+        ventanilla: 0
+      };
+      
+      if (invoiceIds.length > 0) {
+        // Obtener items de las facturas
+        const dailyInvoiceItems = await db
+          .select({
+            invoiceId: invoiceItems.invoiceId,
+            quantity: invoiceItems.quantity,
+          })
+          .from(invoiceItems)
+          .where(sql`${invoiceItems.invoiceId} IN (${sql.join(invoiceIds, sql`, `)})`);
+        
+        // Agrupar por tipo de venta
+        for (const inv of dailyInvoices) {
+          const saleType = (inv as any).saleType || 'ventanilla';
+          const invItems = dailyInvoiceItems.filter(item => item.invoiceId === inv.id);
+          const totalQuantity = invItems.reduce((sum, item) => sum + item.quantity, 0);
+          salesByType[saleType] = (salesByType[saleType] || 0) + totalQuantity;
+        }
+      }
       
       // Obtener pagos del día (RI y ANT)
       const dailyPayments = await db
@@ -7481,6 +7510,9 @@ export async function registerRoutes(router: express.Router) {
           donatedWaterGallons += parseFloat(item.quantity.toString());
           donatedWaterValue += parseFloat(item.price.toString()) * parseFloat(item.quantity.toString());
         });
+        
+        // Agregar donados al salesByType
+        salesByType['donados'] = donatedWaterGallons;
       }
       
       const summary = {
@@ -7495,6 +7527,7 @@ export async function registerRoutes(router: express.Router) {
         paymentsCount: dailyPayments.length,
         donatedWaterGallons: donatedWaterGallons.toFixed(2),
         donatedWaterValue: donatedWaterValue.toFixed(2),
+        salesByType: JSON.stringify(salesByType),
       };
       
       res.json(summary);
@@ -7609,6 +7642,7 @@ export async function registerRoutes(router: express.Router) {
           lostWaterValue: data.lostWaterValue || "0.00",
           donatedWaterGallons: data.donatedWaterGallons || "0.00",
           donatedWaterValue: data.donatedWaterValue || "0.00",
+          salesByType: data.salesByType || "{}",
           surplus: data.surplus || "0.00",
           shortage: data.shortage || "0.00",
           notes: data.notes || null,
@@ -7691,6 +7725,7 @@ export async function registerRoutes(router: express.Router) {
           lostWaterValue: platformSchema.dailyCashReconciliations.lostWaterValue,
           donatedWaterGallons: platformSchema.dailyCashReconciliations.donatedWaterGallons,
           donatedWaterValue: platformSchema.dailyCashReconciliations.donatedWaterValue,
+          salesByType: platformSchema.dailyCashReconciliations.salesByType,
           surplus: platformSchema.dailyCashReconciliations.surplus,
           shortage: platformSchema.dailyCashReconciliations.shortage,
           notes: platformSchema.dailyCashReconciliations.notes,

@@ -78,6 +78,7 @@ interface DailySummary {
   paymentsCount: number;
   donatedWaterGallons: string;
   donatedWaterValue: string;
+  salesByType: string;
 }
 
 interface CashReconciliation {
@@ -97,6 +98,7 @@ interface CashReconciliation {
   lostWaterValue: string;
   donatedWaterGallons: string;
   donatedWaterValue: string;
+  salesByType?: string;
   surplus: string;
   shortage: string;
   notes?: string;
@@ -299,6 +301,7 @@ export default function CashReconciliation() {
       lostWaterValue: lostWaterValue.toFixed(2),
       donatedWaterGallons: reconciliationToUse?.donatedWaterGallons || donatedWaterGallons.toFixed(2),
       donatedWaterValue: reconciliationToUse?.donatedWaterValue || donatedWaterValue.toFixed(2),
+      salesByType: reconciliationToUse?.salesByType || dailySummary?.salesByType || "{}",
       surplus: surplus.toFixed(2),
       shortage: shortage.toFixed(2),
       notes: notes.trim() || undefined,
@@ -645,6 +648,44 @@ export default function CashReconciliation() {
                       </div>
                       <p className="text-xs text-muted-foreground italic">
                         Calculado automáticamente desde pedidos con método de pago "Donación"
+                      </p>
+                    </div>
+
+                    {/* Totales por Tipo de Venta */}
+                    <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg space-y-3 border border-purple-200 dark:border-purple-900">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ShoppingCart className="h-4 w-4 text-purple-600" />
+                        <span className="font-semibold text-sm">Totales por Tipo de Venta</span>
+                        <Badge variant="outline" className="ml-auto text-xs">Automático</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {(() => {
+                          const salesByTypeSource = isEditMode && reconciliationData?.salesByType 
+                            ? reconciliationData.salesByType 
+                            : dailySummary?.salesByType;
+                          const salesData = salesByTypeSource 
+                            ? JSON.parse(salesByTypeSource) 
+                            : {};
+                          const saleTypeLabels: Record<string, string> = {
+                            botellon_nuevo: 'Botellón Nuevo',
+                            contrato: 'Contrato',
+                            domicilio: 'Domicilio',
+                            otros: 'Otros',
+                            ventanilla: 'Ventanilla',
+                            donados: 'Donados'
+                          };
+                          return Object.entries(saleTypeLabels).map(([key, label]) => (
+                            <div key={key} className="bg-white dark:bg-gray-900 p-3 rounded-md border text-center">
+                              <span className="text-xs text-muted-foreground block mb-1">{label}</span>
+                              <span className="font-bold text-lg text-purple-600" data-testid={`text-sales-${key}`}>
+                                {salesData[key] || 0}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Cantidades totales de productos vendidos por tipo de venta
                       </p>
                     </div>
                   </div>
@@ -1202,6 +1243,39 @@ export default function CashReconciliation() {
                     </div>
                   </div>
                 </div>
+
+                {/* Totales por Tipo de Venta */}
+                {selectedReconciliation.salesByType && (
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 p-5 rounded-xl border border-purple-200 dark:border-purple-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800">
+                        <ShoppingCart className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <h4 className="font-semibold text-purple-700 dark:text-purple-300">Totales por Tipo de Venta</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {(() => {
+                        const salesData = JSON.parse(selectedReconciliation.salesByType || "{}");
+                        const saleTypeLabels: Record<string, string> = {
+                          botellon_nuevo: 'Botellón Nuevo',
+                          contrato: 'Contrato',
+                          domicilio: 'Domicilio',
+                          otros: 'Otros',
+                          ventanilla: 'Ventanilla',
+                          donados: 'Donados'
+                        };
+                        return Object.entries(saleTypeLabels).map(([key, label]) => (
+                          <div key={key} className="bg-white/80 dark:bg-gray-950/50 p-3 rounded-lg text-center">
+                            <span className="text-xs text-muted-foreground block mb-1">{label}</span>
+                            <span className="font-bold text-lg text-purple-600 dark:text-purple-400">
+                              {salesData[key] || 0}
+                            </span>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
 
                 {/* Notas */}
                 {selectedReconciliation.notes && (
