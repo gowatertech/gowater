@@ -7407,8 +7407,18 @@ export async function registerRoutes(router: express.Router) {
         ventanilla: 0
       };
       
-      // Objeto para almacenar productos vendidos por nombre
+      // Obtener todos los productos de la empresa para inicializar con 0
+      const allCompanyProducts = await db
+        .select({ name: products.name })
+        .from(products)
+        .where(eq(products.companyId, companyId))
+        .orderBy(products.name);
+      
+      // Objeto para almacenar productos vendidos por nombre (inicializar todos con 0)
       let productsSold: Record<string, number> = {};
+      for (const prod of allCompanyProducts) {
+        productsSold[prod.name] = 0;
+      }
       
       if (invoiceIds.length > 0) {
         // Obtener items de las facturas con nombre del producto
@@ -7431,7 +7441,7 @@ export async function registerRoutes(router: express.Router) {
           salesByType[saleType] = (salesByType[saleType] || 0) + totalQuantity;
         }
         
-        // Agrupar por nombre de producto
+        // Agrupar por nombre de producto (actualizar cantidades)
         for (const item of dailyInvoiceItems) {
           const productName = item.productName || 'Producto sin nombre';
           productsSold[productName] = (productsSold[productName] || 0) + item.quantity;
