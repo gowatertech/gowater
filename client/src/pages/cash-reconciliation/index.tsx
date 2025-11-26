@@ -154,7 +154,7 @@ export default function CashReconciliation() {
 
   // Obtener configuración de la empresa
   const { data: settings } = useQuery<any>({
-    queryKey: ["/api/company/settings"],
+    queryKey: ["/api/settings"],
   });
 
   // Mutación para crear cuadre
