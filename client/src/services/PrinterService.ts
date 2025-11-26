@@ -1908,28 +1908,22 @@ export class PrinterService {
         </div>
       `;
       
-      // Totales por Tipo de Venta (siempre mostrar, con 0 si no hay datos)
-      const salesDataPrint = reconciliation.salesByType ? 
-        (() => { try { return JSON.parse(reconciliation.salesByType); } catch { return {}; } })() : {};
-      const saleTypeLabelsPrint: Record<string, string> = {
-        botellon_nuevo: 'Botellón Nuevo',
-        contrato: 'Contrato',
-        domicilio: 'Domicilio',
-        otros: 'Otros',
-        ventanilla: 'Ventanilla',
-        donados: 'Donados'
-      };
+      // Productos Vendidos (siempre mostrar)
+      const productsSoldPrint = reconciliation.productsSold ? 
+        (() => { try { return JSON.parse(reconciliation.productsSold); } catch { return {}; } })() : {};
       
       printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       printContent.innerHTML += `
         <div style="margin-bottom: 5px;">
-          <div style="font-weight: bold; margin-bottom: 3px;">TOTALES POR TIPO DE VENTA</div>
-          ${Object.entries(saleTypeLabelsPrint).map(([key, label]) => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-              <span>${label}:</span>
-              <span style="font-weight: bold;">${salesDataPrint[key] || 0}</span>
-            </div>
-          `).join('')}
+          <div style="font-weight: bold; margin-bottom: 3px;">PRODUCTOS VENDIDOS</div>
+          ${Object.keys(productsSoldPrint).length === 0 
+            ? '<div style="font-size: 9px; color: #666;">No hay productos vendidos</div>'
+            : Object.entries(productsSoldPrint).map(([productName, quantity]) => `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                <span>${productName}:</span>
+                <span style="font-weight: bold;">${quantity}</span>
+              </div>
+            `).join('')}
         </div>
       `;
       
@@ -2162,32 +2156,30 @@ export class PrinterService {
       doc.text(`RD$ ${parseFloat(reconciliation.donatedWaterValue || '0').toFixed(2)}`, 75, yPos, { align: 'right' });
       yPos += 5;
 
-      // Totales por Tipo de Venta (siempre mostrar, con 0 si no hay datos)
-      const salesDataPdf = reconciliation.salesByType ? 
-        (() => { try { return JSON.parse(reconciliation.salesByType); } catch { return {}; } })() : {};
-      const saleTypeLabelsPdf: Record<string, string> = {
-        botellon_nuevo: 'Botellón Nuevo',
-        contrato: 'Contrato',
-        domicilio: 'Domicilio',
-        otros: 'Otros',
-        ventanilla: 'Ventanilla',
-        donados: 'Donados'
-      };
+      // Productos Vendidos (siempre mostrar)
+      const productsSoldPdf = reconciliation.productsSold ? 
+        (() => { try { return JSON.parse(reconciliation.productsSold); } catch { return {}; } })() : {};
 
       doc.setDrawColor(200);
       doc.line(5, yPos, 75, yPos);
       yPos += 5;
 
       doc.setFont('helvetica', 'bold');
-      doc.text('TOTALES POR TIPO DE VENTA', 10, yPos);
+      doc.text('PRODUCTOS VENDIDOS', 10, yPos);
       yPos += 5;
 
       doc.setFont('helvetica', 'normal');
-      Object.entries(saleTypeLabelsPdf).forEach(([key, label]) => {
-        doc.text(`${label}:`, 10, yPos);
-        doc.text(`${salesDataPdf[key] || 0}`, 75, yPos, { align: 'right' });
+      const productEntries = Object.entries(productsSoldPdf);
+      if (productEntries.length === 0) {
+        doc.text('No hay productos vendidos', 10, yPos);
         yPos += 4;
-      });
+      } else {
+        productEntries.forEach(([productName, quantity]) => {
+          doc.text(`${productName}:`, 10, yPos);
+          doc.text(`${quantity}`, 75, yPos, { align: 'right' });
+          yPos += 4;
+        });
+      }
 
       // Notas
       if (reconciliation.notes) {

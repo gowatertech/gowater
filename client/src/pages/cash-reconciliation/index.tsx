@@ -79,6 +79,7 @@ interface DailySummary {
   donatedWaterGallons: string;
   donatedWaterValue: string;
   salesByType: string;
+  productsSold: string;
 }
 
 interface CashReconciliation {
@@ -99,6 +100,7 @@ interface CashReconciliation {
   donatedWaterGallons: string;
   donatedWaterValue: string;
   salesByType?: string;
+  productsSold?: string;
   surplus: string;
   shortage: string;
   notes?: string;
@@ -302,6 +304,7 @@ export default function CashReconciliation() {
       donatedWaterGallons: reconciliationToUse?.donatedWaterGallons || donatedWaterGallons.toFixed(2),
       donatedWaterValue: reconciliationToUse?.donatedWaterValue || donatedWaterValue.toFixed(2),
       salesByType: reconciliationToUse?.salesByType || dailySummary?.salesByType || "{}",
+      productsSold: reconciliationToUse?.productsSold || dailySummary?.productsSold || "{}",
       surplus: surplus.toFixed(2),
       shortage: shortage.toFixed(2),
       notes: notes.trim() || undefined,
@@ -651,41 +654,57 @@ export default function CashReconciliation() {
                       </p>
                     </div>
 
-                    {/* Totales por Tipo de Venta */}
+                    {/* Productos Vendidos */}
                     <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg space-y-3 border border-purple-200 dark:border-purple-900">
                       <div className="flex items-center gap-2 mb-2">
                         <ShoppingCart className="h-4 w-4 text-purple-600" />
-                        <span className="font-semibold text-sm">Totales por Tipo de Venta</span>
+                        <span className="font-semibold text-sm">Productos Vendidos</span>
                         <Badge variant="outline" className="ml-auto text-xs">Automático</Badge>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {(() => {
-                          const salesByTypeSource = isEditMode && reconciliationData?.salesByType 
-                            ? reconciliationData.salesByType 
-                            : dailySummary?.salesByType;
-                          const salesData = salesByTypeSource 
-                            ? JSON.parse(salesByTypeSource) 
-                            : {};
-                          const saleTypeLabels: Record<string, string> = {
-                            botellon_nuevo: 'Botellón Nuevo',
-                            contrato: 'Contrato',
-                            domicilio: 'Domicilio',
-                            otros: 'Otros',
-                            ventanilla: 'Ventanilla',
-                            donados: 'Donados'
-                          };
-                          return Object.entries(saleTypeLabels).map(([key, label]) => (
-                            <div key={key} className="bg-white dark:bg-gray-900 p-3 rounded-md border text-center">
-                              <span className="text-xs text-muted-foreground block mb-1">{label}</span>
-                              <span className="font-bold text-lg text-purple-600" data-testid={`text-sales-${key}`}>
-                                {salesData[key] || 0}
-                              </span>
-                            </div>
-                          ));
-                        })()}
+                      <div className="bg-white dark:bg-gray-900 rounded-md border overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Producto</TableHead>
+                              <TableHead className="text-xs text-right">Cantidad</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(() => {
+                              const productsSoldSource = isEditMode && reconciliationData?.productsSold 
+                                ? reconciliationData.productsSold 
+                                : dailySummary?.productsSold;
+                              const productsData = productsSoldSource 
+                                ? (() => { try { return JSON.parse(productsSoldSource); } catch { return {}; } })()
+                                : {};
+                              const entries = Object.entries(productsData);
+                              if (entries.length === 0) {
+                                return (
+                                  <TableRow>
+                                    <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-4">
+                                      No hay productos vendidos
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              }
+                              return entries.map(([productName, quantity]) => (
+                                <TableRow key={productName}>
+                                  <TableCell className="text-sm font-medium" data-testid={`text-product-name-${productName.replace(/\s+/g, '-').toLowerCase()}`}>
+                                    {productName}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <span className="font-bold text-lg text-purple-600" data-testid={`text-product-qty-${productName.replace(/\s+/g, '-').toLowerCase()}`}>
+                                      {quantity as number}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ));
+                            })()}
+                          </TableBody>
+                        </Table>
                       </div>
                       <p className="text-xs text-muted-foreground italic">
-                        Cantidades totales de productos vendidos por tipo de venta
+                        Cantidades de cada producto vendido en el día
                       </p>
                     </div>
                   </div>

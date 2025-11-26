@@ -1240,6 +1240,9 @@ export const dailyCashReconciliations = pgTable("daily_cash_reconciliations", {
   // Totales de cantidad por tipo de venta (JSON dinámico)
   salesByType: text("sales_by_type").default("{}"),
   
+  // Productos vendidos (JSON dinámico con nombre de producto y cantidad)
+  productsSold: text("products_sold").default("{}"),
+  
   // Resultado del cuadre
   surplus: decimal("surplus", { precision: 10, scale: 2 }).notNull().default("0"), // Sobrante
   shortage: decimal("shortage", { precision: 10, scale: 2 }).notNull().default("0"), // Faltante
@@ -1278,6 +1281,9 @@ export const insertDailyCashReconciliationSchema = z.object({
   
   // Totales de cantidad por tipo de venta
   salesByType: z.string().optional().default("{}"),
+  
+  // Productos vendidos
+  productsSold: z.string().optional().default("{}"),
   
   notes: z.string().optional(),
 });

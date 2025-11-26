@@ -7407,22 +7407,34 @@ export async function registerRoutes(router: express.Router) {
         ventanilla: 0
       };
       
+      // Objeto para almacenar productos vendidos por nombre
+      let productsSold: Record<string, number> = {};
+      
       if (invoiceIds.length > 0) {
-        // Obtener items de las facturas
+        // Obtener items de las facturas con nombre del producto
         const dailyInvoiceItems = await db
           .select({
             invoiceId: invoiceItems.invoiceId,
             quantity: invoiceItems.quantity,
+            productId: invoiceItems.productId,
+            productName: products.name,
           })
           .from(invoiceItems)
+          .leftJoin(products, eq(invoiceItems.productId, products.id))
           .where(sql`${invoiceItems.invoiceId} IN (${sql.join(invoiceIds, sql`, `)})`);
         
-        // Agrupar por tipo de venta
+        // Agrupar por tipo de venta (mantener funcionalidad existente)
         for (const inv of dailyInvoices) {
           const saleType = (inv as any).saleType || 'ventanilla';
           const invItems = dailyInvoiceItems.filter(item => item.invoiceId === inv.id);
           const totalQuantity = invItems.reduce((sum, item) => sum + item.quantity, 0);
           salesByType[saleType] = (salesByType[saleType] || 0) + totalQuantity;
+        }
+        
+        // Agrupar por nombre de producto
+        for (const item of dailyInvoiceItems) {
+          const productName = item.productName || 'Producto sin nombre';
+          productsSold[productName] = (productsSold[productName] || 0) + item.quantity;
         }
       }
       
@@ -7528,6 +7540,7 @@ export async function registerRoutes(router: express.Router) {
         donatedWaterGallons: donatedWaterGallons.toFixed(2),
         donatedWaterValue: donatedWaterValue.toFixed(2),
         salesByType: JSON.stringify(salesByType),
+        productsSold: JSON.stringify(productsSold),
       };
       
       res.json(summary);
