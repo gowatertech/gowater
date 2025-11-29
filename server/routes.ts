@@ -7666,6 +7666,7 @@ export async function registerRoutes(router: express.Router) {
           donatedWaterGallons: data.donatedWaterGallons || "0.00",
           donatedWaterValue: data.donatedWaterValue || "0.00",
           salesByType: data.salesByType || "{}",
+          productsSold: data.productsSold || "{}",
           surplus: data.surplus || "0.00",
           shortage: data.shortage || "0.00",
           notes: data.notes || null,
