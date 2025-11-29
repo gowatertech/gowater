@@ -7420,59 +7420,33 @@ export async function registerRoutes(router: express.Router) {
         productsSold[prod.name] = 0;
       }
       
-      // CAMBIO: Usar order_items de pedidos entregados como fuente principal
-      // (más confiable que invoice_items, que tuvo problemas de product_id en datos históricos)
-      const deliveredOrders = await db
-        .select({ id: orders.id })
-        .from(orders)
-        .where(
-          and(
-            eq(orders.companyId, companyId),
-            eq(orders.status, 'delivered'),
-            gte(orders.date, startOfDay),
-            lte(orders.date, endOfDay)
-          )
-        );
-      
-      const deliveredOrderIds = deliveredOrders.map(o => o.id);
-      
-      if (deliveredOrderIds.length > 0) {
-        // Obtener items de los pedidos entregados con nombre del producto
-        const dailyOrderItems = await db
+      // PRODUCTOS VENDIDOS: Usar invoice_items (facturas) como fuente principal
+      if (invoiceIds.length > 0) {
+        const dailyInvoiceItemsWithProducts = await db
           .select({
-            orderId: orderItems.orderId,
-            quantity: orderItems.quantity,
-            productId: orderItems.productId,
+            invoiceId: invoiceItems.invoiceId,
+            quantity: invoiceItems.quantity,
+            productId: invoiceItems.productId,
             productName: products.name,
           })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .where(sql`${orderItems.orderId} IN (${sql.join(deliveredOrderIds, sql`, `)})`);
+          .from(invoiceItems)
+          .leftJoin(products, eq(invoiceItems.productId, products.id))
+          .where(sql`${invoiceItems.invoiceId} IN (${sql.join(invoiceIds, sql`, `)})`);
         
         // Agrupar por nombre de producto (actualizar cantidades)
         // IMPORTANTE: Convertir quantity a número para evitar concatenación de strings
-        for (const item of dailyOrderItems) {
+        for (const item of dailyInvoiceItemsWithProducts) {
           const productName = item.productName || 'Producto sin nombre';
           const quantity = Number(item.quantity) || 0;
           productsSold[productName] = (productsSold[productName] || 0) + quantity;
         }
-      }
-      
-      // Mantener compatibilidad con salesByType usando invoice_items
-      if (invoiceIds.length > 0) {
-        const dailyInvoiceItems = await db
-          .select({
-            invoiceId: invoiceItems.invoiceId,
-            quantity: invoiceItems.quantity,
-          })
-          .from(invoiceItems)
-          .where(sql`${invoiceItems.invoiceId} IN (${sql.join(invoiceIds, sql`, `)})`);
         
-        // Agrupar por tipo de venta (mantener funcionalidad existente)
+        // Mantener compatibilidad con salesByType
+        const dailyInvoiceItems = dailyInvoiceItemsWithProducts;
         for (const inv of dailyInvoices) {
           const saleType = (inv as any).saleType || 'ventanilla';
           const invItems = dailyInvoiceItems.filter(item => item.invoiceId === inv.id);
-          const totalQuantity = invItems.reduce((sum, item) => sum + item.quantity, 0);
+          const totalQuantity = invItems.reduce((sum, item) => sum + Number(item.quantity) || 0, 0);
           salesByType[saleType] = (salesByType[saleType] || 0) + totalQuantity;
         }
       }
