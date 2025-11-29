@@ -7779,6 +7779,7 @@ export async function registerRoutes(router: express.Router) {
           donatedWaterGallons: platformSchema.dailyCashReconciliations.donatedWaterGallons,
           donatedWaterValue: platformSchema.dailyCashReconciliations.donatedWaterValue,
           salesByType: platformSchema.dailyCashReconciliations.salesByType,
+          productsSold: platformSchema.dailyCashReconciliations.productsSold,
           surplus: platformSchema.dailyCashReconciliations.surplus,
           shortage: platformSchema.dailyCashReconciliations.shortage,
           notes: platformSchema.dailyCashReconciliations.notes,
