@@ -7435,7 +7435,6 @@ export async function registerRoutes(router: express.Router) {
         );
       
       const deliveredOrderIds = deliveredOrders.map(o => o.id);
-      console.log(`📊 CUADRE DEBUG - Fecha: ${date}, Pedidos entregados: ${deliveredOrderIds.length}`, deliveredOrderIds);
       
       if (deliveredOrderIds.length > 0) {
         // Obtener items de los pedidos entregados con nombre del producto
@@ -7450,19 +7449,14 @@ export async function registerRoutes(router: express.Router) {
           .leftJoin(products, eq(orderItems.productId, products.id))
           .where(sql`${orderItems.orderId} IN (${sql.join(deliveredOrderIds, sql`, `)})`);
         
-        console.log(`📊 CUADRE DEBUG - Items de pedidos:`, dailyOrderItems);
-        
         // Agrupar por nombre de producto (actualizar cantidades)
         // IMPORTANTE: Convertir quantity a número para evitar concatenación de strings
         for (const item of dailyOrderItems) {
           const productName = item.productName || 'Producto sin nombre';
           const quantity = Number(item.quantity) || 0;
           productsSold[productName] = (productsSold[productName] || 0) + quantity;
-          console.log(`📊 CUADRE DEBUG - Producto: ${productName}, Cantidad: ${quantity}, Total acumulado: ${productsSold[productName]}`);
         }
       }
-      
-      console.log(`📊 CUADRE DEBUG - productsSold FINAL:`, productsSold);
       
       // Mantener compatibilidad con salesByType usando invoice_items
       if (invoiceIds.length > 0) {

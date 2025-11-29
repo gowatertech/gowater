@@ -310,23 +310,6 @@ export default function CashReconciliation() {
       notes: notes.trim() || undefined,
     };
 
-    // Log para depuración
-    console.log("💰 CUADRE DE CAJA - Valores calculados:", {
-      initialCash,
-      initialCashValue,
-      receiptsTotal,
-      advancesTotal,
-      expectedCash,
-      dataToSend: {
-        initialCash: data.initialCash,
-        expectedCash: data.expectedCash,
-      }
-    });
-    
-    // Log especial para productos vendidos
-    console.log("📊 CUADRE DE CAJA - productsSold enviado:", data.productsSold);
-    console.log("📊 CUADRE DE CAJA - dailySummary?.productsSold:", dailySummary?.productsSold);
-    console.log("📊 CUADRE DE CAJA - reconciliationToUse?.productsSold:", reconciliationToUse?.productsSold);
 
     if (isEditMode && editingReconciliationId) {
       updateReconciliationMutation.mutate({ id: editingReconciliationId, data });
