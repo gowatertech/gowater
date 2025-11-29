@@ -1251,31 +1251,37 @@ export default function CashReconciliation() {
                   </div>
                 </div>
 
-                {/* Totales por Tipo de Venta */}
-                {selectedReconciliation.salesByType && (
+                {/* Productos Vendidos */}
+                {selectedReconciliation.productsSold && (
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 p-5 rounded-xl border border-purple-200 dark:border-purple-800">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="p-2 rounded-lg bg-purple-200 dark:bg-purple-800">
                         <ShoppingCart className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                       </div>
-                      <h4 className="font-semibold text-purple-700 dark:text-purple-300">Totales por Tipo de Venta</h4>
+                      <h4 className="font-semibold text-purple-700 dark:text-purple-300">Productos Vendidos</h4>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {(() => {
-                        const salesData = JSON.parse(selectedReconciliation.salesByType || "{}");
-                        const saleTypeLabels: Record<string, string> = {
-                          botellon_nuevo: 'Botellón Nuevo',
-                          contrato: 'Contrato',
-                          domicilio: 'Domicilio',
-                          otros: 'Otros',
-                          ventanilla: 'Ventanilla',
-                          donados: 'Donados'
-                        };
-                        return Object.entries(saleTypeLabels).map(([key, label]) => (
-                          <div key={key} className="bg-white/80 dark:bg-gray-950/50 p-3 rounded-lg text-center">
-                            <span className="text-xs text-muted-foreground block mb-1">{label}</span>
+                        const productsData = (() => {
+                          try {
+                            return JSON.parse(selectedReconciliation.productsSold || "{}");
+                          } catch {
+                            return {};
+                          }
+                        })();
+                        const entries = Object.entries(productsData);
+                        if (entries.length === 0) {
+                          return (
+                            <div className="col-span-full text-center text-muted-foreground py-4">
+                              No hay productos vendidos registrados
+                            </div>
+                          );
+                        }
+                        return entries.map(([productName, quantity]) => (
+                          <div key={productName} className="bg-white/80 dark:bg-gray-950/50 p-3 rounded-lg text-center">
+                            <span className="text-xs text-muted-foreground block mb-1">{productName}</span>
                             <span className="font-bold text-lg text-purple-600 dark:text-purple-400">
-                              {salesData[key] || 0}
+                              {quantity as number}
                             </span>
                           </div>
                         ));
