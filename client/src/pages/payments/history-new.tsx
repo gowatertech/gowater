@@ -59,6 +59,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
+import { WhatsAppDialog } from "@/components/WhatsAppDialog";
+import { MessageCircle } from "lucide-react";
 
 // Tipo para los pagos con detalles adicionales
 interface PaymentWithDetails {
@@ -67,6 +69,7 @@ interface PaymentWithDetails {
   invoiceNumber: string | null;
   customerId: number;
   customerName: string;
+  customerPhone?: string;
   amount: string;
   method: "cash" | "credit" | "card" | "transfer";
   date: string;
@@ -103,6 +106,15 @@ export default function PaymentsHistory() {
     from?: Date;
     to?: Date;
   }>({});
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappPayment, setWhatsappPayment] = useState<PaymentWithDetails | null>(null);
+
+  const openWhatsAppDialog = (payment?: PaymentWithDetails) => {
+    if (payment) {
+      setWhatsappPayment(payment);
+    }
+    setWhatsappDialogOpen(true);
+  };
   const [filters, setFilters] = useState({
     method: "all" as "all" | "cash" | "credit" | "card" | "transfer",
     customer: "",
@@ -543,6 +555,16 @@ export default function PaymentsHistory() {
             >
               <FileDown className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">PDF</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={openWhatsAppDialog}
+              data-testid="button-whatsapp-history"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">WhatsApp</span>
             </Button>
             <Button 
               variant="outline" 
@@ -1013,6 +1035,14 @@ export default function PaymentsHistory() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de WhatsApp */}
+      <WhatsAppDialog
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+        type="payment"
+        customerPhone={whatsappPayment?.customerPhone || selectedPayment?.customerPhone || ""}
+      />
     </div>
   );
 }

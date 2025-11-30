@@ -69,8 +69,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
-import { openWhatsApp } from "@/lib/whatsapp";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { WhatsAppDialog } from "@/components/WhatsAppDialog";
+import { MessageCircle } from "lucide-react";
 
 interface CartItem {
   productId: number;
@@ -88,6 +89,7 @@ interface InvoiceWithDetails extends Invoice {
 
 export default function Billing() {
   const { toast } = useToast();
+  const { companyName } = useCompanySettings();
   const [activeTab, setActiveTab] = useState("new");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
@@ -99,6 +101,8 @@ export default function Billing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappInvoice, setWhatsappInvoice] = useState<InvoiceWithDetails | null>(null);
 
   // Detectar si el cliente es institución benéfica y cambiar método de pago automáticamente
   useEffect(() => {
@@ -387,6 +391,22 @@ export default function Billing() {
   const handleViewInvoiceDetails = async (invoice: InvoiceWithDetails) => {
     setSelectedInvoice(invoice);
     setActiveTab("details");
+  };
+
+  const openWhatsAppDialog = (invoice: InvoiceWithDetails) => {
+    setWhatsappInvoice(invoice);
+    setWhatsappDialogOpen(true);
+  };
+
+  const getCustomerPhone = (invoice: InvoiceWithDetails) => {
+    const customer = customers.find(c => c.id === invoice.customerId);
+    return customer?.phone || "";
+  };
+
+  const getCustomerName = (invoice: InvoiceWithDetails) => {
+    return invoice.businessName || 
+      customers.find(c => c.id === invoice.customerId)?.businessname || 
+      "Cliente";
   };
 
   // Estadísticas
@@ -950,6 +970,15 @@ export default function Billing() {
                         >
                           <FileDown className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openWhatsAppDialog(invoice)}
+                          data-testid={`button-whatsapp-invoice-${invoice.id}`}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </Button>
                       </div>
                     </Card>
                   ))
@@ -1030,6 +1059,15 @@ export default function Billing() {
                                 data-testid={`button-pdf-invoice-${invoice.id}`}
                               >
                                 <FileDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openWhatsAppDialog(invoice)}
+                                data-testid={`button-whatsapp-invoice-${invoice.id}`}
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <MessageCircle className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -1174,11 +1212,31 @@ export default function Billing() {
                   <FileDown className="h-4 w-4 mr-2" />
                   PDF
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => openWhatsAppDialog(selectedInvoice)}
+                  data-testid="button-whatsapp-selected"
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  WhatsApp
+                </Button>
               </div>
             </div>
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Diálogo de WhatsApp */}
+      <WhatsAppDialog
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+        type="invoice"
+        customerName={whatsappInvoice ? getCustomerName(whatsappInvoice) : ""}
+        customerPhone={whatsappInvoice ? getCustomerPhone(whatsappInvoice) : ""}
+        companyName={companyName}
+        amount={whatsappInvoice ? parseFloat(whatsappInvoice.total) : 0}
+      />
     </div>
   );
 }

@@ -18,16 +18,16 @@ type WhatsAppParams = WhatsAppInvoiceParams | WhatsAppPaymentParams;
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, '');
   
-  if (cleaned.startsWith('1') && cleaned.length === 10) {
-    cleaned = '1' + cleaned;
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return cleaned;
   }
   
-  if (!cleaned.startsWith('1') && cleaned.length === 10) {
-    cleaned = '1809' + cleaned.slice(-7);
+  if (cleaned.length === 10 && !cleaned.startsWith('1')) {
+    return '1' + cleaned;
   }
   
-  if (cleaned.length === 7) {
-    cleaned = '1809' + cleaned;
+  if (cleaned.length === 10 && cleaned.startsWith('1')) {
+    return cleaned;
   }
   
   return cleaned;

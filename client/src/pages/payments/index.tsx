@@ -53,6 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { WhatsAppDialog } from "@/components/WhatsAppDialog";
+import { MessageCircle } from "lucide-react";
 
 interface Invoice {
   id: number;
@@ -72,6 +74,8 @@ type Payment = {
   paymentMethod: string;
   notes?: string;
   customerName?: string;
+  customerPhone?: string;
+  customerId?: number;
   invoiceNumber?: string;
   method?: string;
 };
@@ -93,6 +97,13 @@ export default function PaymentDashboard() {
     method: "all" as "all" | "cash" | "card" | "transfer"
   });
   const printContentRef = useRef<HTMLDivElement>(null);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappPayment, setWhatsappPayment] = useState<Payment | null>(null);
+
+  const openWhatsAppDialog = (payment: Payment) => {
+    setWhatsappPayment(payment);
+    setWhatsappDialogOpen(true);
+  };
 
   console.log("Fetching data from /api/payments");
   // Consulta para obtener pagos
@@ -1062,6 +1073,19 @@ export default function PaymentDashboard() {
                             >
                               <FileDown className="h-3 w-3" />
                             </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openWhatsAppDialog(payment);
+                              }}
+                              title="Enviar por WhatsApp"
+                              data-testid={`button-whatsapp-payment-${payment.id}`}
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                            </Button>
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
@@ -1189,6 +1213,19 @@ export default function PaymentDashboard() {
                             >
                               <FileDown className="h-3.5 w-3.5" />
                             </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openWhatsAppDialog(payment);
+                              }}
+                              title="Enviar por WhatsApp"
+                              data-testid={`button-whatsapp-payment-mobile-${payment.id}`}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </Button>
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button 
@@ -1253,6 +1290,14 @@ export default function PaymentDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Diálogo de WhatsApp */}
+      <WhatsAppDialog
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+        type="payment"
+        customerPhone={whatsappPayment?.customerPhone || ""}
+      />
     </div>
   );
 }

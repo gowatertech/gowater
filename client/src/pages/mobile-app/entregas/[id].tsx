@@ -54,6 +54,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getTimestampRD, formatTimeRD, formatDateRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { getDB } from "@/lib/offline-db";
+import { WhatsAppDialog } from "@/components/WhatsAppDialog";
+import { MessageCircle } from "lucide-react";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -78,6 +81,7 @@ interface Delivery {
   orderId: number;
   customerId: number;
   customerName: string;
+  customerPhone?: string;
   customerIsCharity?: boolean;
   address: string;
   status: "pending" | "in_progress" | "delivered" | "cancelled";
@@ -101,6 +105,7 @@ export default function DeliveryDetails() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useCurrentUser();
+  const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
@@ -115,6 +120,7 @@ export default function DeliveryDetails() {
   const [autoEnterEditMode, setAutoEnterEditMode] = useState(false);
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
   const [showPartialPaymentConfirm, setShowPartialPaymentConfirm] = useState(false);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -269,6 +275,7 @@ export default function DeliveryDetails() {
         orderId: orderData.id,
         customerId: orderData.customerId,
         customerName: orderData.customerName,
+        customerPhone: orderData.customerPhone || '',
         customerIsCharity: orderData.customerIsCharity,
         paymentMethod: orderData.paymentMethod,
         invoiceId: orderData.invoiceId,
@@ -1367,7 +1374,7 @@ export default function DeliveryDetails() {
             </Card>
           )}
           
-          {/* Botones de impresión y PDF */}
+          {/* Botones de impresión, PDF y WhatsApp */}
           <div className="flex space-x-2 mt-4">
             <Button 
               className="flex-1" 
@@ -1387,6 +1394,18 @@ export default function DeliveryDetails() {
             >
               <FileDown className="h-4 w-4 mr-2" />
               PDF
+            </Button>
+            
+            <Button 
+              className="flex-1" 
+              variant="outline"
+              onClick={() => setWhatsappDialogOpen(true)}
+              disabled={isEditing}
+              data-testid="button-whatsapp-delivery"
+              style={{ color: '#16a34a' }}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              WhatsApp
             </Button>
           </div>
           
@@ -1705,6 +1724,17 @@ export default function DeliveryDetails() {
         onOpenChange={setShowBottleReturnDialog}
         darkMode={darkMode}
         onComplete={loadDeliveryDetails}
+      />
+
+      {/* Diálogo de WhatsApp */}
+      <WhatsAppDialog
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+        type="invoice"
+        customerName={delivery?.customerName || ""}
+        customerPhone={delivery?.customerPhone || ""}
+        companyName={companyName}
+        amount={delivery?.total || 0}
       />
     </div>
   );

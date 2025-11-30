@@ -4636,6 +4636,7 @@ export async function registerRoutes(router: express.Router) {
           p.payment_method as method,
           p.reference,
           COALESCE(c.businessname, (SELECT businessname FROM customers WHERE id = p.customer_id)) as "customerName",
+          COALESCE(c.phone, (SELECT phone FROM customers WHERE id = p.customer_id)) as "customerPhone",
           i.invoice_number as "invoiceNumber",
           p.company_id as "companyId",
           p.is_advance as "isAdvance",
