@@ -7,6 +7,7 @@ import { PrinterService } from "@/services/PrinterService";
 import { toRD, formatDateTimeRD } from "@/lib/date-utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { jsPDF } from "jspdf";
 
 // Componentes UI
 import { Input } from "@/components/ui/input";
@@ -385,6 +386,112 @@ export default function Billing() {
       title: "¡Listo!",
       description: "PDF generado exitosamente",
     });
+  };
+
+  const generateInvoicePDFForWhatsApp = async (invoice: InvoiceWithDetails): Promise<void> => {
+    const itemsResponse = await fetch(`/api/invoices/${invoice.id}/items`);
+    if (!itemsResponse.ok) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al cargar detalles de la factura",
+      });
+      throw new Error('Error al cargar detalles');
+    }
+    const items = await itemsResponse.json();
+    
+    const customer = customers.find(c => c.id === invoice.customerId);
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200]
+    });
+    
+    let y = 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings?.name || 'Empresa', 40, y, { align: 'center' });
+    y += 5;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`RNC: ${settings?.rnc || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`${settings?.street || ''} ${settings?.streetNumber || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`${settings?.municipalityName || ''}, ${settings?.provinceName || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Tel: ${settings?.contactPhone || ''}`, 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FACTURA', 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Factura #: ${invoice.id}`, 5, y);
+    y += 4;
+    doc.text(`Fecha: ${format(new Date(invoice.date), 'dd/MM/yyyy')}`, 5, y);
+    y += 4;
+    doc.text(`Cliente: ${invoice.businessName || customer?.businessname || 'Cliente'}`, 5, y);
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 4;
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Producto', 5, y);
+    doc.text('Cant.', 40, y, { align: 'center' });
+    doc.text('Precio', 55, y, { align: 'right' });
+    doc.text('Total', 75, y, { align: 'right' });
+    y += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    let subtotal = 0;
+    items.forEach((item: any) => {
+      const itemTotal = parseFloat(item.price) * item.quantity;
+      subtotal += itemTotal;
+      const productName = item.product?.name || 'Producto';
+      doc.text(productName.length > 18 ? productName.substring(0, 16) + '...' : productName, 5, y);
+      doc.text(`${item.quantity}`, 40, y, { align: 'center' });
+      doc.text(`${parseFloat(item.price).toFixed(2)}`, 55, y, { align: 'right' });
+      doc.text(`${itemTotal.toFixed(2)}`, 75, y, { align: 'right' });
+      y += 4;
+    });
+    
+    y += 2;
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 4;
+    
+    const tax = parseFloat(invoice.tax || '0');
+    const total = parseFloat(invoice.total || '0');
+    
+    doc.text('Subtotal:', 50, y, { align: 'right' });
+    doc.text(`RD$ ${subtotal.toFixed(2)}`, 75, y, { align: 'right' });
+    y += 4;
+    doc.text('ITBIS:', 50, y, { align: 'right' });
+    doc.text(`RD$ ${tax.toFixed(2)}`, 75, y, { align: 'right' });
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL:', 50, y, { align: 'right' });
+    doc.text(`RD$ ${total.toFixed(2)}`, 75, y, { align: 'right' });
+    y += 8;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text('Gracias por su compra', 40, y, { align: 'center' });
+    
+    doc.save(`Factura-${invoice.id}.pdf`);
   };
 
   const handleViewInvoiceDetails = async (invoice: InvoiceWithDetails) => {
@@ -1235,7 +1342,7 @@ export default function Billing() {
         customerPhone={whatsappInvoice ? getCustomerPhone(whatsappInvoice) : ""}
         companyName={companyName}
         amount={whatsappInvoice ? parseFloat(whatsappInvoice.total) : 0}
-        onGeneratePDF={whatsappInvoice ? () => generatePDF(whatsappInvoice) : undefined}
+        onGeneratePDF={whatsappInvoice ? () => generateInvoicePDFForWhatsApp(whatsappInvoice) : undefined}
       />
     </div>
   );

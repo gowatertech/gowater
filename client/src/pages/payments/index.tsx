@@ -725,6 +725,89 @@ export default function PaymentDashboard() {
       });
   };
 
+  const generatePaymentPDFForWhatsApp = async (payment: Payment): Promise<void> => {
+    if (!payment) {
+      throw new Error("No se puede generar el recibo del pago");
+    }
+    
+    const settingsResponse = await fetch('/api/settings');
+    if (!settingsResponse.ok) {
+      throw new Error("No se pudo obtener la configuración de la empresa");
+    }
+    const settings = await settingsResponse.json();
+    
+    const metodoPago = 
+      (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+      (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+      (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+      (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 150]
+    });
+    
+    let y = 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings?.name || 'Empresa', 40, y, { align: 'center' });
+    y += 5;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${settings?.street || ''} ${settings?.streetNumber || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`RNC: ${settings?.rnc || ''}`, 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECIBO DE PAGO', 40, y, { align: 'center' });
+    y += 8;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}`, 5, y);
+    y += 5;
+    doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, y);
+    y += 5;
+    doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, y);
+    y += 5;
+    doc.text(`Método: ${metodoPago}`, 5, y);
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL PAGADO:', 5, y);
+    doc.text(formatCurrency(payment.amount), 75, y, { align: 'right' });
+    y += 8;
+    
+    if (payment.notes) {
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Notas: ${payment.notes}`, 5, y);
+      y += 6;
+    }
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Gracias por su pago', 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Tel: ${settings?.contactPhone || ''}`, 40, y, { align: 'center' });
+    
+    doc.save(`Recibo-Pago-${payment.id}.pdf`);
+  };
+
   return (
     <div className="container mx-auto p-2 md:p-4">
       {/* Contenido imprimible (oculto) */}
@@ -1287,7 +1370,7 @@ export default function PaymentDashboard() {
         onOpenChange={setWhatsappDialogOpen}
         type="payment"
         customerPhone={whatsappPayment?.customerPhone || ""}
-        onGeneratePDF={whatsappPayment ? () => handleSinglePaymentPDF(whatsappPayment) : undefined}
+        onGeneratePDF={whatsappPayment ? () => generatePaymentPDFForWhatsApp(whatsappPayment) : undefined}
       />
     </div>
   );

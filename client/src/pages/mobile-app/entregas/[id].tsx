@@ -1043,6 +1043,93 @@ export default function DeliveryDetails() {
       description: "Se ha descargado el PDF del pedido",
     });
   };
+
+  const generateOrderPDFForWhatsApp = async (): Promise<void> => {
+    if (!delivery) {
+      throw new Error("No hay entrega disponible");
+    }
+    
+    if (!companySettings) {
+      throw new Error("No se pudo cargar la información de la empresa");
+    }
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200]
+    });
+    
+    let y = 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companySettings.name, 40, y, { align: 'center' });
+    y += 5;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`RNC: ${companySettings.rnc}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Tel: ${companySettings.contactPhone}`, 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`PEDIDO #${delivery.orderId}`, 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${delivery.customerName || "Cliente"}`, 5, y);
+    y += 4;
+    doc.text(`Teléfono: ${delivery.customerPhone || ""}`, 5, y);
+    y += 4;
+    doc.text(`Dirección: ${delivery.customerAddress || ""}`, 5, y);
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 4;
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Producto', 5, y);
+    doc.text('Cant.', 40, y, { align: 'center' });
+    doc.text('Total', 75, y, { align: 'right' });
+    y += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    delivery.products.forEach(product => {
+      const total = product.price * product.quantity;
+      doc.text(product.name.length > 20 ? product.name.substring(0, 18) + '...' : product.name, 5, y);
+      doc.text(`${product.quantity}`, 40, y, { align: 'center' });
+      doc.text(`RD$${total.toFixed(2)}`, 75, y, { align: 'right' });
+      y += 4;
+    });
+    
+    y += 2;
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 4;
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL:', 50, y, { align: 'right' });
+    doc.text(`RD$ ${delivery.total.toFixed(2)}`, 75, y, { align: 'right' });
+    y += 8;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Gracias por su compra', 40, y, { align: 'center' });
+    
+    doc.save(`Pedido-${delivery.orderId}.pdf`);
+  };
   
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -1729,7 +1816,7 @@ export default function DeliveryDetails() {
         customerPhone={delivery?.customerPhone || ""}
         companyName={companyName}
         amount={delivery?.total || 0}
-        onGeneratePDF={handleDownload}
+        onGeneratePDF={generateOrderPDFForWhatsApp}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { es } from "date-fns/locale";
 import { useLocation } from "wouter";
 import { PrinterService, DocumentType } from "@/services/PrinterService";
 import { toRD, getTodayStringRD } from "@/lib/date-utils";
+import { jsPDF } from "jspdf";
 import { 
   CheckCircle, 
   XCircle, 
@@ -374,6 +375,90 @@ export default function PaymentsHistory() {
         settings,
       }
     );
+  };
+
+  const generatePaymentPDFForWhatsApp = async (payment: PaymentWithDetails): Promise<void> => {
+    const settingsResponse = await fetch('/api/settings');
+    if (!settingsResponse.ok) {
+      throw new Error("No se pudo obtener la configuración");
+    }
+    const settings = await settingsResponse.json();
+    
+    const metodoPago = 
+      payment.method === 'cash' ? 'Efectivo' :
+      payment.method === 'card' ? 'Tarjeta' :
+      payment.method === 'credit' ? 'Crédito' :
+      payment.method === 'transfer' ? 'Transferencia' : 'Otro';
+    
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 150]
+    });
+    
+    let y = 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings?.name || 'Empresa', 40, y, { align: 'center' });
+    y += 5;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`RNC: ${settings?.rnc || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`${settings?.street || ''} ${settings?.streetNumber || ''}`, 40, y, { align: 'center' });
+    y += 4;
+    doc.text(`Tel: ${settings?.contactPhone || ''}`, 40, y, { align: 'center' });
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(payment.isAdvance ? 'RECIBO DE ANTICIPO' : 'RECIBO DE PAGO', 40, y, { align: 'center' });
+    y += 8;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}`, 5, y);
+    y += 5;
+    doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, y);
+    y += 5;
+    if (!payment.isAdvance) {
+      doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, y);
+      y += 5;
+    }
+    doc.text(`Método: ${metodoPago}`, 5, y);
+    y += 6;
+    
+    doc.setDrawColor(200);
+    doc.line(5, y, 75, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL PAGADO:', 5, y);
+    doc.text(`RD$ ${parseFloat(payment.amount).toFixed(2)}`, 75, y, { align: 'right' });
+    y += 8;
+    
+    if (payment.notes) {
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Notas: ${payment.notes}`, 5, y);
+      y += 6;
+    }
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Gracias por su pago', 40, y, { align: 'center' });
+    
+    const docIdentifier = payment.isAdvance 
+      ? payment.documentNumber || `anticipo-${payment.id}`
+      : `pago-${payment.invoiceNumber}`;
+    doc.save(`Recibo-${docIdentifier}.pdf`);
   };
   
   // Referencia al contenido que se va a imprimir
@@ -1040,8 +1125,8 @@ export default function PaymentsHistory() {
         onOpenChange={setWhatsappDialogOpen}
         type="payment"
         customerPhone={whatsappPayment?.customerPhone || selectedPayment?.customerPhone || ""}
-        onGeneratePDF={whatsappPayment ? () => printPaymentReceipt(whatsappPayment) : 
-                       selectedPayment ? () => printPaymentReceipt(selectedPayment) : undefined}
+        onGeneratePDF={whatsappPayment ? () => generatePaymentPDFForWhatsApp(whatsappPayment) : 
+                       selectedPayment ? () => generatePaymentPDFForWhatsApp(selectedPayment) : undefined}
       />
     </div>
   );
