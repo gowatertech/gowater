@@ -888,160 +888,160 @@ export default function DeliveryDetails() {
       });
       throw new Error("No se pudo cargar la información de la empresa");
     }
+    
+    // Cargar detalles de la orden completa
+    const orderData = await apiRequest({
+      url: `/api/orders/${delivery.orderId}`,
+      method: 'GET'
+    });
+    
+    // Cargar items del pedido
+    const orderItems = await apiRequest({
+      url: `/api/orders/${delivery.orderId}/items`,
+      method: 'GET'
+    });
+    
+    // Crear un documento PDF (tamaño ticket térmico)
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200], // 80mm de ancho (3 pulgadas) x 200mm de alto
+    });
+    
+    // Agregar logo o nombre de la empresa
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companySettings.name, 40, 10, { align: 'center' });
+    
+    // Información de la empresa
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    const companyMunicipality = companySettings.municipalityName || "Cotuí";
+    const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
+    
+    doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
+    doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
+    doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
+    doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
+    doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, 34, 75, 34);
+    
+    // Detalles del pedido
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`PEDIDO #${delivery.orderId}`, 40, 38, { align: 'center' });
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${formatDateRD(orderData.date, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })}`, 5, 43);
+    doc.text(`Cliente: ${orderData.customerName || "Cliente"}`, 5, 47);
+    doc.text(`Teléfono: ${orderData.customerPhone || ""}`, 5, 51);
+    doc.text(`Dirección: ${orderData.customerAddress}`, 5, 55);
+    doc.text(`${orderData.municipalityName || ""}, ${orderData.provinceName || ""}`, 5, 59);
+    
+    const noteYPosition = 63;
+    if (orderData.notes) {
+      doc.text(`Notas: ${orderData.notes}`, 5, noteYPosition);
+    }
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    const notesOffset = orderData.notes ? 4 : 0;
+    doc.line(5, 67, 75, 67);
+    
+    // Encabezado de productos
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text("DETALLE DE PRODUCTOS", 40, 71, { align: 'center' });
+    
+    doc.setFontSize(7);
+    doc.text("Producto", 5, 76);
+    doc.text("Cant.", 35, 76, { align: 'center' });
+    doc.text("Precio", 55, 76, { align: 'right' });
+    doc.text("Total", 75, 76, { align: 'right' });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, 78, 75, 78);
+    
+    // Productos
+    let yPos = 85;
+    doc.setFont('helvetica', 'normal');
+    
+    delivery.products.forEach(product => {
+      const total = product.price * product.quantity;
       
-      // Cargar detalles de la orden completa
-      const orderData = await apiRequest({
-        url: `/api/orders/${delivery.orderId}`,
-        method: 'GET'
-      });
-      
-      // Cargar items del pedido
-      const orderItems = await apiRequest({
-        url: `/api/orders/${delivery.orderId}/items`,
-        method: 'GET'
-      });
-      
-      // Crear un documento PDF (tamaño ticket térmico)
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: [80, 200], // 80mm de ancho (3 pulgadas) x 200mm de alto
-      });
-      
-      // Agregar logo o nombre de la empresa
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(companySettings.name, 40, 10, { align: 'center' });
-      
-      // Información de la empresa
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      const companyMunicipality = companySettings.municipalityName || "Cotuí";
-      const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
-      
-      doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
-      doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
-      doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
-      doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
-      doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
-      
-      // Línea separadora
-      doc.setDrawColor(200);
-      doc.line(5, 34, 75, 34);
-      
-      // Detalles del pedido
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`PEDIDO #${delivery.orderId}`, 40, 38, { align: 'center' });
-      
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Fecha: ${formatDateRD(orderData.date, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })}`, 5, 43);
-      doc.text(`Cliente: ${orderData.customerName || "Cliente"}`, 5, 47);
-      doc.text(`Teléfono: ${orderData.customerPhone || ""}`, 5, 51);
-      doc.text(`Dirección: ${orderData.customerAddress}`, 5, 55);
-      doc.text(`${orderData.municipalityName || ""}, ${orderData.provinceName || ""}`, 5, 59);
-      
-      const noteYPosition = 63;
-      if (orderData.notes) {
-        doc.text(`Notas: ${orderData.notes}`, 5, noteYPosition);
-      }
-      
-      // Línea separadora
-      doc.setDrawColor(200);
-      const notesOffset = orderData.notes ? 4 : 0;
-      doc.line(5, 67, 75, 67);
-      
-      // Encabezado de productos
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text("DETALLE DE PRODUCTOS", 40, 71, { align: 'center' });
-      
-      doc.setFontSize(7);
-      doc.text("Producto", 5, 76);
-      doc.text("Cant.", 35, 76, { align: 'center' });
-      doc.text("Precio", 55, 76, { align: 'right' });
-      doc.text("Total", 75, 76, { align: 'right' });
-      
-      // Línea separadora
-      doc.setDrawColor(200);
-      doc.line(5, 78, 75, 78);
-      
-      // Productos
-      let yPos = 85;
-      doc.setFont('helvetica', 'normal');
-      
-      delivery.products.forEach(product => {
-        const total = product.price * product.quantity;
-        
-        doc.text(product.name.length > 18 ? product.name.substring(0, 16) + "..." : product.name, 5, yPos);
-        doc.text(`${product.quantity}`, 35, yPos, { align: 'center' });
-        doc.text(`RD$${product.price.toFixed(2)}`, 55, yPos, { align: 'right' });
-        doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
-        
-        yPos += 8;
-      });
-      
-      // Línea separadora
-      doc.setDrawColor(200);
-      doc.line(5, yPos, 75, yPos);
-      yPos += 5;
-      
-      // Calcular subtotal e ITBIS
-      const subtotal = parseFloat(orderData.subtotal || orderData.total);
-      const itbis = parseFloat(orderData.tax || '0');
-      const total = parseFloat(orderData.total);
-      
-      // Subtotal
-      doc.setFont('helvetica', 'normal');
-      doc.text("SUBTOTAL:", 60, yPos, { align: 'right' });
-      doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPos, { align: 'right' });
-      yPos += 5;
-      
-      // ITBIS
-      doc.text("ITBIS:", 60, yPos, { align: 'right' });
-      doc.text(`RD$${itbis.toFixed(2)}`, 75, yPos, { align: 'right' });
-      yPos += 5;
-      
-      // Total
-      doc.setFont('helvetica', 'bold');
-      doc.text("TOTAL:", 60, yPos, { align: 'right' });
+      doc.text(product.name.length > 18 ? product.name.substring(0, 16) + "..." : product.name, 5, yPos);
+      doc.text(`${product.quantity}`, 35, yPos, { align: 'center' });
+      doc.text(`RD$${product.price.toFixed(2)}`, 55, yPos, { align: 'right' });
       doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
       
-      // Nota del Pedido (siempre se muestra el título)
       yPos += 8;
-      doc.setFont('helvetica', 'bold');
-      doc.text("Nota del Pedido:", 5, yPos);
-      
-      // Si hay notas, mostrarlas
-      if (orderData.notes) {
-        yPos += 5;
-        doc.setFont('helvetica', 'normal');
-        doc.text(orderData.notes, 5, yPos, { 
-          maxWidth: 70 
-        });
-      }
-      
-      // Siempre agregar un espacio adicional
+    });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, yPos, 75, yPos);
+    yPos += 5;
+    
+    // Calcular subtotal e ITBIS
+    const subtotal = parseFloat(orderData.subtotal || orderData.total);
+    const itbis = parseFloat(orderData.tax || '0');
+    const total = parseFloat(orderData.total);
+    
+    // Subtotal
+    doc.setFont('helvetica', 'normal');
+    doc.text("SUBTOTAL:", 60, yPos, { align: 'right' });
+    doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPos, { align: 'right' });
+    yPos += 5;
+    
+    // ITBIS
+    doc.text("ITBIS:", 60, yPos, { align: 'right' });
+    doc.text(`RD$${itbis.toFixed(2)}`, 75, yPos, { align: 'right' });
+    yPos += 5;
+    
+    // Total
+    doc.setFont('helvetica', 'bold');
+    doc.text("TOTAL:", 60, yPos, { align: 'right' });
+    doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+    
+    // Nota del Pedido (siempre se muestra el título)
+    yPos += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.text("Nota del Pedido:", 5, yPos);
+    
+    // Si hay notas, mostrarlas
+    if (orderData.notes) {
       yPos += 5;
-      
-      // Mensaje final
-      yPos += 10;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
-      
-      // Guardar PDF
-      doc.save(`Pedido-${delivery.orderId}.pdf`);
-      
-      toast({
-        title: "PDF generado",
-        description: "Se ha descargado el PDF del pedido",
+      doc.text(orderData.notes, 5, yPos, { 
+        maxWidth: 70 
       });
+    }
+    
+    // Siempre agregar un espacio adicional
+    yPos += 5;
+    
+    // Mensaje final
+    yPos += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
+    
+    // Guardar PDF
+    doc.save(`Pedido-${delivery.orderId}.pdf`);
+    
+    toast({
+      title: "PDF generado",
+      description: "Se ha descargado el PDF del pedido",
+    });
   };
   
   // Cargar datos al montar el componente
