@@ -805,7 +805,22 @@ export default function PaymentDashboard() {
     y += 4;
     doc.text(`Tel: ${settings?.contactPhone || ''}`, 40, y, { align: 'center' });
     
-    doc.save(`Recibo-Pago-${payment.id}.pdf`);
+    // Método compatible con móviles para forzar descarga
+    const pdfBlob = doc.output('blob');
+    const fileName = `Recibo-Pago-${payment.id}.pdf`;
+    
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
   };
 
   return (

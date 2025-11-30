@@ -491,7 +491,22 @@ export default function Billing() {
     doc.setFont('helvetica', 'normal');
     doc.text('Gracias por su compra', 40, y, { align: 'center' });
     
-    doc.save(`Factura-${invoice.id}.pdf`);
+    // Método compatible con móviles para forzar descarga
+    const pdfBlob = doc.output('blob');
+    const fileName = `Factura-${invoice.id}.pdf`;
+    
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
   };
 
   const handleViewInvoiceDetails = async (invoice: InvoiceWithDetails) => {

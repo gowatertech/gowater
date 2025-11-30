@@ -1128,7 +1128,24 @@ export default function DeliveryDetails() {
     doc.setFont('helvetica', 'normal');
     doc.text('Gracias por su compra', 40, y, { align: 'center' });
     
-    doc.save(`Pedido-${delivery.orderId}.pdf`);
+    // Método compatible con móviles para forzar descarga
+    const pdfBlob = doc.output('blob');
+    const fileName = `Pedido-${delivery.orderId}.pdf`;
+    
+    // Crear URL del blob y enlace de descarga
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    
+    // Limpiar
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
   };
   
   // Cargar datos al montar el componente
