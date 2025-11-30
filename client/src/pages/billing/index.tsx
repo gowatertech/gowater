@@ -69,6 +69,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { openWhatsApp } from "@/lib/whatsapp";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 
 interface CartItem {
   productId: number;
