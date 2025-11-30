@@ -327,55 +327,53 @@ export default function PaymentsHistory() {
   };
 
   // Función segura para imprimir recibo individual de pago o anticipo usando PrinterService
-  const printPaymentReceipt = async (payment: PaymentWithDetails) => {
-    try {
-      // Obtener configuración de la empresa
-      const settingsResponse = await fetch('/api/settings');
-      const settings = await settingsResponse.json();
-      
-      // Preparar datos del pago para el servicio de impresión
-      const paymentData = {
-        id: payment.id,
-        date: payment.date,
-        amount: payment.amount,
-        method: payment.method,
-        paymentMethod: payment.method,
-        customerName: payment.customerName,
-        invoiceNumber: payment.invoiceNumber,
-        documentNumber: payment.documentNumber,
-        isAdvance: payment.isAdvance,
-        reference: payment.reference,
-        notes: payment.notes,
-      };
-      
-      // Generar nombre del archivo
-      const docIdentifier = payment.isAdvance 
-        ? payment.documentNumber || `anticipo-${payment.id}`
-        : `pago-factura-${payment.invoiceNumber}`;
-      const fileName = `recibo_${docIdentifier}_${getTodayStringRD()}.pdf`;
-      
-      // Generar PDF usando el servicio centralizado
-      await PrinterService.generatePDFDirect(
-        paymentData,
-        DocumentType.PAYMENT_RECEIPT,
-        {
-          title: payment.isAdvance ? "Recibo de Anticipo" : "Recibo de Pago",
-          fileName,
-          size: [80, 297] // 80mm ancho, altura auto
-        },
-        {
-          settings,
-        }
-      );
-      
-    } catch (error: any) {
-      console.error('Error al generar recibo:', error);
+  const printPaymentReceipt = async (payment: PaymentWithDetails): Promise<void> => {
+    // Obtener configuración de la empresa
+    const settingsResponse = await fetch('/api/settings');
+    if (!settingsResponse.ok) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo generar el recibo",
+        description: "No se pudo obtener la configuración",
       });
+      throw new Error("No se pudo obtener la configuración");
     }
+    const settings = await settingsResponse.json();
+    
+    // Preparar datos del pago para el servicio de impresión
+    const paymentData = {
+      id: payment.id,
+      date: payment.date,
+      amount: payment.amount,
+      method: payment.method,
+      paymentMethod: payment.method,
+      customerName: payment.customerName,
+      invoiceNumber: payment.invoiceNumber,
+      documentNumber: payment.documentNumber,
+      isAdvance: payment.isAdvance,
+      reference: payment.reference,
+      notes: payment.notes,
+    };
+    
+    // Generar nombre del archivo
+    const docIdentifier = payment.isAdvance 
+      ? payment.documentNumber || `anticipo-${payment.id}`
+      : `pago-factura-${payment.invoiceNumber}`;
+    const fileName = `recibo_${docIdentifier}_${getTodayStringRD()}.pdf`;
+    
+    // Generar PDF usando el servicio centralizado
+    await PrinterService.generatePDFDirect(
+      paymentData,
+      DocumentType.PAYMENT_RECEIPT,
+      {
+        title: payment.isAdvance ? "Recibo de Anticipo" : "Recibo de Pago",
+        fileName,
+        size: [80, 297] // 80mm ancho, altura auto
+      },
+      {
+        settings,
+      }
+    );
   };
   
   // Referencia al contenido que se va a imprimir
@@ -560,7 +558,7 @@ export default function PaymentsHistory() {
               variant="outline" 
               size="sm" 
               className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={openWhatsAppDialog}
+              onClick={() => openWhatsAppDialog()}
               data-testid="button-whatsapp-history"
             >
               <MessageCircle className="h-3.5 w-3.5" />
@@ -1042,6 +1040,8 @@ export default function PaymentsHistory() {
         onOpenChange={setWhatsappDialogOpen}
         type="payment"
         customerPhone={whatsappPayment?.customerPhone || selectedPayment?.customerPhone || ""}
+        onGeneratePDF={whatsappPayment ? () => printPaymentReceipt(whatsappPayment) : 
+                       selectedPayment ? () => printPaymentReceipt(selectedPayment) : undefined}
       />
     </div>
   );

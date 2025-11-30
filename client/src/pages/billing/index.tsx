@@ -362,30 +362,29 @@ export default function Billing() {
     }
   };
 
-  const generatePDF = async (invoice: InvoiceWithDetails) => {
-    try {
-      toast({
-        title: "Generando PDF",
-        description: "Por favor espere...",
-      });
-      
-      const itemsResponse = await fetch(`/api/invoices/${invoice.id}/items`);
-      if (!itemsResponse.ok) throw new Error('Error al cargar detalles');
-      const items = await itemsResponse.json();
-      
-      await PrinterService.generateInvoicePDF(invoice, settings, customers, items);
-      
-      toast({
-        title: "¡Listo!",
-        description: "PDF generado exitosamente",
-      });
-    } catch (error: any) {
+  const generatePDF = async (invoice: InvoiceWithDetails): Promise<void> => {
+    toast({
+      title: "Generando PDF",
+      description: "Por favor espere...",
+    });
+    
+    const itemsResponse = await fetch(`/api/invoices/${invoice.id}/items`);
+    if (!itemsResponse.ok) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "No se pudo generar el PDF",
+        description: "Error al cargar detalles de la factura",
       });
+      throw new Error('Error al cargar detalles');
     }
+    const items = await itemsResponse.json();
+    
+    await PrinterService.generateInvoicePDF(invoice, settings, customers, items);
+    
+    toast({
+      title: "¡Listo!",
+      description: "PDF generado exitosamente",
+    });
   };
 
   const handleViewInvoiceDetails = async (invoice: InvoiceWithDetails) => {
@@ -1236,6 +1235,7 @@ export default function Billing() {
         customerPhone={whatsappInvoice ? getCustomerPhone(whatsappInvoice) : ""}
         companyName={companyName}
         amount={whatsappInvoice ? parseFloat(whatsappInvoice.total) : 0}
+        onGeneratePDF={whatsappInvoice ? () => generatePDF(whatsappInvoice) : undefined}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Send, AlertCircle } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Download, FileText, XCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ interface WhatsAppDialogProps {
   customerPhone?: string;
   companyName?: string;
   amount?: string | number;
+  onGeneratePDF?: () => Promise<void>;
 }
 
 export function WhatsAppDialog({
@@ -32,14 +33,37 @@ export function WhatsAppDialog({
   customerPhone = "",
   companyName = "",
   amount = 0,
+  onGeneratePDF,
 }: WhatsAppDialogProps) {
   const [phone, setPhone] = useState(customerPhone);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
 
   useEffect(() => {
     if (open) {
       setPhone(customerPhone);
+      setPdfDownloaded(false);
+      setPdfError(false);
     }
   }, [open, customerPhone]);
+
+  const handleDownloadPDF = async () => {
+    if (!onGeneratePDF) return;
+    
+    setIsGeneratingPDF(true);
+    setPdfError(false);
+    setPdfDownloaded(false);
+    try {
+      await onGeneratePDF();
+      setPdfDownloaded(true);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      setPdfError(true);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   const handleSend = () => {
     if (!phone.trim()) return;
@@ -79,8 +103,51 @@ export function WhatsAppDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {onGeneratePDF && (
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Paso 1: Descargar el documento PDF
+              </Label>
+              <Button
+                variant="outline"
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPDF}
+                className={`w-full ${pdfDownloaded ? 'border-green-500 text-green-600' : pdfError ? 'border-red-500 text-red-600' : ''}`}
+                data-testid="button-download-pdf"
+              >
+                {pdfError ? (
+                  <XCircle className="h-4 w-4 mr-2" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {isGeneratingPDF 
+                  ? 'Generando PDF...' 
+                  : pdfDownloaded 
+                    ? 'PDF Descargado' 
+                    : pdfError
+                      ? 'Error - Reintentar'
+                      : 'Descargar PDF'
+                }
+              </Button>
+              {pdfDownloaded && (
+                <p className="text-xs text-green-600">
+                  El PDF se ha descargado. Podrás adjuntarlo en WhatsApp.
+                </p>
+              )}
+              {pdfError && (
+                <p className="text-xs text-red-600">
+                  No se pudo generar el PDF. Intenta nuevamente.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="phone">Número de WhatsApp</Label>
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              {onGeneratePDF ? 'Paso 2: Número de WhatsApp' : 'Número de WhatsApp'}
+            </Label>
             <Input
               id="phone"
               placeholder="18091234567"
@@ -96,6 +163,15 @@ export function WhatsAppDialog({
               Favor poner el 1 delante del número (ej: 18091234567)
             </AlertDescription>
           </Alert>
+
+          {onGeneratePDF && (
+            <Alert variant="default" className="bg-amber-50 border-amber-200">
+              <FileText className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Al abrir WhatsApp, adjunta el PDF descargado usando el botón de adjuntar (clip) en la conversación.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {type === 'invoice' && (
             <div className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md">
@@ -134,7 +210,7 @@ export function WhatsAppDialog({
             data-testid="button-send-whatsapp"
           >
             <Send className="h-4 w-4 mr-2" />
-            Enviar
+            {onGeneratePDF ? 'Abrir WhatsApp' : 'Enviar'}
           </Button>
         </DialogFooter>
       </DialogContent>

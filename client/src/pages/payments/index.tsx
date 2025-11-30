@@ -497,34 +497,33 @@ export default function PaymentDashboard() {
   };
   
   // Función para generar un pago individual (formato 80mm) con previsualización HTML
-  const handleSinglePaymentPDF = async (payment: Payment) => {
-    try {
-      if (!payment) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se puede generar el recibo del pago",
-        });
-        return;
-      }
-      
-      // Método de pago
-      const metodoPago = 
-        (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
-        (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
-        (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
-        (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
-      
-      // Crear ventana de previsualización
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo abrir la ventana de previsualización. Verifica que no estén bloqueados los popups.",
-        });
-        return;
-      }
+  const handleSinglePaymentPDF = async (payment: Payment): Promise<void> => {
+    if (!payment) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se puede generar el recibo del pago",
+      });
+      throw new Error("No se puede generar el recibo del pago");
+    }
+    
+    // Método de pago
+    const metodoPago = 
+      (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+      (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+      (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+      (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
+    
+    // Crear ventana de previsualización
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo abrir la ventana de previsualización. Verifica que no estén bloqueados los popups.",
+      });
+      throw new Error("No se pudo abrir la ventana de previsualización");
+    }
       
       // Establecer el contenido HTML con un formato fijo de 80mm
       printWindow.document.write(`
@@ -724,15 +723,6 @@ export default function PaymentDashboard() {
         title: "Recibo generado",
         description: "Se ha abierto una nueva ventana con el recibo",
       });
-      
-    } catch (error: any) {
-      console.error('Error al generar recibo de pago individual:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "No se pudo generar el recibo",
-      });
-    }
   };
 
   return (
@@ -1297,6 +1287,7 @@ export default function PaymentDashboard() {
         onOpenChange={setWhatsappDialogOpen}
         type="payment"
         customerPhone={whatsappPayment?.customerPhone || ""}
+        onGeneratePDF={whatsappPayment ? () => handleSinglePaymentPDF(whatsappPayment) : undefined}
       />
     </div>
   );

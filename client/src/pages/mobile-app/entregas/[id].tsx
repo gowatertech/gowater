@@ -874,19 +874,20 @@ export default function DeliveryDetails() {
   };
   
   // Función para descargar el pedido como PDF
-  const handleDownload = async () => {
-    if (!delivery) return;
+  const handleDownload = async (): Promise<void> => {
+    if (!delivery) {
+      throw new Error("No hay entrega disponible");
+    }
     
-    try {
-      // Verificar que tenemos la configuración de la empresa
-      if (!companySettings) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo cargar la información de la empresa",
-        });
-        return;
-      }
+    // Verificar que tenemos la configuración de la empresa
+    if (!companySettings) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cargar la información de la empresa",
+      });
+      throw new Error("No se pudo cargar la información de la empresa");
+    }
       
       // Cargar detalles de la orden completa
       const orderData = await apiRequest({
@@ -1041,13 +1042,6 @@ export default function DeliveryDetails() {
         title: "PDF generado",
         description: "Se ha descargado el PDF del pedido",
       });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Error al generar el PDF",
-      });
-    }
   };
   
   // Cargar datos al montar el componente
@@ -1735,6 +1729,7 @@ export default function DeliveryDetails() {
         customerPhone={delivery?.customerPhone || ""}
         companyName={companyName}
         amount={delivery?.total || 0}
+        onGeneratePDF={handleDownload}
       />
     </div>
   );
