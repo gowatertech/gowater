@@ -1,5 +1,38 @@
 import { Request, Response, NextFunction } from "express";
 import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
+import { platformDb } from "../platform-db";
+import { companies } from "../../shared/platform-schema";
+import { eq } from "drizzle-orm";
+
+let companySuspensionCache: Map<number, { status: string; cachedAt: number }> = new Map();
+const CACHE_TTL = 60000; // 1 minuto
+
+async function isCompanySuspended(companyId: number): Promise<{ suspended: boolean; status: string | null }> {
+  const now = Date.now();
+  const cached = companySuspensionCache.get(companyId);
+  
+  if (cached && (now - cached.cachedAt) < CACHE_TTL) {
+    return { suspended: cached.status === 'suspended', status: cached.status };
+  }
+  
+  try {
+    const [company] = await platformDb.select({ status: companies.status }).from(companies).where(eq(companies.id, companyId));
+    const status = company?.status || 'active';
+    companySuspensionCache.set(companyId, { status, cachedAt: now });
+    return { suspended: status === 'suspended', status };
+  } catch (error) {
+    console.error('[Company Middleware] Error verificando estado de empresa:', error);
+    return { suspended: false, status: null };
+  }
+}
+
+export function clearCompanySuspensionCache(companyId?: number): void {
+  if (companyId) {
+    companySuspensionCache.delete(companyId);
+  } else {
+    companySuspensionCache.clear();
+  }
+}
 
 /**
  * Middleware consolidado para la gestión multi-tenant
@@ -54,6 +87,31 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
   // Establecer el companyId en el contexto
   if (companyId) {
     setCurrentCompanyId(companyId);
+    
+    // Verificar si la empresa está suspendida (solo para rutas de API de empresa)
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/platform')) {
+      isCompanySuspended(companyId).then(({ suspended, status }) => {
+        if (suspended) {
+          console.log(`[Company Middleware] Empresa ${companyId} está suspendida, bloqueando acceso`);
+          
+          // Permitir solo rutas de consulta de estado y logout
+          const allowedPaths = ['/api/logout', '/api/user', '/api/company-status'];
+          if (!allowedPaths.some(p => req.path.startsWith(p))) {
+            res.status(403).json({
+              error: "Cuenta suspendida",
+              message: "Su cuenta ha sido suspendida. Por favor, contacte al administrador de la plataforma para más información.",
+              status: "suspended"
+            });
+            return; // No llamar next() - bloquear la solicitud
+          }
+        }
+        next();
+      }).catch((error) => {
+        console.error('[Company Middleware] Error verificando suspensión:', error);
+        next();
+      });
+      return;
+    }
   } else {
     // Si no hay companyId y no es una ruta pública
     if (req.path.startsWith('/api/') && 

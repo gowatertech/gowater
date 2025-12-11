@@ -14,6 +14,18 @@ export interface User {
   active?: boolean;
 }
 
+// Definir la interfaz para el estado de la empresa
+export interface CompanyStatus {
+  id: number;
+  name: string;
+  status: string;
+  suspended: boolean;
+  suspensionReason?: string | null;
+  suspendedAt?: string | null;
+  expirationDate?: string | null;
+  gracePeriodEnds?: string | null;
+}
+
 // Definir la interfaz para el contexto de autenticación
 interface AuthContextType {
   user: User | null;
@@ -23,6 +35,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  companyStatus: CompanyStatus | null;
+  isSuspended: boolean;
 }
 
 // Crear el contexto con un valor por defecto
@@ -43,8 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [companyId, setCompanyId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [companyStatus, setCompanyStatus] = useState<CompanyStatus | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Verificar estado de suspensión de la empresa
+  const checkCompanyStatus = async (): Promise<CompanyStatus | null> => {
+    try {
+      const response = await fetch('/api/company-status', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.company) {
+          setCompanyStatus(data.company);
+          return data.company;
+        }
+      }
+    } catch (err) {
+      console.error('Error al verificar estado de empresa:', err);
+    }
+    return null;
+  };
   
   // Función para iniciar sesión
   const login = async (username: string, password: string) => {
@@ -76,6 +111,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Actualizar estado con los datos del usuario
       setUser(data.user);
       setCompanyId(data.user.companyId);
+      
+      // Verificar estado de la empresa
+      const status = await checkCompanyStatus();
+      
+      // Si la empresa está suspendida, mostrar mensaje
+      if (status?.suspended) {
+        toast({
+          title: "Cuenta Suspendida",
+          description: status.suspensionReason || "Su cuenta ha sido suspendida. Contacte al administrador.",
+          variant: "destructive",
+        });
+        setLocation('/suspended');
+        return;
+      }
       
       // Mostrar notificación de éxito
       toast({
@@ -119,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Limpiar estado de usuario
       setUser(null);
       setCompanyId(null);
+      setCompanyStatus(null);
       
       // Invalidar todas las consultas en caché
       queryClient.clear();
@@ -162,14 +212,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (data.success && data.user) {
             setUser(data.user);
             setCompanyId(data.companyId || data.user.companyId);
+            
+            // Verificar estado de la empresa
+            await checkCompanyStatus();
           } else {
             setUser(null);
             setCompanyId(null);
+            setCompanyStatus(null);
           }
         } else {
           // Si hay error, asumir que no hay sesión activa
           setUser(null);
           setCompanyId(null);
+          setCompanyStatus(null);
         }
       } catch (err) {
         console.error('Error al obtener usuario actual:', err);
@@ -192,6 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     isAuthenticated: !!user,
+    companyStatus,
+    isSuspended: companyStatus?.suspended ?? false,
   };
   
   return (

@@ -68,6 +68,7 @@ import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
 import RegisterInterestPage from "@/pages/landing/register-interest";
 import PublicLocationCapture from "@/pages/public/LocationCapture";
+import SuspendedPage from "@/pages/suspended";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -242,6 +243,11 @@ function Router() {
   
   // Importar el componente de login con correo
   const CompanyLogin = lazy(() => import("@/pages/auth/login"));
+
+  // Si estamos en la página de suspensión, renderizar sin DashboardLayout
+  if (location === "/suspended") {
+    return <SuspendedPage />;
+  }
 
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
   if ((location === "/" || location === "/demo" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {

@@ -392,9 +392,9 @@ export function registerPlatformRoutes(router: Router) {
         } else {
           console.warn(`No se pudo crear la configuración por defecto para empresa ${company.id}`);
         }
-      } catch (settingsError) {
+      } catch (settingsError: any) {
         console.error(`Error al crear configuración por defecto para empresa ${company.id}:`, settingsError);
-        console.error('Detalles del error:', settingsError.stack || settingsError.message || settingsError);
+        console.error('Detalles del error:', settingsError?.stack || settingsError?.message || settingsError);
         // No interrumpimos el flujo si hay error, solo lo registramos
       }
       
@@ -452,7 +452,12 @@ export function registerPlatformRoutes(router: Router) {
             maxUsers: 5,
             maxTrucks: 3,
             features: ['Gestión de usuarios', 'Rutas básicas', 'Reportes básicos'],
-            isActive: true
+            isActive: true,
+            billingCycle: 'monthly',
+            trialDays: 14,
+            quarterlyDiscount: 5,
+            yearlyDiscount: 15,
+            gracePeriodDays: 7
           });
           
           // Insertar plan profesional
@@ -463,7 +468,12 @@ export function registerPlatformRoutes(router: Router) {
             maxUsers: 15,
             maxTrucks: 10,
             features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST'],
-            isActive: true
+            isActive: true,
+            billingCycle: 'monthly',
+            trialDays: 14,
+            quarterlyDiscount: 10,
+            yearlyDiscount: 20,
+            gracePeriodDays: 7
           });
           
           // Insertar plan empresarial
@@ -474,7 +484,12 @@ export function registerPlatformRoutes(router: Router) {
             maxUsers: 50,
             maxTrucks: 30,
             features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST', 'Soporte 24/7', 'Personalización'],
-            isActive: true
+            isActive: true,
+            billingCycle: 'monthly',
+            trialDays: 30,
+            quarterlyDiscount: 10,
+            yearlyDiscount: 25,
+            gracePeriodDays: 14
           });
           
           console.log("[PLANS API] Planes predeterminados insertados correctamente");
@@ -984,16 +999,13 @@ export function registerPlatformRoutes(router: Router) {
           // Solo creamos el usuario si es necesario
           if (shouldCreateUser) {
             // Determinar el rol equivalente en la compañía según el rol en plataforma
-            let companyRole;
+            let companyRole: string;
             switch(platformUser.role) {
               case 'platform_admin':
                 companyRole = 'admin';
                 break;
               case 'company_admin':
                 companyRole = 'admin';
-                break;
-              case 'support':
-                companyRole = 'supervisor';
                 break;
               default:
                 companyRole = 'admin'; // Valor por defecto
@@ -1017,7 +1029,7 @@ export function registerPlatformRoutes(router: Router) {
             console.log(`[SYNC USER] Insertando usuario con username ${possibleUsername}`);
             
             // Preparar objeto de usuario con todos los campos requeridos
-            const userData = {
+            const userData: any = {
               name: platformUser.name,
               username: possibleUsername,
               email: platformUser.email,
@@ -1507,6 +1519,233 @@ export function registerPlatformRoutes(router: Router) {
     
     // Enviar los datos del usuario de la sesión sin modificar
     res.json(req.session.user);
+  });
+
+  // =============================================
+  // ENDPOINTS DE SUSPENSIÓN DE EMPRESAS
+  // =============================================
+  
+  router.post("/companies/:id/suspend", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      if (!reason) {
+        return res.status(400).json({ message: "Se requiere una razón para la suspensión" });
+      }
+      
+      const changedBy = req.session?.user?.id;
+      const company = await platformStorage.suspendCompany(companyId, reason, changedBy);
+      
+      res.json({ 
+        message: "Empresa suspendida exitosamente",
+        company 
+      });
+    } catch (error: any) {
+      console.error("Error al suspender empresa:", error);
+      res.status(500).json({ message: error.message || "Error al suspender empresa" });
+    }
+  });
+
+  router.post("/companies/:id/reactivate", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const changedBy = req.session?.user?.id;
+      
+      const company = await platformStorage.reactivateCompany(companyId, changedBy);
+      
+      res.json({ 
+        message: "Empresa reactivada exitosamente",
+        company 
+      });
+    } catch (error: any) {
+      console.error("Error al reactivar empresa:", error);
+      res.status(500).json({ message: error.message || "Error al reactivar empresa" });
+    }
+  });
+
+  router.get("/companies/:id/status-history", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const history = await platformStorage.getStatusHistoryByCompany(companyId);
+      res.json({ data: history });
+    } catch (error) {
+      console.error("Error al obtener historial de estados:", error);
+      res.status(500).json({ message: "Error al obtener historial de estados" });
+    }
+  });
+
+  router.get("/companies/near-expiration/:days", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const days = parseInt(req.params.days) || 7;
+      const companies = await platformStorage.getCompaniesNearExpiration(days);
+      res.json({ data: companies });
+    } catch (error) {
+      console.error("Error al obtener empresas próximas a vencer:", error);
+      res.status(500).json({ message: "Error al obtener empresas" });
+    }
+  });
+
+  router.get("/companies/overdue", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companies = await platformStorage.getOverdueCompanies();
+      res.json({ data: companies });
+    } catch (error) {
+      console.error("Error al obtener empresas vencidas:", error);
+      res.status(500).json({ message: "Error al obtener empresas vencidas" });
+    }
+  });
+
+  router.get("/companies/suspended", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companies = await platformStorage.getSuspendedCompanies();
+      res.json({ data: companies });
+    } catch (error) {
+      console.error("Error al obtener empresas suspendidas:", error);
+      res.status(500).json({ message: "Error al obtener empresas suspendidas" });
+    }
+  });
+
+  // =============================================
+  // ENDPOINTS DE NOTIFICACIONES
+  // =============================================
+  
+  router.get("/notifications", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : undefined;
+      
+      let notifications;
+      if (companyId) {
+        notifications = await platformStorage.listNotificationsByCompany(companyId);
+      } else {
+        notifications = await platformStorage.listPendingNotifications();
+      }
+      
+      res.json({ data: notifications });
+    } catch (error) {
+      console.error("Error al obtener notificaciones:", error);
+      res.status(500).json({ message: "Error al obtener notificaciones" });
+    }
+  });
+
+  router.post("/notifications", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const { companyId, type, title, message, scheduledFor, metadata } = req.body;
+      
+      if (!companyId || !type || !title || !message) {
+        return res.status(400).json({ message: "Faltan campos requeridos" });
+      }
+      
+      const notification = await platformStorage.createNotification({
+        companyId,
+        type,
+        title,
+        message,
+        status: "pending",
+        scheduledFor,
+        metadata
+      });
+      
+      res.status(201).json(notification);
+    } catch (error: any) {
+      console.error("Error al crear notificación:", error);
+      res.status(400).json({ message: error.message || "Error al crear notificación" });
+    }
+  });
+
+  router.patch("/notifications/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const notification = await platformStorage.updateNotification(id, req.body);
+      res.json(notification);
+    } catch (error: any) {
+      console.error("Error al actualizar notificación:", error);
+      res.status(400).json({ message: error.message || "Error al actualizar notificación" });
+    }
+  });
+
+  // =============================================
+  // ENDPOINTS DE MÉTRICAS DE PLATAFORMA
+  // =============================================
+  
+  router.get("/metrics", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      // Primero intentamos obtener las métricas más recientes
+      let metrics = await platformStorage.getLatestMetrics();
+      
+      // Si no hay métricas o son antiguas (más de 1 hora), calculamos nuevas
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (!metrics || new Date(metrics.createdAt) < oneHourAgo) {
+        metrics = await platformStorage.calculatePlatformMetrics();
+      }
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error al obtener métricas:", error);
+      res.status(500).json({ message: "Error al obtener métricas" });
+    }
+  });
+
+  router.get("/metrics/calculate", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const metrics = await platformStorage.calculatePlatformMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error al calcular métricas:", error);
+      res.status(500).json({ message: "Error al calcular métricas" });
+    }
+  });
+
+  router.get("/metrics/history", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
+      
+      const metrics = await platformStorage.getMetricsByDateRange(startDate, endDate);
+      res.json({ data: metrics });
+    } catch (error) {
+      console.error("Error al obtener historial de métricas:", error);
+      res.status(500).json({ message: "Error al obtener historial de métricas" });
+    }
+  });
+
+  // =============================================
+  // DASHBOARD RESUMEN
+  // =============================================
+  
+  router.get("/dashboard", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      // Obtener métricas actualizadas
+      const metrics = await platformStorage.calculatePlatformMetrics();
+      
+      // Obtener empresas próximas a vencer (7 días)
+      const nearExpiration = await platformStorage.getCompaniesNearExpiration(7);
+      
+      // Obtener empresas vencidas
+      const overdue = await platformStorage.getOverdueCompanies();
+      
+      // Obtener empresas suspendidas
+      const suspended = await platformStorage.getSuspendedCompanies();
+      
+      // Obtener notificaciones pendientes
+      const pendingNotifications = await platformStorage.listPendingNotifications();
+      
+      res.json({
+        metrics,
+        alerts: {
+          nearExpiration: nearExpiration.length,
+          overdue: overdue.length,
+          suspended: suspended.length,
+          pendingNotifications: pendingNotifications.length
+        },
+        companiesNearExpiration: nearExpiration.slice(0, 5),
+        companiesOverdue: overdue.slice(0, 5),
+        companiesSuspended: suspended.slice(0, 5)
+      });
+    } catch (error) {
+      console.error("Error al obtener dashboard:", error);
+      res.status(500).json({ message: "Error al obtener datos del dashboard" });
+    }
   });
 
   return router;

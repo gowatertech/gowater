@@ -1,4 +1,4 @@
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { platformDb, platformPool } from "./platform-db";
 import {
   companies,
@@ -6,6 +6,9 @@ import {
   membershipInvoices,
   userCompanies,
   companySettings,
+  companyStatusHistory,
+  platformNotifications,
+  platformMetrics,
   Company,
   InsertCompany,
   Plan,
@@ -16,6 +19,13 @@ import {
   InsertUserCompany,
   CompanySettings,
   InsertCompanySettings,
+  CompanyStatusHistory,
+  InsertCompanyStatusHistory,
+  PlatformNotification,
+  InsertPlatformNotification,
+  PlatformMetrics,
+  InsertPlatformMetrics,
+  CompanyStatus,
 } from "../shared/platform-schema";
 import {
   platformUsers,
@@ -64,18 +74,56 @@ export interface IPlatformStorage {
   assignUserToCompany(userId: number, companyId: number): Promise<void>;
   removeUserFromCompany(userId: number, companyId: number): Promise<void>;
   getUsersByCompany(companyId: number): Promise<number[]>;
+  
+  // Gestión de historial de estados
+  createStatusHistory(data: InsertCompanyStatusHistory): Promise<CompanyStatusHistory>;
+  getStatusHistoryByCompany(companyId: number): Promise<CompanyStatusHistory[]>;
+  
+  // Gestión de notificaciones
+  createNotification(data: InsertPlatformNotification): Promise<PlatformNotification>;
+  getNotification(id: number): Promise<PlatformNotification | undefined>;
+  updateNotification(id: number, data: Partial<InsertPlatformNotification>): Promise<PlatformNotification>;
+  listNotificationsByCompany(companyId: number): Promise<PlatformNotification[]>;
+  listPendingNotifications(): Promise<PlatformNotification[]>;
+  
+  // Gestión de métricas
+  createMetrics(data: InsertPlatformMetrics): Promise<PlatformMetrics>;
+  getLatestMetrics(): Promise<PlatformMetrics | undefined>;
+  getMetricsByDateRange(startDate: Date, endDate: Date): Promise<PlatformMetrics[]>;
+  
+  // Métodos de suspensión
+  suspendCompany(companyId: number, reason: string, changedBy?: number): Promise<Company>;
+  reactivateCompany(companyId: number, changedBy?: number): Promise<Company>;
+  getCompaniesNearExpiration(daysAhead: number): Promise<Company[]>;
+  getOverdueCompanies(): Promise<Company[]>;
+  getSuspendedCompanies(): Promise<Company[]>;
+  
+  // Métricas calculadas
+  calculatePlatformMetrics(): Promise<PlatformMetrics>;
 }
 
 export class PlatformStorage implements IPlatformStorage {
   // Implementación de empresas
   async createCompany(data: InsertCompany): Promise<Company> {
-    // Convertir la fecha de string a objeto Date para el timestamp
-    const expirationDate = new Date(data.expirationDate);
+    // Preparar datos para inserción
+    const companyData: any = {
+      name: data.name,
+      subdomain: data.subdomain,
+      logo: data.logo,
+      active: data.active ?? true,
+      status: data.status || "active",
+      planId: data.planId,
+      expirationDate: new Date(data.expirationDate),
+    };
     
-    const [created] = await platformDb.insert(companies).values({
-      ...data,
-      expirationDate
-    }).returning();
+    // Campos opcionales de suspensión y membresía
+    if (data.suspendedAt) companyData.suspendedAt = new Date(data.suspendedAt);
+    if (data.suspensionReason) companyData.suspensionReason = data.suspensionReason;
+    if (data.gracePeriodEnds) companyData.gracePeriodEnds = new Date(data.gracePeriodEnds);
+    if (data.trialEndsAt) companyData.trialEndsAt = new Date(data.trialEndsAt);
+    if (data.lastPaymentDate) companyData.lastPaymentDate = new Date(data.lastPaymentDate);
+    
+    const [created] = await platformDb.insert(companies).values(companyData).returning();
     return created;
   }
 
@@ -124,10 +172,20 @@ export class PlatformStorage implements IPlatformStorage {
 
   // Implementación de planes
   async createPlan(data: InsertPlan): Promise<Plan> {
-    // Convertir price de number a string para decimal
-    const planData = {
-      ...data,
-      price: data.price.toString()
+    // Preparar datos para inserción
+    const planData: any = {
+      name: data.name,
+      price: data.price.toString(),
+      description: data.description,
+      maxUsers: data.maxUsers,
+      maxTrucks: data.maxTrucks,
+      features: data.features,
+      isActive: data.isActive ?? true,
+      billingCycle: data.billingCycle || "monthly",
+      trialDays: data.trialDays || 0,
+      quarterlyDiscount: data.quarterlyDiscount?.toString() || "0",
+      yearlyDiscount: data.yearlyDiscount?.toString() || "0",
+      gracePeriodDays: data.gracePeriodDays || 7,
     };
     
     const [created] = await platformDb.insert(plans).values(planData).returning();
@@ -380,6 +438,371 @@ export class PlatformStorage implements IPlatformStorage {
       .where(eq(userCompanies.companyId, companyId));
     
     return results.map((r: { userId: number }) => r.userId);
+  }
+
+  // =============================================
+  // HISTORIAL DE ESTADOS DE EMPRESA
+  // =============================================
+  
+  async createStatusHistory(data: InsertCompanyStatusHistory): Promise<CompanyStatusHistory> {
+    const historyData: any = {
+      companyId: data.companyId,
+      previousStatus: data.previousStatus,
+      newStatus: data.newStatus,
+      reason: data.reason,
+      changedBy: data.changedBy,
+      metadata: data.metadata,
+    };
+    
+    const [created] = await platformDb.insert(companyStatusHistory).values(historyData).returning();
+    return created;
+  }
+
+  async getStatusHistoryByCompany(companyId: number): Promise<CompanyStatusHistory[]> {
+    return await platformDb
+      .select()
+      .from(companyStatusHistory)
+      .where(eq(companyStatusHistory.companyId, companyId))
+      .orderBy(desc(companyStatusHistory.changedAt));
+  }
+
+  // =============================================
+  // NOTIFICACIONES DE PLATAFORMA
+  // =============================================
+  
+  async createNotification(data: InsertPlatformNotification): Promise<PlatformNotification> {
+    const notifData: any = {
+      companyId: data.companyId,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      status: data.status || "pending",
+      scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
+      metadata: data.metadata,
+    };
+    
+    const [created] = await platformDb.insert(platformNotifications).values(notifData).returning();
+    return created;
+  }
+
+  async getNotification(id: number): Promise<PlatformNotification | undefined> {
+    const results = await platformDb.select().from(platformNotifications).where(eq(platformNotifications.id, id));
+    return results[0];
+  }
+
+  async updateNotification(id: number, data: Partial<InsertPlatformNotification>): Promise<PlatformNotification> {
+    const updateData: any = { ...data };
+    
+    if (updateData.scheduledFor) {
+      updateData.scheduledFor = new Date(updateData.scheduledFor);
+    }
+    
+    const [updated] = await platformDb
+      .update(platformNotifications)
+      .set(updateData)
+      .where(eq(platformNotifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async listNotificationsByCompany(companyId: number): Promise<PlatformNotification[]> {
+    return await platformDb
+      .select()
+      .from(platformNotifications)
+      .where(eq(platformNotifications.companyId, companyId))
+      .orderBy(desc(platformNotifications.createdAt));
+  }
+
+  async listPendingNotifications(): Promise<PlatformNotification[]> {
+    return await platformDb
+      .select()
+      .from(platformNotifications)
+      .where(eq(platformNotifications.status, "pending"))
+      .orderBy(platformNotifications.scheduledFor);
+  }
+
+  // =============================================
+  // MÉTRICAS DE PLATAFORMA
+  // =============================================
+  
+  async createMetrics(data: InsertPlatformMetrics): Promise<PlatformMetrics> {
+    const metricsData: any = {
+      metricDate: new Date(data.metricDate),
+      mrr: data.mrr?.toString() || "0",
+      totalCompanies: data.totalCompanies || 0,
+      activeCompanies: data.activeCompanies || 0,
+      trialCompanies: data.trialCompanies || 0,
+      suspendedCompanies: data.suspendedCompanies || 0,
+      cancelledCompanies: data.cancelledCompanies || 0,
+      totalRevenue: data.totalRevenue?.toString() || "0",
+      pendingInvoices: data.pendingInvoices || 0,
+      overdueInvoices: data.overdueInvoices || 0,
+      overdueAmount: data.overdueAmount?.toString() || "0",
+      newCompaniesThisMonth: data.newCompaniesThisMonth || 0,
+      churnedCompaniesThisMonth: data.churnedCompaniesThisMonth || 0,
+    };
+    
+    const [created] = await platformDb.insert(platformMetrics).values(metricsData).returning();
+    return created;
+  }
+
+  async getLatestMetrics(): Promise<PlatformMetrics | undefined> {
+    const results = await platformDb
+      .select()
+      .from(platformMetrics)
+      .orderBy(desc(platformMetrics.metricDate))
+      .limit(1);
+    return results[0];
+  }
+
+  async getMetricsByDateRange(startDate: Date, endDate: Date): Promise<PlatformMetrics[]> {
+    return await platformDb
+      .select()
+      .from(platformMetrics)
+      .where(and(
+        gte(platformMetrics.metricDate, startDate),
+        lte(platformMetrics.metricDate, endDate)
+      ))
+      .orderBy(platformMetrics.metricDate);
+  }
+
+  // =============================================
+  // MÉTODOS DE SUSPENSIÓN
+  // =============================================
+  
+  // Transiciones de estado válidas
+  private validStatusTransitions: Record<CompanyStatus, CompanyStatus[]> = {
+    'active': ['suspended', 'grace_period', 'cancelled'],
+    'trial': ['active', 'suspended', 'cancelled'],
+    'grace_period': ['active', 'suspended', 'cancelled'],
+    'suspended': ['active', 'cancelled'],
+    'cancelled': ['active', 'trial'],
+  };
+  
+  private isValidTransition(from: CompanyStatus, to: CompanyStatus): boolean {
+    const allowedTransitions = this.validStatusTransitions[from] || [];
+    return allowedTransitions.includes(to);
+  }
+  
+  async suspendCompany(companyId: number, reason: string, changedBy?: number): Promise<Company> {
+    // Obtener la empresa actual
+    const company = await this.getCompany(companyId);
+    if (!company) {
+      throw new Error("Empresa no encontrada");
+    }
+    
+    const previousStatus = (company.status as CompanyStatus) || "active";
+    
+    // Validar transición de estado
+    if (previousStatus === "suspended") {
+      throw new Error("La empresa ya está suspendida");
+    }
+    
+    if (!this.isValidTransition(previousStatus, "suspended")) {
+      throw new Error(`No se puede suspender una empresa con estado '${previousStatus}'`);
+    }
+    
+    const now = new Date();
+    
+    // Actualizar la empresa
+    const [updated] = await platformDb
+      .update(companies)
+      .set({
+        status: "suspended",
+        active: false,
+        suspendedAt: now,
+        suspensionReason: reason,
+      })
+      .where(eq(companies.id, companyId))
+      .returning();
+    
+    // Registrar en historial
+    await this.createStatusHistory({
+      companyId,
+      previousStatus,
+      newStatus: "suspended",
+      reason,
+      changedBy,
+      metadata: JSON.stringify({ suspendedAt: now.toISOString() }),
+    });
+    
+    // Crear notificación
+    await this.createNotification({
+      companyId,
+      type: "company_suspended",
+      title: "Cuenta Suspendida",
+      message: `Su cuenta ha sido suspendida. Razón: ${reason}`,
+      status: "pending",
+    });
+    
+    // Limpiar caché de suspensión
+    try {
+      const { clearCompanySuspensionCache } = await import('./middleware/consolidated-company.middleware');
+      clearCompanySuspensionCache(companyId);
+    } catch (e) {
+      console.log('[Platform Storage] No se pudo limpiar caché de suspensión');
+    }
+    
+    return updated;
+  }
+
+  async reactivateCompany(companyId: number, changedBy?: number): Promise<Company> {
+    const company = await this.getCompany(companyId);
+    if (!company) {
+      throw new Error("Empresa no encontrada");
+    }
+    
+    const previousStatus = (company.status as CompanyStatus) || "suspended";
+    
+    // Validar transición de estado
+    if (previousStatus === "active") {
+      throw new Error("La empresa ya está activa");
+    }
+    
+    if (!this.isValidTransition(previousStatus, "active")) {
+      throw new Error(`No se puede reactivar una empresa con estado '${previousStatus}'`);
+    }
+    
+    const now = new Date();
+    
+    // Actualizar la empresa
+    const [updated] = await platformDb
+      .update(companies)
+      .set({
+        status: "active",
+        active: true,
+        suspendedAt: null,
+        suspensionReason: null,
+        gracePeriodEnds: null,
+        lastPaymentDate: now,
+      })
+      .where(eq(companies.id, companyId))
+      .returning();
+    
+    // Registrar en historial
+    await this.createStatusHistory({
+      companyId,
+      previousStatus,
+      newStatus: "active",
+      reason: "Cuenta reactivada",
+      changedBy,
+      metadata: JSON.stringify({ reactivatedAt: now.toISOString() }),
+    });
+    
+    // Crear notificación
+    await this.createNotification({
+      companyId,
+      type: "company_reactivated",
+      title: "Cuenta Reactivada",
+      message: "Su cuenta ha sido reactivada exitosamente.",
+      status: "pending",
+    });
+    
+    // Limpiar caché de suspensión
+    try {
+      const { clearCompanySuspensionCache } = await import('./middleware/consolidated-company.middleware');
+      clearCompanySuspensionCache(companyId);
+    } catch (e) {
+      console.log('[Platform Storage] No se pudo limpiar caché de suspensión');
+    }
+    
+    return updated;
+  }
+
+  async getCompaniesNearExpiration(daysAhead: number): Promise<Company[]> {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    
+    return await platformDb
+      .select()
+      .from(companies)
+      .where(and(
+        eq(companies.status, "active"),
+        lte(companies.expirationDate, futureDate),
+        gte(companies.expirationDate, now)
+      ))
+      .orderBy(companies.expirationDate);
+  }
+
+  async getOverdueCompanies(): Promise<Company[]> {
+    const now = new Date();
+    
+    return await platformDb
+      .select()
+      .from(companies)
+      .where(and(
+        eq(companies.status, "active"),
+        lte(companies.expirationDate, now)
+      ))
+      .orderBy(companies.expirationDate);
+  }
+
+  async getSuspendedCompanies(): Promise<Company[]> {
+    return await platformDb
+      .select()
+      .from(companies)
+      .where(eq(companies.status, "suspended"))
+      .orderBy(companies.suspendedAt);
+  }
+
+  // =============================================
+  // MÉTRICAS CALCULADAS
+  // =============================================
+  
+  async calculatePlatformMetrics(): Promise<PlatformMetrics> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Contar empresas por estado
+    const companyCounts = await platformPool.query(`
+      SELECT 
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'active') as active,
+        COUNT(*) FILTER (WHERE status = 'trial') as trial,
+        COUNT(*) FILTER (WHERE status = 'suspended') as suspended,
+        COUNT(*) FILTER (WHERE status = 'cancelled') as cancelled,
+        COUNT(*) FILTER (WHERE created_at >= $1) as new_this_month
+      FROM companies
+    `, [startOfMonth]);
+    
+    // Calcular ingresos
+    const revenueCounts = await platformPool.query(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as total_revenue,
+        COUNT(*) FILTER (WHERE status = 'pending') as pending_invoices,
+        COUNT(*) FILTER (WHERE status = 'overdue') as overdue_invoices,
+        COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as overdue_amount
+      FROM membership_invoices
+    `);
+    
+    // Calcular MRR basado en empresas activas y sus planes
+    const mrrResult = await platformPool.query(`
+      SELECT COALESCE(SUM(p.price), 0) as mrr
+      FROM companies c
+      JOIN plans p ON c.plan_id = p.id
+      WHERE c.status = 'active'
+    `);
+    
+    const counts = companyCounts.rows[0];
+    const revenue = revenueCounts.rows[0];
+    const mrr = mrrResult.rows[0];
+    
+    // Crear y guardar las métricas
+    return await this.createMetrics({
+      metricDate: now.toISOString(),
+      mrr: parseFloat(mrr.mrr || "0"),
+      totalCompanies: parseInt(counts.total || "0"),
+      activeCompanies: parseInt(counts.active || "0"),
+      trialCompanies: parseInt(counts.trial || "0"),
+      suspendedCompanies: parseInt(counts.suspended || "0"),
+      cancelledCompanies: parseInt(counts.cancelled || "0"),
+      totalRevenue: parseFloat(revenue.total_revenue || "0"),
+      pendingInvoices: parseInt(revenue.pending_invoices || "0"),
+      overdueInvoices: parseInt(revenue.overdue_invoices || "0"),
+      overdueAmount: parseFloat(revenue.overdue_amount || "0"),
+      newCompaniesThisMonth: parseInt(counts.new_this_month || "0"),
+      churnedCompaniesThisMonth: 0, // Se calculará basado en historial
+    });
   }
 }
 

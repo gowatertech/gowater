@@ -2,6 +2,9 @@ import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "dri
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Estados de empresa
+export type CompanyStatus = "active" | "trial" | "suspended" | "cancelled";
+
 // Empresas (tenants)
 export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
@@ -9,10 +12,23 @@ export const companies = pgTable("companies", {
   subdomain: text("subdomain").notNull().unique(),
   logo: text("logo"),
   active: boolean("active").notNull().default(true),
+  status: text("status", {
+    enum: ["active", "trial", "suspended", "cancelled"]
+  }).notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   planId: integer("plan_id").notNull(),
   expirationDate: timestamp("expiration_date").notNull(),
+  // Campos para suspensión
+  suspendedAt: timestamp("suspended_at"),
+  suspensionReason: text("suspension_reason"),
+  gracePeriodEnds: timestamp("grace_period_ends"),
+  // Campos para trial/membresía
+  trialEndsAt: timestamp("trial_ends_at"),
+  lastPaymentDate: timestamp("last_payment_date"),
 });
+
+// Ciclos de facturación
+export type BillingCycle = "monthly" | "quarterly" | "yearly";
 
 // Planes de membresía
 export const plans = pgTable("plans", {
@@ -24,6 +40,16 @@ export const plans = pgTable("plans", {
   maxTrucks: integer("max_trucks").notNull(),
   features: text("features").array(),
   isActive: boolean("is_active").notNull().default(true),
+  // Ciclos de facturación y trial
+  billingCycle: text("billing_cycle", {
+    enum: ["monthly", "quarterly", "yearly"]
+  }).notNull().default("monthly"),
+  trialDays: integer("trial_days").notNull().default(0),
+  // Descuentos por pago adelantado
+  quarterlyDiscount: decimal("quarterly_discount", { precision: 5, scale: 2 }).default("0"),
+  yearlyDiscount: decimal("yearly_discount", { precision: 5, scale: 2 }).default("0"),
+  // Días de gracia antes de suspensión
+  gracePeriodDays: integer("grace_period_days").notNull().default(7),
 });
 
 // Relaciones entre tablas
@@ -57,14 +83,21 @@ export const insertCompanySchema = z.object({
     .regex(/^[a-z0-9]+$/, "El subdominio solo puede contener letras minúsculas y números"),
   logo: z.string().optional(),
   active: z.boolean().default(true),
+  status: z.enum(["active", "trial", "suspended", "cancelled"]).default("active"),
   planId: z.union([
     z.number().int().positive(),
     z.string().transform(val => parseInt(val))
   ]),
   expirationDate: z.string().refine((val) => {
-    // Acepta tanto el formato ISO completo como solo la fecha YYYY-MM-DD
     return /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(val);
   }, "La fecha debe estar en formato YYYY-MM-DD o ISO 8601"),
+  // Campos opcionales para suspensión
+  suspendedAt: z.string().optional(),
+  suspensionReason: z.string().optional(),
+  gracePeriodEnds: z.string().optional(),
+  // Campos para trial/membresía
+  trialEndsAt: z.string().optional(),
+  lastPaymentDate: z.string().optional(),
 });
 
 export const insertPlanSchema = z.object({
@@ -84,6 +117,26 @@ export const insertPlanSchema = z.object({
   ]),
   features: z.array(z.string()).optional(),
   isActive: z.boolean().default(true),
+  // Ciclos de facturación y trial
+  billingCycle: z.enum(["monthly", "quarterly", "yearly"]).default("monthly"),
+  trialDays: z.union([
+    z.number().int().min(0),
+    z.string().transform(val => parseInt(val))
+  ]).default(0),
+  // Descuentos
+  quarterlyDiscount: z.union([
+    z.number().min(0).max(100),
+    z.string().transform(val => parseFloat(val))
+  ]).default(0),
+  yearlyDiscount: z.union([
+    z.number().min(0).max(100),
+    z.string().transform(val => parseFloat(val))
+  ]).default(0),
+  // Días de gracia
+  gracePeriodDays: z.union([
+    z.number().int().min(0),
+    z.string().transform(val => parseInt(val))
+  ]).default(7),
 });
 
 export const insertMembershipInvoiceSchema = z.object({
@@ -243,3 +296,121 @@ export const platformEmailSettingsSchema = z.object({
 export type PlatformGeneralSettings = z.infer<typeof platformGeneralSettingsSchema>;
 export type PlatformEmailSettings = z.infer<typeof platformEmailSettingsSchema>;
 export type PlatformSetting = typeof platformSettings.$inferSelect;
+
+// =============================================
+// HISTORIAL DE ESTADOS DE EMPRESA
+// =============================================
+
+export const companyStatusHistory = pgTable("company_status_history", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  previousStatus: text("previous_status", {
+    enum: ["active", "trial", "suspended", "cancelled"]
+  }),
+  newStatus: text("new_status", {
+    enum: ["active", "trial", "suspended", "cancelled"]
+  }).notNull(),
+  reason: text("reason"),
+  changedBy: integer("changed_by").references(() => platformUsers.id),
+  changedAt: timestamp("changed_at").notNull().defaultNow(),
+  metadata: text("metadata"), // JSON para datos adicionales
+});
+
+export const insertCompanyStatusHistorySchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  previousStatus: z.enum(["active", "trial", "suspended", "cancelled"]).optional(),
+  newStatus: z.enum(["active", "trial", "suspended", "cancelled"]),
+  reason: z.string().optional(),
+  changedBy: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]).optional(),
+  metadata: z.string().optional(),
+});
+
+export type InsertCompanyStatusHistory = z.infer<typeof insertCompanyStatusHistorySchema>;
+export type CompanyStatusHistory = typeof companyStatusHistory.$inferSelect;
+
+// =============================================
+// NOTIFICACIONES DE PLATAFORMA
+// =============================================
+
+export type NotificationType = "payment_reminder" | "suspension_warning" | "trial_ending" | "invoice_generated" | "payment_received" | "company_suspended" | "company_reactivated";
+
+export const platformNotifications = pgTable("platform_notifications", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  type: text("type", {
+    enum: ["payment_reminder", "suspension_warning", "trial_ending", "invoice_generated", "payment_received", "company_suspended", "company_reactivated"]
+  }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  status: text("status", {
+    enum: ["pending", "sent", "failed", "read"]
+  }).notNull().default("pending"),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  metadata: text("metadata"), // JSON para datos adicionales como invoiceId, etc.
+});
+
+export const insertPlatformNotificationSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  type: z.enum(["payment_reminder", "suspension_warning", "trial_ending", "invoice_generated", "payment_received", "company_suspended", "company_reactivated"]),
+  title: z.string().min(1),
+  message: z.string().min(1),
+  status: z.enum(["pending", "sent", "failed", "read"]).default("pending"),
+  scheduledFor: z.string().optional(),
+  metadata: z.string().optional(),
+});
+
+export type InsertPlatformNotification = z.infer<typeof insertPlatformNotificationSchema>;
+export type PlatformNotification = typeof platformNotifications.$inferSelect;
+
+// =============================================
+// MÉTRICAS DE PLATAFORMA (para cache de KPIs)
+// =============================================
+
+export const platformMetrics = pgTable("platform_metrics", {
+  id: serial("id").primaryKey(),
+  metricDate: timestamp("metric_date").notNull(),
+  mrr: decimal("mrr", { precision: 12, scale: 2 }).notNull().default("0"),
+  totalCompanies: integer("total_companies").notNull().default(0),
+  activeCompanies: integer("active_companies").notNull().default(0),
+  trialCompanies: integer("trial_companies").notNull().default(0),
+  suspendedCompanies: integer("suspended_companies").notNull().default(0),
+  cancelledCompanies: integer("cancelled_companies").notNull().default(0),
+  totalRevenue: decimal("total_revenue", { precision: 12, scale: 2 }).notNull().default("0"),
+  pendingInvoices: integer("pending_invoices").notNull().default(0),
+  overdueInvoices: integer("overdue_invoices").notNull().default(0),
+  overdueAmount: decimal("overdue_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  newCompaniesThisMonth: integer("new_companies_this_month").notNull().default(0),
+  churnedCompaniesThisMonth: integer("churned_companies_this_month").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPlatformMetricsSchema = z.object({
+  metricDate: z.string(),
+  mrr: z.union([z.number(), z.string()]).optional(),
+  totalCompanies: z.number().int().optional(),
+  activeCompanies: z.number().int().optional(),
+  trialCompanies: z.number().int().optional(),
+  suspendedCompanies: z.number().int().optional(),
+  cancelledCompanies: z.number().int().optional(),
+  totalRevenue: z.union([z.number(), z.string()]).optional(),
+  pendingInvoices: z.number().int().optional(),
+  overdueInvoices: z.number().int().optional(),
+  overdueAmount: z.union([z.number(), z.string()]).optional(),
+  newCompaniesThisMonth: z.number().int().optional(),
+  churnedCompaniesThisMonth: z.number().int().optional(),
+});
+
+export type InsertPlatformMetrics = z.infer<typeof insertPlatformMetricsSchema>;
+export type PlatformMetrics = typeof platformMetrics.$inferSelect;

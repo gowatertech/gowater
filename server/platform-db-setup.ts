@@ -15,12 +15,44 @@ export async function setupPlatformTables() {
         subdomain TEXT NOT NULL UNIQUE,
         logo TEXT,
         active BOOLEAN NOT NULL DEFAULT TRUE,
+        status TEXT NOT NULL DEFAULT 'active',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         plan_id INTEGER NOT NULL,
-        expiration_date TIMESTAMP NOT NULL
+        expiration_date TIMESTAMP NOT NULL,
+        suspended_at TIMESTAMP,
+        suspension_reason TEXT,
+        grace_period_ends TIMESTAMP,
+        trial_ends_at TIMESTAMP,
+        last_payment_date TIMESTAMP
       )
     `);
     console.log("Tabla 'companies' creada o ya existente");
+    
+    // Añadir columnas nuevas si no existen (para migraciones)
+    await platformDb.execute(sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'status') THEN
+          ALTER TABLE companies ADD COLUMN status TEXT NOT NULL DEFAULT 'active';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'suspended_at') THEN
+          ALTER TABLE companies ADD COLUMN suspended_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'suspension_reason') THEN
+          ALTER TABLE companies ADD COLUMN suspension_reason TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'grace_period_ends') THEN
+          ALTER TABLE companies ADD COLUMN grace_period_ends TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'trial_ends_at') THEN
+          ALTER TABLE companies ADD COLUMN trial_ends_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'last_payment_date') THEN
+          ALTER TABLE companies ADD COLUMN last_payment_date TIMESTAMP;
+        END IF;
+      END $$
+    `);
+    console.log("Columnas de suspensión añadidas a 'companies'");
 
     // Crear tabla de planes
     await platformDb.execute(sql`
@@ -32,10 +64,38 @@ export async function setupPlatformTables() {
         max_users INTEGER NOT NULL,
         max_trucks INTEGER NOT NULL,
         features TEXT[],
-        is_active BOOLEAN NOT NULL DEFAULT TRUE
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        billing_cycle TEXT NOT NULL DEFAULT 'monthly',
+        trial_days INTEGER NOT NULL DEFAULT 0,
+        quarterly_discount DECIMAL(5, 2) DEFAULT 0,
+        yearly_discount DECIMAL(5, 2) DEFAULT 0,
+        grace_period_days INTEGER NOT NULL DEFAULT 7
       )
     `);
     console.log("Tabla 'plans' creada o ya existente");
+    
+    // Añadir columnas nuevas de planes si no existen
+    await platformDb.execute(sql`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'billing_cycle') THEN
+          ALTER TABLE plans ADD COLUMN billing_cycle TEXT NOT NULL DEFAULT 'monthly';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'trial_days') THEN
+          ALTER TABLE plans ADD COLUMN trial_days INTEGER NOT NULL DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'quarterly_discount') THEN
+          ALTER TABLE plans ADD COLUMN quarterly_discount DECIMAL(5, 2) DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'yearly_discount') THEN
+          ALTER TABLE plans ADD COLUMN yearly_discount DECIMAL(5, 2) DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'grace_period_days') THEN
+          ALTER TABLE plans ADD COLUMN grace_period_days INTEGER NOT NULL DEFAULT 7;
+        END IF;
+      END $$
+    `);
+    console.log("Columnas de membresía añadidas a 'plans'");
 
     // Crear tabla de facturas de membresía
     await platformDb.execute(sql`
@@ -110,6 +170,61 @@ export async function setupPlatformTables() {
       )
     `);
     console.log("Tabla 'platform_settings' creada o ya existente");
+
+    // Crear tabla de historial de estados de empresa
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS company_status_history (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER NOT NULL REFERENCES companies(id),
+        previous_status TEXT,
+        new_status TEXT NOT NULL,
+        reason TEXT,
+        changed_by INTEGER REFERENCES platform_users(id),
+        changed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        metadata TEXT
+      )
+    `);
+    console.log("Tabla 'company_status_history' creada o ya existente");
+
+    // Crear tabla de notificaciones de plataforma
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS platform_notifications (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER NOT NULL REFERENCES companies(id),
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        scheduled_for TIMESTAMP,
+        sent_at TIMESTAMP,
+        read_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        metadata TEXT
+      )
+    `);
+    console.log("Tabla 'platform_notifications' creada o ya existente");
+
+    // Crear tabla de métricas de plataforma
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS platform_metrics (
+        id SERIAL PRIMARY KEY,
+        metric_date TIMESTAMP NOT NULL,
+        mrr DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        total_companies INTEGER NOT NULL DEFAULT 0,
+        active_companies INTEGER NOT NULL DEFAULT 0,
+        trial_companies INTEGER NOT NULL DEFAULT 0,
+        suspended_companies INTEGER NOT NULL DEFAULT 0,
+        cancelled_companies INTEGER NOT NULL DEFAULT 0,
+        total_revenue DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        pending_invoices INTEGER NOT NULL DEFAULT 0,
+        overdue_invoices INTEGER NOT NULL DEFAULT 0,
+        overdue_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        new_companies_this_month INTEGER NOT NULL DEFAULT 0,
+        churned_companies_this_month INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    console.log("Tabla 'platform_metrics' creada o ya existente");
 
     console.log("Configuración de tablas de plataforma completada con éxito");
     return true;

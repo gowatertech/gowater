@@ -426,6 +426,62 @@ export async function registerRoutes(router: express.Router) {
     
     res.json(req.session.user);
   });
+  
+  // Endpoint para verificar el estado de la empresa (suspensión, etc.)
+  router.get("/company-status", async (req, res) => {
+    try {
+      const companyId = req.session?.companyId || req.session?.user?.companyId;
+      
+      if (!companyId) {
+        return res.status(401).json({ 
+          success: false,
+          message: "No autenticado o sin empresa asignada"
+        });
+      }
+      
+      // Obtener el estado de la empresa desde la base de datos de plataforma
+      const { companies } = await import("@shared/platform-schema");
+      const [company] = await platformDb
+        .select({ 
+          id: companies.id,
+          name: companies.name,
+          status: companies.status,
+          suspensionReason: companies.suspensionReason,
+          suspendedAt: companies.suspendedAt,
+          expirationDate: companies.expirationDate,
+          gracePeriodEnds: companies.gracePeriodEnds
+        })
+        .from(companies)
+        .where(eq(companies.id, companyId));
+      
+      if (!company) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Empresa no encontrada"
+        });
+      }
+      
+      res.json({
+        success: true,
+        company: {
+          id: company.id,
+          name: company.name,
+          status: company.status || 'active',
+          suspended: company.status === 'suspended',
+          suspensionReason: company.suspensionReason,
+          suspendedAt: company.suspendedAt,
+          expirationDate: company.expirationDate,
+          gracePeriodEnds: company.gracePeriodEnds
+        }
+      });
+    } catch (error) {
+      console.error("Error al obtener estado de empresa:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error al verificar estado de la empresa"
+      });
+    }
+  });
 
   // Los endpoints para rutas y pedidos ya se registraron anteriormente
   

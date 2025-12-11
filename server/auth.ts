@@ -9,6 +9,7 @@ import { eq, and } from 'drizzle-orm';
 import { setCurrentCompanyId } from './company-db';
 import connectPg from 'connect-pg-simple';
 import { pool } from './db';
+import { platformStorage } from './platform-storage';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -424,6 +425,51 @@ export function setupAuth(app: Express) {
       success: true,
       companyId
     });
+  });
+  
+  // Endpoint para obtener el estado de la empresa (suspensión, etc.)
+  app.get('/api/company-status', async (req, res) => {
+    try {
+      const companyId = req.session.companyId || (req.user ? (req.user as Express.User).companyId : null);
+      
+      if (!companyId) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontró un ID de empresa asociado a la sesión actual'
+        });
+      }
+      
+      // Obtener la información de la empresa desde el almacenamiento de plataforma
+      const company = await platformStorage.getCompany(companyId);
+      
+      if (!company) {
+        return res.status(404).json({
+          success: false,
+          message: 'Empresa no encontrada'
+        });
+      }
+      
+      // Devolver información de estado de la empresa
+      return res.status(200).json({
+        success: true,
+        company: {
+          id: company.id,
+          name: company.name,
+          status: company.status,
+          suspended: company.status === 'suspended',
+          suspensionReason: company.suspensionReason || null,
+          suspendedAt: company.suspendedAt || null,
+          expirationDate: company.expirationDate || null,
+          gracePeriodEnds: company.gracePeriodEnds || null
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener estado de empresa:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno al obtener estado de empresa'
+      });
+    }
   });
 }
 
