@@ -198,12 +198,17 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async updatePlan(id: number, data: Partial<InsertPlan>): Promise<Plan> {
-    // Preparar los datos para actualizar
     const updateData: any = { ...data };
     
-    // Convertir price a string si está presente
+    // Convertir valores decimales a string para la base de datos
     if (updateData.price !== undefined) {
       updateData.price = updateData.price.toString();
+    }
+    if (updateData.quarterlyDiscount !== undefined) {
+      updateData.quarterlyDiscount = updateData.quarterlyDiscount.toString();
+    }
+    if (updateData.yearlyDiscount !== undefined) {
+      updateData.yearlyDiscount = updateData.yearlyDiscount.toString();
     }
     
     const [updated] = await platformDb
