@@ -604,38 +604,45 @@ export class PlatformStorage implements IPlatformStorage {
     
     const now = new Date();
     
-    // Actualizar la empresa
-    const [updated] = await platformDb
-      .update(companies)
-      .set({
-        status: "suspended",
-        active: false,
-        suspendedAt: now,
-        suspensionReason: reason,
-      })
-      .where(eq(companies.id, companyId))
-      .returning();
-    
-    // Registrar en historial
-    await this.createStatusHistory({
-      companyId,
-      previousStatus,
-      newStatus: "suspended",
-      reason,
-      changedBy,
-      metadata: JSON.stringify({ suspendedAt: now.toISOString() }),
+    // Ejecutar todas las operaciones en una transacción atómica
+    const result = await platformDb.transaction(async (tx) => {
+      // 1. Actualizar la empresa
+      const [updated] = await tx
+        .update(companies)
+        .set({
+          status: "suspended",
+          active: false,
+          suspendedAt: now,
+          suspensionReason: reason,
+        })
+        .where(eq(companies.id, companyId))
+        .returning();
+      
+      // 2. Registrar en historial
+      await tx.insert(companyStatusHistory).values({
+        companyId,
+        previousStatus,
+        newStatus: "suspended",
+        reason,
+        changedBy,
+        metadata: JSON.stringify({ suspendedAt: now.toISOString() }),
+        createdAt: now,
+      });
+      
+      // 3. Crear notificación
+      await tx.insert(platformNotifications).values({
+        companyId,
+        type: "company_suspended",
+        title: "Cuenta Suspendida",
+        message: `Su cuenta ha sido suspendida. Razón: ${reason}`,
+        status: "pending",
+        createdAt: now,
+      });
+      
+      return updated;
     });
     
-    // Crear notificación
-    await this.createNotification({
-      companyId,
-      type: "company_suspended",
-      title: "Cuenta Suspendida",
-      message: `Su cuenta ha sido suspendida. Razón: ${reason}`,
-      status: "pending",
-    });
-    
-    // Limpiar caché de suspensión
+    // Limpiar caché de suspensión (fuera de la transacción)
     try {
       const { clearCompanySuspensionCache } = await import('./middleware/consolidated-company.middleware');
       clearCompanySuspensionCache(companyId);
@@ -643,7 +650,7 @@ export class PlatformStorage implements IPlatformStorage {
       console.log('[Platform Storage] No se pudo limpiar caché de suspensión');
     }
     
-    return updated;
+    return result;
   }
 
   async reactivateCompany(companyId: number, changedBy?: number): Promise<Company> {
@@ -665,40 +672,47 @@ export class PlatformStorage implements IPlatformStorage {
     
     const now = new Date();
     
-    // Actualizar la empresa
-    const [updated] = await platformDb
-      .update(companies)
-      .set({
-        status: "active",
-        active: true,
-        suspendedAt: null,
-        suspensionReason: null,
-        gracePeriodEnds: null,
-        lastPaymentDate: now,
-      })
-      .where(eq(companies.id, companyId))
-      .returning();
-    
-    // Registrar en historial
-    await this.createStatusHistory({
-      companyId,
-      previousStatus,
-      newStatus: "active",
-      reason: "Cuenta reactivada",
-      changedBy,
-      metadata: JSON.stringify({ reactivatedAt: now.toISOString() }),
+    // Ejecutar todas las operaciones en una transacción atómica
+    const result = await platformDb.transaction(async (tx) => {
+      // 1. Actualizar la empresa
+      const [updated] = await tx
+        .update(companies)
+        .set({
+          status: "active",
+          active: true,
+          suspendedAt: null,
+          suspensionReason: null,
+          gracePeriodEnds: null,
+          lastPaymentDate: now,
+        })
+        .where(eq(companies.id, companyId))
+        .returning();
+      
+      // 2. Registrar en historial
+      await tx.insert(companyStatusHistory).values({
+        companyId,
+        previousStatus,
+        newStatus: "active",
+        reason: "Cuenta reactivada",
+        changedBy,
+        metadata: JSON.stringify({ reactivatedAt: now.toISOString() }),
+        createdAt: now,
+      });
+      
+      // 3. Crear notificación
+      await tx.insert(platformNotifications).values({
+        companyId,
+        type: "company_reactivated",
+        title: "Cuenta Reactivada",
+        message: "Su cuenta ha sido reactivada exitosamente.",
+        status: "pending",
+        createdAt: now,
+      });
+      
+      return updated;
     });
     
-    // Crear notificación
-    await this.createNotification({
-      companyId,
-      type: "company_reactivated",
-      title: "Cuenta Reactivada",
-      message: "Su cuenta ha sido reactivada exitosamente.",
-      status: "pending",
-    });
-    
-    // Limpiar caché de suspensión
+    // Limpiar caché de suspensión (fuera de la transacción)
     try {
       const { clearCompanySuspensionCache } = await import('./middleware/consolidated-company.middleware');
       clearCompanySuspensionCache(companyId);
@@ -706,7 +720,7 @@ export class PlatformStorage implements IPlatformStorage {
       console.log('[Platform Storage] No se pudo limpiar caché de suspensión');
     }
     
-    return updated;
+    return result;
   }
 
   async getCompaniesNearExpiration(daysAhead: number): Promise<Company[]> {
