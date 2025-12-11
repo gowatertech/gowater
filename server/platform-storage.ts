@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import { platformDb, platformPool } from "./platform-db";
 import {
   companies,
@@ -817,6 +817,142 @@ export class PlatformStorage implements IPlatformStorage {
       newCompaniesThisMonth: parseInt(counts.new_this_month || "0"),
       churnedCompaniesThisMonth: 0, // Se calculará basado en historial
     });
+  }
+
+  // =============================================
+  // SISTEMA DE RECORDATORIOS AUTOMÁTICOS
+  // =============================================
+
+  async generateExpirationReminders(): Promise<{ created: number; companies: number[] }> {
+    const now = new Date();
+    const reminderDays = [7, 3, 1]; // Días antes del vencimiento para enviar recordatorio
+    const createdNotifications: number[] = [];
+    const affectedCompanies: number[] = [];
+
+    for (const daysAhead of reminderDays) {
+      // Calcular la fecha exacta de vencimiento que corresponde a este recordatorio
+      const targetDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+      // Buscar empresas que vencen ese día específico
+      const companiesExpiring = await platformDb
+        .select()
+        .from(companies)
+        .where(and(
+          eq(companies.status, "active"),
+          gte(companies.expirationDate, startOfDay),
+          lte(companies.expirationDate, endOfDay)
+        ));
+
+      for (const company of companiesExpiring) {
+        // Verificar si ya existe una notificación similar pendiente
+        const existingNotif = await platformDb
+          .select()
+          .from(platformNotifications)
+          .where(and(
+            eq(platformNotifications.companyId, company.id),
+            eq(platformNotifications.type, "payment_reminder"),
+            eq(platformNotifications.status, "pending")
+          ))
+          .limit(1);
+
+        if (existingNotif.length === 0) {
+          const [notification] = await platformDb
+            .insert(platformNotifications)
+            .values({
+              companyId: company.id,
+              type: "payment_reminder",
+              title: `Recordatorio: Su membresía vence en ${daysAhead} día(s)`,
+              message: `La membresía de ${company.name} vencerá el ${company.expirationDate?.toLocaleDateString('es-ES')}. Por favor, realice el pago para evitar la suspensión del servicio.`,
+              status: "pending",
+              scheduledFor: now,
+              createdAt: now,
+            })
+            .returning();
+
+          createdNotifications.push(notification.id);
+          if (!affectedCompanies.includes(company.id)) {
+            affectedCompanies.push(company.id);
+          }
+        }
+      }
+    }
+
+    return { created: createdNotifications.length, companies: affectedCompanies };
+  }
+
+  async processOverdueCompanies(gracePeriodDays: number = 7): Promise<{ suspended: number; warned: number }> {
+    const now = new Date();
+    let suspendedCount = 0;
+    let warnedCount = 0;
+
+    // Obtener empresas con pagos vencidos
+    const overdueCompanies = await this.getOverdueCompanies();
+
+    for (const company of overdueCompanies) {
+      if (!company.expirationDate) continue;
+
+      const daysPastDue = Math.floor((now.getTime() - company.expirationDate.getTime()) / (24 * 60 * 60 * 1000));
+
+      if (daysPastDue >= gracePeriodDays) {
+        // Si ya pasó el período de gracia, suspender
+        try {
+          await this.suspendCompany(
+            company.id,
+            `Suspensión automática: ${daysPastDue} días de mora`,
+            "Sistema Automático"
+          );
+          suspendedCount++;
+        } catch (e) {
+          console.error(`Error suspendiendo empresa ${company.id}:`, e);
+        }
+      } else {
+        // Si está en período de gracia, enviar advertencia
+        const existingWarning = await platformDb
+          .select()
+          .from(platformNotifications)
+          .where(and(
+            eq(platformNotifications.companyId, company.id),
+            eq(platformNotifications.type, "suspension_warning"),
+            eq(platformNotifications.status, "pending")
+          ))
+          .limit(1);
+
+        if (existingWarning.length === 0) {
+          await platformDb.insert(platformNotifications).values({
+            companyId: company.id,
+            type: "suspension_warning",
+            title: "Advertencia: Su cuenta será suspendida",
+            message: `Su membresía está vencida hace ${daysPastDue} día(s). Su cuenta será suspendida en ${gracePeriodDays - daysPastDue} día(s) si no realiza el pago.`,
+            status: "pending",
+            createdAt: now,
+          });
+          warnedCount++;
+        }
+      }
+    }
+
+    return { suspended: suspendedCount, warned: warnedCount };
+  }
+
+  async markNotificationsSent(companyId: number, types?: string[]): Promise<number> {
+    const now = new Date();
+    const conditions = [
+      eq(platformNotifications.companyId, companyId),
+      eq(platformNotifications.status, "pending")
+    ];
+
+    if (types && types.length > 0) {
+      conditions.push(inArray(platformNotifications.type, types));
+    }
+
+    const result = await platformDb
+      .update(platformNotifications)
+      .set({ status: "sent", sentAt: now })
+      .where(and(...conditions));
+
+    return result.rowCount ?? 0;
   }
 }
 

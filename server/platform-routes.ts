@@ -1748,5 +1748,53 @@ export function registerPlatformRoutes(router: Router) {
     }
   });
 
+  // =============================================
+  // ENDPOINTS DE PROCESAMIENTO AUTOMÁTICO
+  // =============================================
+
+  router.post("/reminders/generate", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const result = await platformStorage.generateExpirationReminders();
+      res.json({
+        success: true,
+        message: `Se crearon ${result.created} recordatorio(s) para ${result.companies.length} empresa(s)`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error al generar recordatorios:", error);
+      res.status(500).json({ message: "Error al generar recordatorios automáticos" });
+    }
+  });
+
+  router.post("/overdue/process", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const gracePeriodDays = parseInt(req.query.gracePeriod as string) || 7;
+      const result = await platformStorage.processOverdueCompanies(gracePeriodDays);
+      res.json({
+        success: true,
+        message: `Procesamiento completado: ${result.suspended} empresa(s) suspendida(s), ${result.warned} advertencia(s) enviada(s)`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error al procesar empresas vencidas:", error);
+      res.status(500).json({ message: "Error al procesar empresas vencidas" });
+    }
+  });
+
+  router.patch("/notifications/:companyId/mark-sent", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.companyId);
+      const { types } = req.body;
+      const count = await platformStorage.markNotificationsSent(companyId, types);
+      res.json({
+        success: true,
+        message: `${count} notificación(es) marcada(s) como enviada(s)`
+      });
+    } catch (error) {
+      console.error("Error al marcar notificaciones:", error);
+      res.status(500).json({ message: "Error al marcar notificaciones como enviadas" });
+    }
+  });
+
   return router;
 }
