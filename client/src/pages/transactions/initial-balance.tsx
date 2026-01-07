@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Customer, insertTransactionSchema } from "@shared/schema";
@@ -26,16 +27,25 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowLeft,
-  FileText
+  FileText,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 // Schema para el formulario (sin companyId que se inyecta del servidor)
 const formSchema = insertTransactionSchema.omit({ companyId: true }).extend({
@@ -49,11 +59,17 @@ export default function RegisterInitialBalance() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
 
   // Fetch customers
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
+
+  const getSelectedCustomer = (customerId: number | undefined) => {
+    if (!customerId) return null;
+    return customers.find(c => c.id === customerId);
+  };
 
   // Form con Zod resolver
   const form = useForm<z.infer<typeof formSchema>>({
@@ -147,42 +163,83 @@ export default function RegisterInitialBalance() {
           <CardContent className="pt-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Seleccionar Cliente */}
+                {/* Seleccionar Cliente con búsqueda */}
                 <FormField
                   control={form.control}
                   name="customerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cliente</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-customer">
-                            <SelectValue placeholder="Seleccionar cliente" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingCustomers ? (
-                            <SelectItem value="loading-placeholder" disabled>Cargando clientes...</SelectItem>
-                          ) : customers.length === 0 ? (
-                            <SelectItem value="no-customers-placeholder" disabled>No hay clientes registrados</SelectItem>
-                          ) : (
-                            customers.map((customer) => (
-                              <SelectItem
-                                key={customer.id}
-                                value={customer.id.toString()}
+                  render={({ field }) => {
+                    const selectedCustomer = getSelectedCustomer(field.value);
+                    return (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Cliente</FormLabel>
+                        <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={customerSearchOpen}
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                                data-testid="select-customer"
                               >
-                                {customer.businessname}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                                {selectedCustomer 
+                                  ? `${selectedCustomer.businessname} - ${selectedCustomer.phone}`
+                                  : "Buscar cliente por nombre, teléfono..."
+                                }
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0" align="start">
+                            <Command>
+                              <CommandInput 
+                                placeholder="Buscar por nombre, teléfono, RNC..." 
+                                data-testid="input-search-customer"
+                              />
+                              <CommandList>
+                                <CommandEmpty>
+                                  {isLoadingCustomers 
+                                    ? "Cargando clientes..." 
+                                    : "No se encontraron clientes"
+                                  }
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {customers.map((customer) => (
+                                    <CommandItem
+                                      key={customer.id}
+                                      value={`${customer.businessname} ${customer.phone} ${customer.rnc || ''} ${customer.managername}`}
+                                      onSelect={() => {
+                                        field.onChange(customer.id);
+                                        setCustomerSearchOpen(false);
+                                      }}
+                                      data-testid={`customer-option-${customer.id}`}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === customer.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{customer.businessname}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {customer.phone} {customer.rnc && `| RNC: ${customer.rnc}`}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 {/* Monto */}
