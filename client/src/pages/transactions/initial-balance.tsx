@@ -135,19 +135,19 @@ export default function RegisterInitialBalance() {
   };
 
   return (
-    <div className="container mx-auto py-4">
+    <div className="container mx-auto px-4 py-4">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => setLocation("/customers")}
-            className="gap-1"
+            className="gap-1 w-fit"
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" /> Volver
           </Button>
-          <h1 className="text-xl font-bold flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <FileText className="h-5 w-5 text-blue-500" />
             Registrar CxC Inicial
           </h1>
@@ -193,7 +193,7 @@ export default function RegisterInitialBalance() {
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0" align="start">
+                          <PopoverContent className="w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] p-0" align="start">
                             <Command>
                               <CommandInput 
                                 placeholder="Buscar por nombre, teléfono, RNC..." 
@@ -291,11 +291,12 @@ export default function RegisterInitialBalance() {
                 />
 
                 {/* Botones */}
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => form.reset()}
+                    className="w-full sm:w-auto"
                     data-testid="button-cancel"
                   >
                     Cancelar
@@ -303,6 +304,7 @@ export default function RegisterInitialBalance() {
                   <Button
                     type="submit"
                     disabled={createInitialBalanceMutation.isPending}
+                    className="w-full sm:w-auto"
                     data-testid="button-submit"
                   >
                     {createInitialBalanceMutation.isPending ? "Registrando..." : "Registrar CxC Inicial"}
