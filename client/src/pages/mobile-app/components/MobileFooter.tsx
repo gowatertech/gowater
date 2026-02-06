@@ -15,7 +15,7 @@ export const MobileFooter: React.FC<MobileFooterProps> = ({ darkMode = false }) 
   };
 
   return (
-    <footer className={`fixed bottom-0 left-0 right-0 w-full border-t shadow-sm py-2 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
+    <footer className={`mobile-footer fixed bottom-0 left-0 right-0 w-full border-t shadow-sm py-2 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
       <nav className="flex justify-around items-center px-2">
         <Button
           variant="ghost"

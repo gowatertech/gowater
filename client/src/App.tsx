@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { ProtectedRoute } from "@/components/protected-route";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initCapacitorPlugins, isNative } from "@/lib/capacitor";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
@@ -94,9 +95,19 @@ function Router() {
   // No envolver en DashboardLayout si estamos en la app móvil PWA
   const isMobileApp = location.startsWith("/mobile-app");
   
-  // Registrar el Service Worker para PWA
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
+    if (isNative) {
+      initCapacitorPlugins();
+      document.body.classList.add('capacitor-native');
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator && !isNative) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
@@ -109,14 +120,14 @@ function Router() {
     }
   }, []);
   
-  // Agregar el enlace al manifest.json en el head para PWA
   useEffect(() => {
+    if (isNative) return;
+    
     const manifestLink = document.createElement('link');
     manifestLink.rel = 'manifest';
     manifestLink.href = '/manifest.json';
     document.head.appendChild(manifestLink);
     
-    // Meta tags para PWA
     const metaThemeColor = document.createElement('meta');
     metaThemeColor.name = 'theme-color';
     metaThemeColor.content = '#2563eb';
@@ -127,7 +138,6 @@ function Router() {
     metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
     document.head.appendChild(metaViewport);
     
-    // Apple specific tags para PWA en iOS
     const appleCapable = document.createElement('meta');
     appleCapable.name = 'apple-mobile-web-app-capable';
     appleCapable.content = 'yes';
@@ -143,21 +153,18 @@ function Router() {
     appleTouchIcon.href = '/images/icons/apple-touch-icon.svg';
     document.head.appendChild(appleTouchIcon);
     
-    // Crear elementos link para diferentes tamaños de íconos Apple usando HTML directo
     const iconSizes = ['180x180', '152x152', '120x120', '76x76'];
     const touchIcons: HTMLElement[] = [];
     
     iconSizes.forEach(size => {
       const linkElement = document.createElement('link');
       linkElement.rel = 'apple-touch-icon';
-      // Usar setAttribute en lugar de asignar directamente
       linkElement.setAttribute('sizes', size);
       linkElement.href = '/images/icons/apple-touch-icon.svg';
       document.head.appendChild(linkElement);
       touchIcons.push(linkElement);
     });
     
-    // Apple Splash Screen
     const appleSplashScreen = document.createElement('meta');
     appleSplashScreen.name = 'apple-mobile-web-app-title';
     appleSplashScreen.content = 'GoWater Driver';
@@ -170,7 +177,6 @@ function Router() {
       document.head.removeChild(appleCapable);
       document.head.removeChild(appleStatusBar);
       document.head.removeChild(appleTouchIcon);
-      // Eliminar los íconos de touch
       touchIcons.forEach(icon => document.head.removeChild(icon));
       document.head.removeChild(appleSplashScreen);
     };

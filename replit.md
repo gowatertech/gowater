@@ -61,6 +61,17 @@ A comprehensive **daily cash reconciliation module** (`/cash-reconciliation`) pr
 ### Daily Commission System
 Implemented a comprehensive daily commission system for delivery personnel based on commissionable products. This includes database fields for `users.hasCommission`, `orders.salespersonId`, and product-specific commission values (`isCommissionable`, `driverCommissionValue`, `helperCommissionValue`). Commissions are calculated in real-time from delivered orders, aggregated daily, and controlled at the user level. The system features a redesigned commissions dashboard with quick filters, custom date ranges, advanced filters, summary statistics, visual analytics, and a detailed daily breakdown. Salesperson visibility and editing are integrated into order management views to support commission tracking.
 
+### Native Mobile App (Capacitor)
+The mobile driver app is configured with **Capacitor** for native iOS and Android deployment. Key files:
+- `capacitor.config.ts`: Main Capacitor configuration (app ID: `com.gowater.driver`)
+- `client/src/lib/capacitor.ts`: Native plugin utilities (GPS, push notifications, haptics, network, camera)
+- `docs/MOBILE-APP-BUILD.md`: Complete build and publish guide
+- `scripts/capacitor-build.sh`: Automated build script
+
+Native plugins integrated: `@capacitor/geolocation`, `@capacitor/push-notifications`, `@capacitor/camera`, `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/haptics`, `@capacitor/keyboard`, `@capacitor/network`, `@capacitor/app`.
+
+CSS safe area support added in `client/src/index.css` with `.capacitor-native` class for proper rendering on notched devices. MobileHeader and MobileFooter components include safe area classes.
+
 ## External Dependencies
 ### Core Infrastructure
 -   **PostgreSQL Database**

@@ -31,7 +31,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   const isDetailView = !!title;
   
   return (
-    <header className={`sticky top-0 z-10 p-4 shadow-sm border-b ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
+    <header className={`mobile-header sticky top-0 z-10 p-4 shadow-sm border-b ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {showBackButton && (
