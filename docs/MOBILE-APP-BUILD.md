@@ -5,7 +5,61 @@ GoWater Driver usa **Capacitor** para empaquetar la app web como aplicación nat
 
 ---
 
-## Requisitos Previos
+## Modo Desarrollo: Android Studio conectado a Replit
+
+Esta es la forma más rápida de ver tu app en un emulador Android mientras desarrollas en Replit. La app en el emulador se conecta directamente a tu servidor en Replit, así que **cada cambio que hagas en Replit se refleja inmediatamente** al refrescar.
+
+### Requisitos
+- **Android Studio** instalado en tu computadora (descarga: https://developer.android.com/studio)
+- **Node.js 18+** instalado en tu computadora
+
+### Pasos (solo una vez):
+
+```bash
+# 1. Clonar o descargar el proyecto desde Replit
+#    (Usa el botón "Download as zip" en Replit, o clona con Git)
+
+# 2. Abrir una terminal en la carpeta del proyecto
+cd gowater
+
+# 3. Instalar dependencias
+npm install
+
+# 4. Agregar la plataforma Android
+npx cap add android
+
+# 5. Sincronizar
+npx cap sync
+
+# 6. Abrir en Android Studio
+npx cap open android
+```
+
+### En Android Studio:
+1. Espera a que termine de indexar el proyecto (primera vez toma unos minutos)
+2. Selecciona un emulador (o conecta tu teléfono Android por USB con modo desarrollador)
+3. Dale click al botón **Run** (triángulo verde ▶️)
+4. La app se abre y carga directamente desde tu servidor Replit
+
+### Cómo funciona:
+- El archivo `capacitor.config.ts` ya tiene configurada la URL de tu servidor Replit
+- La app en el emulador es básicamente un navegador nativo apuntando a tu proyecto
+- Cuando haces cambios en Replit, solo refresca la app en el emulador para verlos
+- Tienes acceso a funciones nativas (GPS, cámara, vibración) que no están disponibles en el navegador
+
+### Para cambiar la URL (si tu proyecto Replit cambia):
+Edita la variable `devUrl` en `capacitor.config.ts`:
+```typescript
+const devUrl = 'https://TU-URL-AQUI.replit.dev/mobile-app';
+```
+Luego ejecuta `npx cap sync` y vuelve a correr la app.
+
+### Importante para producción:
+Cuando estés listo para publicar en Google Play, **comenta o elimina** la línea `url: devUrl` en `capacitor.config.ts` para que la app use los archivos empaquetados localmente en lugar de conectarse a un servidor externo.
+
+---
+
+## Requisitos Previos para Publicación
 
 ### Para Android
 - **Android Studio** (última versión estable)
@@ -32,7 +86,7 @@ GoWater Driver usa **Capacitor** para empaquetar la app web como aplicación nat
 
 ---
 
-## Paso 1: Preparar el Build
+## Publicación: Preparar el Build
 
 ### Desde tu máquina local (no en Replit):
 
