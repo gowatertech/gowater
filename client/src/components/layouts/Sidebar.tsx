@@ -189,6 +189,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarProps {
@@ -201,6 +202,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const [activeItems, setActiveItems] = useState<string[]>([]);
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
   
   const handleLogout = async () => {
     try {
@@ -262,11 +264,21 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     <div className="flex h-full flex-col bg-white shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)]">
       <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-white/20">
-            <Droplet className="h-6 w-6 text-white" />
-          </div>
+          {settings?.logo ? (
+            <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img 
+                src={settings.logo.startsWith('data:') ? settings.logo : `data:image/png;base64,${settings.logo}`}
+                alt={settings?.name || 'Logo'}
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="p-2 rounded-xl bg-white/20">
+              <Droplet className="h-6 w-6 text-white" />
+            </div>
+          )}
           <span className="text-xl font-bold text-white tracking-tight">
-            GoWater
+            {settings?.name || 'GoWater'}
           </span>
         </div>
       </div>

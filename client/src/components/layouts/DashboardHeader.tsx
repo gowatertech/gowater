@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { FileBarChart, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useToast } from "@/hooks/use-toast";
 import { formatTodayCompactRD } from "@/lib/date-utils";
@@ -75,8 +75,15 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-white/30 shadow-md">
+            {settings?.logo && (
+              <AvatarImage 
+                src={settings.logo.startsWith('data:') ? settings.logo : `data:image/png;base64,${settings.logo}`}
+                alt={settings?.name || 'Logo'}
+                className="object-contain bg-white p-0.5"
+              />
+            )}
             <AvatarFallback className="bg-white/20 text-white font-bold text-sm">
-              {getInitials(userData?.name)}
+              {getInitials(settings?.name || userData?.companyName)}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
