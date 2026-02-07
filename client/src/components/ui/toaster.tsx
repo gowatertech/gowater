@@ -28,7 +28,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport className={isAndroid ? "!top-16" : ""} />
+      <ToastViewport className={isAndroid ? "!bottom-20" : ""} />
     </ToastProvider>
   )
 }
