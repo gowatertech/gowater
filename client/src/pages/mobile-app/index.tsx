@@ -28,6 +28,7 @@ import { MobileHeader } from "./components/MobileHeader";
 import { MobileFooter } from "./components/MobileFooter";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { OfflineBanner, SyncStatusModal } from "@/components/sync";
+import { isNative } from "@/lib/capacitor";
 
 interface Route {
   id: number;
@@ -207,7 +208,7 @@ export default function GoWaterDriverApp() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} pb-20`}>
-      {showInstallPrompt && <InstallPrompt onClose={() => setShowInstallPrompt(false)} />}
+      {!isNative && showInstallPrompt && <InstallPrompt onClose={() => setShowInstallPrompt(false)} />}
       
       <OfflineBanner sticky showDismiss />
       

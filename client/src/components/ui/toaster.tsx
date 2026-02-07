@@ -7,12 +7,13 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { isNative, isAndroid } from "@/lib/capacitor"
 
 export function Toaster() {
   const { toasts } = useToast()
 
   return (
-    <ToastProvider>
+    <ToastProvider duration={3000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
@@ -27,7 +28,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport />
+      <ToastViewport className={isAndroid ? "!top-16" : ""} />
     </ToastProvider>
   )
 }

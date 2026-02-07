@@ -1,6 +1,7 @@
 import { ArrowLeft, Bell, RefreshCw, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OfflineSyncIndicator } from "@/components/OfflineSyncIndicator";
+import { isNative } from "@/lib/capacitor";
 import { User } from "@/hooks/use-current-user";
 import { formatTodayCompactRD } from "@/lib/date-utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -103,10 +104,12 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               </Button>
             )}
             
-            <OfflineSyncIndicator 
-              driverId={user?.id}
-              darkMode={true}
-            />
+            {!isNative && (
+              <OfflineSyncIndicator 
+                driverId={user?.id}
+                darkMode={true}
+              />
+            )}
             
             <Button
               variant="ghost"

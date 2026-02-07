@@ -22,6 +22,7 @@ import { es } from "date-fns/locale";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { InstallPrompt } from "../components/InstallPrompt";
+import { isNative } from "@/lib/capacitor";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { Badge } from "@/components/ui/badge";
@@ -417,7 +418,7 @@ export default function MobilePendingRoutes() {
         companyName={companyName} 
       />
       
-      {showInstallPrompt && (
+      {!isNative && showInstallPrompt && (
         <InstallPrompt onClose={() => {
           setShowInstallPrompt(false);
           safeLocalStorageSet('pwaPromptShown', 'true');
