@@ -19,6 +19,20 @@ The system uses a **shared database, shared schema** multi-tenancy model, isolat
 ### Frontend Architecture
 Built with **React 18** and TypeScript, it uses **Wouter** for routing, **TanStack Query** for server state, and **React Hook Form + Zod** for validation. The UI utilizes **shadcn/ui + Tailwind CSS**, follows a **mobile-first design**, and is configured as a **Progressive Web App (PWA)**. The mobile driver app features an **offline-first architecture** with **IndexedDB Persistent Storage**, an **Intelligent Sync Service**, an **Enhanced Service Worker**, and a **Conflict Resolution System**.
 
+### UI/UX Design System (Updated Feb 2026)
+The entire application (web and mobile) uses a unified modern design system:
+- **Theme**: `primary: #2563eb`, `radius: 0.75`, `variant: professional`, `appearance: light`
+- **Gradient Blue Headers**: `bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700` with white text
+- **Cards**: `rounded-2xl shadow-sm` throughout
+- **Icon Backgrounds**: Colored icon containers (w-8/w-10 h-8/h-10 rounded-xl) with 15% opacity backgrounds
+- **KPICard Colors**: blue, emerald, amber, purple via `color` prop
+- **Login**: Gradient blue background + frosted glass card (bg-white/95 backdrop-blur-md)
+- **Sidebar**: Gradient blue header, colored icon backgrounds per menu item, clean hover states
+- **DashboardHeader**: Gradient blue banner with user avatar (AvatarFallback with initials)
+- **Content Areas**: bg-gray-50 backgrounds
+- **Landing Page**: Gradient blue hero, modern feature cards with colored icons, dot pattern overlays
+- **Buttons**: Gradient `from-blue-600 to-indigo-600` for primary, white for CTAs on dark backgrounds
+
 ### Backend Architecture
 Provides **RESTful API endpoints** with modular routing. Key services include a **Route Optimization Service** (using Turf.js), a **Recurring Orders Service**, and a **Storage Service**.
 
