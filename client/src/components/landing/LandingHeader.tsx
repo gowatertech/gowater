@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -16,14 +16,12 @@ export function LandingHeader() {
   const [isAccesosOpen, setIsAccesosOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Helper function to determine if a link is active
   const isActive = (path: string) => {
     if (path === "/" && location === "/") return true;
     if (path !== "/" && location.startsWith(path)) return true;
     return false;
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -41,27 +39,26 @@ export function LandingHeader() {
   }, [isAccesosOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 shadow-lg">
       <div className="container mx-auto flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-blue-50">
-            <Droplet className="h-6 w-6 text-primary" />
+          <div className="p-1.5 rounded-xl bg-white/20">
+            <Droplet className="h-6 w-6 text-white" />
           </div>
-          <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <span className="text-xl font-semibold text-white">
             GoWater
           </span>
         </div>
 
-        {/* Main navigation menu */}
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-1">
           <Link href="/">
-            <Button variant="ghost" className={`font-medium ${isActive("/") ? "bg-primary/10" : ""}`}>Inicio</Button>
+            <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/") ? "bg-white/15" : ""}`}>Inicio</Button>
           </Link>
           <Link href="/planes">
-            <Button variant="ghost" className={`font-medium ${isActive("/planes") ? "bg-primary/10" : ""}`}>Planes</Button>
+            <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/planes") ? "bg-white/15" : ""}`}>Planes</Button>
           </Link>
           <Link href="/soporte">
-            <Button variant="ghost" className={`font-medium ${isActive("/soporte") ? "bg-primary/10" : ""}`}>Soporte</Button>
+            <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/soporte") ? "bg-white/15" : ""}`}>Soporte</Button>
           </Link>
           <a href="#app-mobile" onClick={(e) => {
               e.preventDefault();
@@ -70,45 +67,46 @@ export function LandingHeader() {
                 element.scrollIntoView({ behavior: 'smooth' });
               }
             }}>
-            <Button variant="ghost" className="font-medium">App Móvil</Button>
+            <Button variant="ghost" className="font-medium text-white hover:bg-white/10 hover:text-white">App Móvil</Button>
           </a>
           <Link href="/contact">
             <Button 
               variant="ghost" 
-              className={`font-medium ${isActive("/contact") && !location.includes("demo") ? "bg-primary/10" : ""}`}
+              className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/contact") && !location.includes("demo") ? "bg-white/15" : ""}`}
             >
               Contáctanos
             </Button>
           </Link>
         </div>
 
-        {/* Mobile menu (hamburger) */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="p-0">
-              <div className="p-6 space-y-6">
-                <div className="flex items-center gap-2 mb-8">
-                  <div className="p-1.5 rounded-md bg-blue-50">
-                    <Droplet className="h-6 w-6 text-primary" />
+              <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 p-6">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-xl bg-white/20">
+                    <Droplet className="h-6 w-6 text-white" />
                   </div>
-                  <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                  <span className="text-xl font-semibold text-white">
                     GoWater
                   </span>
                 </div>
-                <nav className="space-y-4">
+              </div>
+              <div className="p-6 space-y-6">
+                <nav className="space-y-1">
                   <Link href="/">
-                    <div className={`block p-2 text-base font-medium rounded-md ${isActive("/") && location === "/" ? "bg-primary/10" : "hover:bg-muted"}`}>Inicio</div>
+                    <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/") && location === "/" ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Inicio</div>
                   </Link>
                   <Link href="/planes">
-                    <div className={`block p-2 text-base font-medium rounded-md ${isActive("/planes") ? "bg-primary/10" : "hover:bg-muted"}`}>Planes</div>
+                    <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/planes") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Planes</div>
                   </Link>
                   <Link href="/soporte">
-                    <div className={`block p-2 text-base font-medium rounded-md ${isActive("/soporte") ? "bg-primary/10" : "hover:bg-muted"}`}>Soporte</div>
+                    <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/soporte") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Soporte</div>
                   </Link>
                   <SheetClose asChild>
                     <a href="#app-mobile" onClick={(e) => {
@@ -120,42 +118,48 @@ export function LandingHeader() {
                           }
                         }, 100);
                       }}>
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
+                      <div className="block p-3 text-base font-medium hover:bg-gray-50 rounded-xl transition-colors">App Móvil</div>
                     </a>
                   </SheetClose>
                   <Link href="/contact">
-                    <div className={`block p-2 text-base font-medium rounded-md ${isActive("/contact") && !location.includes("demo") ? "bg-primary/10" : "hover:bg-muted"}`}>Contáctanos</div>
+                    <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/contact") && !location.includes("demo") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Contáctanos</div>
                   </Link>
                 </nav>
-                <div className="pt-6 border-t space-y-4">
-                  <h3 className="font-medium text-sm text-muted-foreground mb-2">ACCESOS</h3>
+                <div className="pt-6 border-t space-y-2">
+                  <h3 className="font-medium text-xs uppercase tracking-wider text-muted-foreground mb-3">Accesos</h3>
                   <SheetClose asChild>
                     <Link href="/auth/login">
-                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                        <Building2 className="h-4 w-4 text-primary" />
+                      <div className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                        </div>
                         <span className="font-medium">Iniciar sesión</span>
                       </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/platform/login">
-                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                        <ServerCog className="h-4 w-4 text-amber-600" />
+                      <div className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                          <ServerCog className="h-4 w-4 text-amber-600" />
+                        </div>
                         <span className="font-medium">Administración</span>
                       </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/mobile-app/login">
-                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                        <Smartphone className="h-4 w-4 text-emerald-600" />
+                      <div className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                          <Smartphone className="h-4 w-4 text-emerald-600" />
+                        </div>
                         <span className="font-medium">App Móvil</span>
                       </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/register-interest">
-                      <Button className="w-full mt-2">Registrar interés</Button>
+                      <Button className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 rounded-xl h-11 font-semibold">Registrar interés</Button>
                     </Link>
                   </SheetClose>
                 </div>
@@ -164,54 +168,58 @@ export function LandingHeader() {
           </Sheet>
         </div>
 
-        {/* Action buttons */}
-        <div className="hidden md:flex gap-4 items-center">
+        <div className="hidden md:flex gap-3 items-center">
           <div className="relative" ref={dropdownRef}>
             <Button 
               variant="ghost" 
-              className={isAccesosOpen ? "bg-accent" : ""}
+              className={`text-white hover:bg-white/10 hover:text-white ${isAccesosOpen ? "bg-white/15" : ""}`}
               onClick={() => setIsAccesosOpen(!isAccesosOpen)}
               data-testid="button-accesos"
             >
               Accesos <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
             </Button>
             {isAccesosOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-md py-1 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2">
+              <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl bg-white shadow-xl py-2 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2">
                 <Link href="/auth/login">
                   <div 
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => setIsAccesosOpen(false)}
                     data-testid="link-iniciar-sesion"
                   >
-                    <Building2 className="h-4 w-4 text-primary" />
-                    <span>Iniciar sesión</span>
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    <span className="font-medium">Iniciar sesión</span>
                   </div>
                 </Link>
                 <Link href="/platform/login">
                   <div 
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => setIsAccesosOpen(false)}
                     data-testid="link-administracion"
                   >
                     <ServerCog className="h-4 w-4 text-amber-600" />
-                    <span>Administración</span>
+                    <span className="font-medium">Administración</span>
                   </div>
                 </Link>
                 <Link href="/mobile-app/login">
                   <div 
-                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => setIsAccesosOpen(false)}
                     data-testid="link-app-movil"
                   >
                     <Smartphone className="h-4 w-4 text-emerald-600" />
-                    <span>App Móvil</span>
+                    <span className="font-medium">App Móvil</span>
                   </div>
                 </Link>
               </div>
             )}
           </div>
           <Link href="/register-interest">
-            <Button data-testid="button-registrar-interes">Registrar interés</Button>
+            <Button 
+              className="bg-white text-blue-600 hover:bg-white/90 font-semibold rounded-xl shadow-sm"
+              data-testid="button-registrar-interes"
+            >
+              Registrar interés
+            </Button>
           </Link>
         </div>
       </div>

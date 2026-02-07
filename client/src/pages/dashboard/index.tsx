@@ -273,7 +273,7 @@ export default function Dashboard() {
     <div className="space-y-4">
       {/* Panel con pestañas para diferentes vistas */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 mb-4">
+        <TabsList className="grid grid-cols-4 mb-4 rounded-xl bg-muted/60 p-1">
           <TabsTrigger value="overview">{t("Resumen")}</TabsTrigger>
           <TabsTrigger value="sales">{t("Ventas")}</TabsTrigger>
           <TabsTrigger value="operations">{t("Operaciones")}</TabsTrigger>
@@ -287,33 +287,37 @@ export default function Dashboard() {
             <KPICard 
               title={t("Ventas Hoy")}
               value={formatCurrency(stats?.dailySales || 0)}
-              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
+              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5" />}
               trend="+12%"
               trendUp={true}
+              color="blue"
               onClick={() => navigateTo("/billing")}
             />
             <KPICard 
               title={t("Pedidos Pendientes")}
               value={stats?.pendingOrders || 0}
-              icon={<Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
+              icon={<Package className="h-4 w-4 sm:h-5 sm:w-5" />}
               trend={"-3%"}
               trendUp={false}
+              color="amber"
               onClick={() => navigateTo("/orders")}
             />
             <KPICard 
               title={t("Rutas Activas")}
               value={routeStats?.activeRoutes || 0}
-              icon={<Map className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
+              icon={<Map className="h-4 w-4 sm:h-5 sm:w-5" />}
               trend={"+2"}
               trendUp={true}
+              color="emerald"
               onClick={() => navigateTo("/routes")}
             />
             <KPICard 
               title={t("Envases Pendientes")}
               value={bottleStats?.totalPendingQty || 0}
-              icon={<Droplet className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
+              icon={<Droplet className="h-4 w-4 sm:h-5 sm:w-5" />}
               trend={`${bottleStats?.pendingReturns || 0} pedidos`}
               trendUp={false}
+              color="purple"
               onClick={() => navigateTo("/bottles/pending")}
             />
           </div>
@@ -321,7 +325,7 @@ export default function Dashboard() {
           {/* Widgets Financieros - Grid de 3 columnas */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Widget Ventas del Mes */}
-            <Card className="overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-lg border-none">
+            <Card className="overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 shadow-lg border-none">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-center gap-2">
@@ -352,7 +356,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Widget CxC (Cuentas por Cobrar) */}
-            <Card className="overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-lg border-none">
+            <Card className="overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-lg border-none">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-center gap-2">
@@ -374,7 +378,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Widget Donaciones */}
-            <Card className="overflow-hidden bg-gradient-to-br from-green-600 via-green-700 to-green-800 shadow-lg border-none">
+            <Card className="overflow-hidden rounded-2xl bg-gradient-to-br from-green-600 via-green-700 to-green-800 shadow-lg border-none">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col space-y-3">
                   <div className="flex items-center gap-2">
@@ -415,7 +419,7 @@ export default function Dashboard() {
           </div>
           
           {/* Sección de alertas */}
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden rounded-2xl shadow-sm">
             <CardHeader className="pb-2 px-3 sm:px-6">
               <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
                 <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -431,7 +435,7 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Ventas */}
         <TabsContent value="sales" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="h-auto md:h-full overflow-hidden">
+            <Card className="h-auto md:h-full overflow-hidden rounded-2xl shadow-sm">
               <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen Financiero")}</CardTitle>
               </CardHeader>
@@ -474,7 +478,7 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Operaciones */}
         <TabsContent value="operations" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="h-auto md:h-full overflow-hidden">
+            <Card className="h-auto md:h-full overflow-hidden rounded-2xl shadow-sm">
               <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen de Rutas")}</CardTitle>
               </CardHeader>
@@ -516,7 +520,7 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Recursos */}
         <TabsContent value="resources" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="h-auto md:h-full overflow-hidden">
+            <Card className="h-auto md:h-full overflow-hidden rounded-2xl shadow-sm">
               <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen de Envases")}</CardTitle>
               </CardHeader>

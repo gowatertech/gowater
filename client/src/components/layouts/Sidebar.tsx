@@ -44,21 +44,19 @@ import {
   LogOut,
 } from "lucide-react";
 
-// Colores más modernos con un esquema basado en tonos gradientes
 const menuColors = {
-  dashboard: "#4F46E5", // Indigo 600
-  inventory: "#059669", // Emerald 600
-  routes: "#F59E0B", // Amber 500
-  operaciones: "#F59E0B", // Amber 500 - mismo color que routes
-  bottles: "#3B82F6", // Blue 500
-  payments: "#8B5CF6", // Violet 500
-  finanzas: "#8B5CF6", // Violet 500 - mismo color que payments
-  admin: "#EC4899", // Pink 500
-  administración: "#EC4899", // Pink 500 - mismo color que admin
-  settings: "#6366F1", // Indigo 500
+  dashboard: "#4F46E5",
+  inventory: "#059669",
+  routes: "#F59E0B",
+  operaciones: "#F59E0B",
+  bottles: "#3B82F6",
+  payments: "#8B5CF6",
+  finanzas: "#8B5CF6",
+  admin: "#EC4899",
+  administración: "#EC4899",
+  settings: "#6366F1",
 };
 
-// Categorías reorganizadas según solicitud del usuario
 const sidebarItems = [
   { 
     icon: LayoutDashboard, 
@@ -133,10 +131,6 @@ const sidebarItems = [
     description: "Control de retornables", 
     subItems: [
       { icon: Target, label: "Pendientes de Retorno", href: "/bottles/pending" },
-      // Opciones deshabilitadas temporalmente
-      // { icon: CircleDot, label: "Registrar Devolución", href: "/bottles/return" },
-      // { icon: BarChart3, label: "Balance de Envases", href: "/bottles/balance" },
-      // { icon: CircleDollarSign, label: "Cobrar Faltantes", href: "/bottles/missing" },
     ],
   },
   {
@@ -202,38 +196,12 @@ interface SidebarProps {
   setOpenMobile: (open: boolean) => void;
 }
 
-// Componente de ícono con efecto de animación
-const AnimatedIcon = ({ icon: Icon, color, isActive, className, ...props }: { 
-  icon: React.ComponentType<LucideProps>; 
-  color: string; 
-  isActive?: boolean;
-  className?: string;
-} & LucideProps) => (
-  <div className={cn("transition-all duration-200 relative", className)}>
-    <Icon 
-      className={cn(
-        "transition-all duration-200",
-        isActive ? "scale-110" : "scale-100",
-      )} 
-      style={{ 
-        color: color,
-        filter: isActive ? `drop-shadow(0 0 4px ${color}40)` : 'none'
-      }} 
-      {...props} 
-    />
-    {isActive && (
-      <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-    )}
-  </div>
-);
-
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location, setLocation] = useLocation();
   const [activeItems, setActiveItems] = useState<string[]>([]);
   const { toast } = useToast();
   
-  // Función para cerrar sesión
   const handleLogout = async () => {
     try {
       const response = await fetch("/api/logout", {
@@ -248,7 +216,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         throw new Error("Error al cerrar sesión");
       }
       
-      // Limpiar el estado de autenticación en el cliente
       queryClient.setQueryData(["/api/user"], null);
       
       toast({
@@ -256,7 +223,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         description: "Has cerrado sesión correctamente",
       });
       
-      // Redirigir a la página de login después de cerrar sesión
       window.location.href = "/auth/login";
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
@@ -268,200 +234,169 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     }
   };
 
-  // Manejador para abrir y cerrar menús al hacer clic
   const handleItemClick = (label: string) => {
-    // Si el elemento ya está en activeItems, lo removemos (cerramos el submenú)
     if (activeItems.includes(label)) {
       setActiveItems([]);
     } else {
-      // Si no está, lo agregamos (y quitamos todos los demás para cerrar otros submenús)
       setActiveItems([label]);
     }
   };
 
-  // Al cambiar de ubicación, actualizar el ítem activo automáticamente
   useEffect(() => {
-    // Encontrar el ítem principal activo basado en la ubicación actual
     const activeMainItem = sidebarItems.find(item => 
       location === item.href || (item.subItems?.some(sub => location === sub.href))
     );
     
     if (activeMainItem) {
-      // Si tiene subitems y uno está activo, mantenerlo abierto
       if (activeMainItem.subItems?.some(sub => location === sub.href)) {
         setActiveItems([activeMainItem.label]);
       } else {
-        // Si es un ítem principal sin subitems, cerrar todos los menús
         setActiveItems([]);
       }
     } else {
-      // Si no hay ítem activo, limpiar la lista
       setActiveItems([]);
     }
   }, [location]);
-  
-
 
   const SidebarContent = () => (
-    <div className="flex h-full flex-col bg-background">
-      <UISidebarHeader className="px-6 py-4 border-b">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-blue-50">
-              <Droplet className="h-6 w-6 text-primary" />
-            </div>
-            <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              GoWater
-            </span>
+    <div className="flex h-full flex-col bg-white shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)]">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 px-5 py-5 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-white/20">
+            <Droplet className="h-6 w-6 text-white" />
           </div>
+          <span className="text-xl font-bold text-white tracking-tight">
+            GoWater
+          </span>
         </div>
-      </UISidebarHeader>
+      </div>
 
-      <UISidebarMenu className="px-5 mt-6 flex-1 flex flex-col">
-        <div className="flex-1">
+      <div className="px-3 mt-4 flex-1 flex flex-col overflow-y-auto">
+        <div className="flex-1 space-y-0.5">
           {sidebarItems.map((item) => {
             const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
             const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
             const isExpanded = isActive || activeItems.includes(item.label);
           
             return (
-              <UISidebarMenuItem
-                key={item.href}
-                className="relative group mb-1.5"
-              >
+              <div key={item.href} className="relative">
                 {!item.subItems ? (
-                <Link href={item.href}>
-                  <UISidebarMenuButton
-                    isActive={isActive}
-                    tooltip={t(item.label)}
-                    className={cn(
-                      "w-full justify-start gap-4 rounded-lg hover:bg-primary/5 transition-all duration-200",
-                      isActive && "bg-primary/10 shadow-sm font-medium text-primary"
-                    )}
-                    onClick={() => setOpenMobile(false)}
-                  >
-                    <AnimatedIcon 
-                      icon={item.icon}
-                      color={isActive ? itemColor : "#64748b"}
-                      isActive={isActive} 
-                      className="h-5 w-5" 
-                    />
-                    <div className="flex flex-col items-start">
-                      <span className={cn(
-                        "font-medium",
-                        isActive ? "text-primary" : "text-foreground/80"
-                      )}>
-                        {t(item.label)}
-                      </span>
-                      {item.description && (
-                        <span className="text-xs text-muted-foreground hidden group-hover:block">
-                          {item.description}
-                        </span>
-                      )}
-                    </div>
-                  </UISidebarMenuButton>
-                </Link>
-              ) : (
-                <>
-                  <UISidebarMenuButton
-                    isActive={isActive}
-                    tooltip={t(item.label)}
-                    className={cn(
-                      "w-full justify-start gap-4 pr-8 rounded-lg transition-all duration-200",
-                      isExpanded ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-primary/5",
-                      isActive && "font-medium text-primary shadow-sm"
-                    )}
-                    onClick={() => handleItemClick(item.label)}
-                  >
-                    <AnimatedIcon 
-                      icon={item.icon} 
-                      color={isActive ? itemColor : "#64748b"}
-                      isActive={isActive} 
-                      className="h-5 w-5" 
-                    />
-                    <div className="flex flex-col items-start">
-                      <span className={cn(
-                        "font-medium",
-                        isActive ? "text-primary" : "text-foreground/80"
-                      )}>
-                        {t(item.label)}
-                      </span>
-                      {item.description && (
-                        <span className="text-xs text-muted-foreground hidden group-hover:block">
-                          {item.description}
-                        </span>
-                      )}
-                    </div>
-                    <ChevronRight
+                  <Link href={item.href}>
+                    <button
+                      onClick={() => setOpenMobile(false)}
                       className={cn(
-                        "h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 transition-transform text-muted-foreground",
-                        isExpanded && "rotate-90"
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
+                        isActive
+                          ? "bg-blue-50 border-l-[3px] border-blue-600"
+                          : "hover:bg-gray-100 border-l-[3px] border-transparent"
                       )}
-                    />
-                  </UISidebarMenuButton>
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${itemColor}26` }}
+                      >
+                        <item.icon
+                          className="h-4.5 w-4.5"
+                          style={{ color: itemColor }}
+                          size={18}
+                        />
+                      </div>
+                      <span className={cn(
+                        "text-sm font-medium truncate",
+                        isActive ? "text-blue-600" : "text-gray-700"
+                      )}>
+                        {t(item.label)}
+                      </span>
+                    </button>
+                  </Link>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleItemClick(item.label)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
+                        isActive
+                          ? "bg-blue-50 border-l-[3px] border-blue-600"
+                          : isExpanded
+                            ? "bg-gray-50 border-l-[3px] border-transparent"
+                            : "hover:bg-gray-100 border-l-[3px] border-transparent"
+                      )}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${itemColor}26` }}
+                      >
+                        <item.icon
+                          className="h-4.5 w-4.5"
+                          style={{ color: itemColor }}
+                          size={18}
+                        />
+                      </div>
+                      <span className={cn(
+                        "text-sm font-medium truncate",
+                        isActive ? "text-blue-600" : "text-gray-700"
+                      )}>
+                        {t(item.label)}
+                      </span>
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 ml-auto text-gray-400 transition-transform duration-200 flex-shrink-0",
+                          isExpanded && "rotate-90"
+                        )}
+                      />
+                    </button>
 
-                  <div
-                    className={cn(
-                      "overflow-hidden transition-all duration-300 ease-in-out px-2",
-                      isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                    )}
-                  >
-                    <div className="py-1 space-y-1 ml-4 pl-2 border-l border-muted">
-                      {item.subItems.map((subItem) => {
-                        const isSubActive = location === subItem.href;
-                        return (
-                          <Link key={subItem.href} href={subItem.href}>
-                            <TooltipProvider delayDuration={300}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setOpenMobile(false)}
-                                    className={cn(
-                                      "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
-                                      "hover:bg-primary/5 transition-colors duration-200",
-                                      isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
-                                    )}
-                                  >
-                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
-                                    <span>{t(subItem.label)}</span>
-                                    {isSubActive && (
-                                      <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
-                                        Actual
-                                      </Badge>
-                                    )}
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  {t(subItem.label)}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </Link>
-                        );
-                      })}
+                    <div
+                      className={cn(
+                        "overflow-hidden transition-all duration-300 ease-in-out",
+                        isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                      )}
+                    >
+                      <div className="py-1 ml-6 pl-4 space-y-0.5 border-l border-gray-200">
+                        {item.subItems.map((subItem) => {
+                          const isSubActive = location === subItem.href;
+                          return (
+                            <Link key={subItem.href} href={subItem.href}>
+                              <button
+                                onClick={() => setOpenMobile(false)}
+                                className={cn(
+                                  "w-full py-2 px-3 text-left text-sm rounded-lg flex items-center gap-2.5",
+                                  "hover:bg-gray-100 transition-colors duration-200",
+                                  isSubActive ? "bg-blue-50/60 text-blue-600 font-medium" : "text-gray-500"
+                                )}
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: isSubActive ? itemColor : '#d1d5db' }}
+                                />
+                                <span>{t(subItem.label)}</span>
+                              </button>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </UISidebarMenuItem>
-          );
-        })}
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
         
-        {/* Botón de Cerrar Sesión en la parte inferior */}
-        <div className="mt-auto pt-4 pb-4 border-t border-gray-200 dark:border-gray-800">
-          <UISidebarMenuItem className="mb-0">
-            <UISidebarMenuButton
-              tooltip={t("Cerrar Sesión")}
-              className="w-full justify-start gap-4 rounded-lg hover:bg-red-100/10 transition-all duration-200 text-red-500 hover:text-red-600"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5" />
-              <span className="font-medium">{t("Cerrar Sesión")}</span>
-            </UISidebarMenuButton>
-          </UISidebarMenuItem>
+        <div className="mt-auto pt-4 pb-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 transition-all duration-200 group"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-100">
+              <LogOut className="h-4.5 w-4.5 text-red-500" size={18} />
+            </div>
+            <span className="text-sm font-medium text-red-600">
+              {t("Cerrar Sesión")}
+            </span>
+          </button>
         </div>
-      </UISidebarMenu>
+      </div>
     </div>
   );
 

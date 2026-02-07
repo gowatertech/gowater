@@ -24,25 +24,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen bg-background">
-        {/* Botón de menú móvil */}
+      <div className="flex min-h-screen bg-gray-50">
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-3 left-4 z-50 md:hidden"
+          className="fixed top-3 left-4 z-50 md:hidden bg-white/90 backdrop-blur-sm shadow-md hover:bg-white border border-gray-200 rounded-lg"
           onClick={() => setOpenMobile(!openMobile)}
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5 text-gray-700" />
         </Button>
 
-        {/* Sidebar */}
         <Sidebar openMobile={openMobile} setOpenMobile={setOpenMobile} />
 
-        {/* Contenido principal */}
         <SidebarInset>
           <ScrollArea className="h-full">
             <div className="container mx-auto py-8 px-4 md:py-6 md:px-6">
-              {/* Encabezado fijo con información de la compañía */}
               <DashboardHeader title="Panel de Control" />
               {children}
             </div>
