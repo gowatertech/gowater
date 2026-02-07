@@ -1,31 +1,22 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
-  Smartphone,
   Navigation,
   Package,
-  CreditCard,
   Calendar,
-  ArrowLeft,
-  Moon,
-  Sun,
-  RotateCcw,
-  Bell,
-  LogOut,
-  Home,
-  X,
   Truck,
-  CheckCircle,
   MapPin,
   RefreshCw,
   Database,
-  ShoppingCart
+  ShoppingCart,
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  Droplets
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
@@ -33,13 +24,11 @@ import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 import { formatTodayRD, formatDateRD } from "@/lib/date-utils";
 import { useOfflineRoutes, useOfflineOrders, useOfflineCustomers } from "@/hooks/use-offline-data";
 
-// Componentes internos
 import { MobileHeader } from "./components/MobileHeader";
 import { MobileFooter } from "./components/MobileFooter";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { OfflineBanner, SyncStatusModal } from "@/components/sync";
 
-// Interfaces para los datos
 interface Route {
   id: number;
   name: string;
@@ -81,118 +70,79 @@ interface Customer {
 
 export default function GoWaterDriverApp() {
   const { toast } = useToast();
-  const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const { user, isLoading } = useCurrentUser();
   const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   
-  // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
   usePreventBackNavigation('/mobile-app/login', '/api/user');
   
-  // Consulta para obtener rutas pendientes con fallback offline
   const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useOfflineRoutes({
-    enabled: !!user // Solo cargar cuando el usuario esté disponible
+    enabled: !!user
   });
 
-  // Consulta para obtener pedidos con fallback offline
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useOfflineOrders({
-    enabled: !!user // Solo cargar cuando el usuario esté disponible
+    enabled: !!user
   });
 
-  // Consulta para obtener clientes con fallback offline
   const { data: customers = [], isLoading: isLoadingCustomers } = useOfflineCustomers({
-    enabled: !!user // Solo cargar cuando el usuario esté disponible
+    enabled: !!user
   });
   
-  // Rutas pendientes filtradas por el conductor actual (si es conductor)
   const pendingRoutes = Array.isArray(routes) ? routes.filter((route: Route) => 
     route.status === "pending" && 
     (!user || user.role === "admin" || route.driverId === user.id)
   ) : [];
   
-  // Pedidos pendientes
   const pendingOrders = Array.isArray(orders) ? orders.filter((order: Order) => 
     order.status === "pending"
   ) : [];
 
-  // Pedidos con rutas asignadas
   const assignedOrders = Array.isArray(orders) ? orders.filter((order: Order) => 
     order.status === "pending" && order.routeId
   ) : [];
 
-  // Verificar si el usuario es un chofer
   useEffect(() => {
-    console.log("MobileApp - Estado de usuario:", { isLoading, user: user ? { id: user.id, role: user.role } : null });
-    
-    // Solo verificar rol cuando user está disponible y ya cargó
     if (!isLoading && user) {
-      // Temporalmente permitimos cualquier rol para pruebas
       console.log("MobileApp - Usuario detectado:", user.role);
-      
-      // Original:
-      /*
-      if (user.role !== "driver" && user.role !== "admin") {
-        console.log("MobileApp - Acceso denegado: rol no permitido", user.role);
-        toast({
-          title: "Acceso denegado",
-          description: "Sólo los choferes y administradores pueden acceder a esta aplicación",
-          variant: "destructive"
-        });
-        setLocation("/dashboard");
-      } else {
-        console.log("MobileApp - Usuario con rol permitido:", user.role);
-      }
-      */
     }
   }, [user, isLoading, setLocation, toast]);
 
-  // Detectar si la PWA puede ser instalada
   useEffect(() => {
     let deferredPrompt: any;
     
-    // Detectar si es iOS
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     const hasShownPrompt = localStorage.getItem('pwaPromptShown');
     
-    // Para Android/Chrome - esperar el evento beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e) => {
-      // Prevenir que Chrome muestre la instalación automáticamente
       e.preventDefault();
-      // Guardar el evento para usarlo después
       deferredPrompt = e;
-      // @ts-ignore - guardar en window para acceder desde InstallPrompt
+      // @ts-ignore
       window.deferredPrompt = e;
-      // Solo mostrar si no se ha mostrado antes
       if (!hasShownPrompt) {
         setShowInstallPrompt(true);
       }
     });
 
     window.addEventListener('appinstalled', () => {
-      // Cuando la PWA se haya instalado, ocultar el prompt
       setShowInstallPrompt(false);
       deferredPrompt = null;
       // @ts-ignore
       window.deferredPrompt = null;
     });
 
-    // Para iOS - mostrar instrucciones si no está instalada
     if (isIOS && !isStandalone && !hasShownPrompt) {
-      // Mostrar después de 1 segundo para dar tiempo a que la página cargue
       setTimeout(() => {
         setShowInstallPrompt(true);
       }, 1000);
     }
     
-    // Comprobar si ya está en modo standalone (ya instalada)
     if (isStandalone) {
       setShowInstallPrompt(false);
     }
     
-    // Verificar el tema guardado
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
       setDarkMode(true);
@@ -200,29 +150,12 @@ export default function GoWaterDriverApp() {
     }
   }, []);
 
-  // Alternar modo oscuro
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', darkMode ? 'light' : 'dark');
-    toast({
-      title: darkMode ? "Modo claro activado" : "Modo oscuro activado",
-      description: "La configuración se ha guardado"
-    });
   };
   
-  // Manejo de la instalación de PWA
-  const handleDismissInstall = () => {
-    setShowInstallPrompt(false);
-    localStorage.setItem('pwaPromptShown', 'true');
-  };
-
-  // Redireccionar a las rutas pendientes
-  const goToPendingRoutes = () => {
-    setLocation("/mobile-app/rutas-pendientes");
-  };
-  
-  // Refrescar los datos
   const refreshData = async () => {
     toast({
       title: "Actualizando...",
@@ -248,40 +181,36 @@ export default function GoWaterDriverApp() {
     }
   };
 
-  // Redirigir al login si no hay usuario autenticado
   useEffect(() => {
     if (!isLoading && !user) {
-      console.log("MobileApp - Usuario no autenticado, redirigiendo al login");
       setLocation("/mobile-app/login");
     }
   }, [isLoading, user, setLocation]);
 
-  // Si está cargando, mostrar pantalla de carga
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-primary/5">
+      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-700">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <h3 className="font-medium text-primary">Cargando GoWater Driver...</h3>
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Droplets className="h-8 w-8 text-white animate-pulse" />
+          </div>
+          <h3 className="font-semibold text-white text-lg">GoWater Driver</h3>
+          <p className="text-blue-200 text-sm mt-1">Cargando...</p>
         </div>
       </div>
     );
   }
   
-  // Si no hay usuario después de cargar, no renderizar el contenido
   if (!user) {
-    return null; // No renderizar nada mientras redirecciona
+    return null;
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-16`}>
-      {/* Prompt de instalación */}
+    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'} pb-20`}>
       {showInstallPrompt && <InstallPrompt onClose={() => setShowInstallPrompt(false)} />}
       
-      {/* Banner de modo sin conexión */}
       <OfflineBanner sticky showDismiss />
       
-      {/* Cabecera móvil */}
       <MobileHeader 
         user={user} 
         darkMode={darkMode} 
@@ -290,191 +219,192 @@ export default function GoWaterDriverApp() {
         companyName={companyName}
       />
 
-      {/* Contenido principal */}
-      <main className="container max-w-md mx-auto px-4 py-4">
-        <div className="space-y-4">
-          {/* Sección de bienvenida */}
-          <Card className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h1 className="text-xl font-bold">{`¡Bienvenido, ${user.name}!`}</h1>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTodayRD({
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 rounded-full p-0 text-muted-foreground"
-                  onClick={refreshData}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+      <main className="px-4 py-5 max-w-lg mx-auto">
+        <div className="space-y-5">
+          
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-4 text-white shadow-lg shadow-blue-500/20 -mt-1">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-blue-200 text-xs font-medium">
+                  {formatTodayRD({
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long'
+                  })}
+                </p>
+                <h1 className="text-lg font-bold mt-0.5">¡Buen día, {user.name?.split(' ')[0]}!</h1>
+                <p className="text-blue-200 text-xs mt-1">Tienes {pendingRoutes.length} rutas y {pendingOrders.length} pedidos pendientes</p>
               </div>
-            </CardContent>
-          </Card>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-xl text-white hover:bg-white/20"
+                onClick={refreshData}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-          {/* Estadísticas en tiempo real */}
-          <div className="grid grid-cols-2 gap-3 mb-2">
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex flex-col items-center">
-                  <Truck className="h-6 w-6 mb-1 text-blue-600 dark:text-blue-400" />
-                  <span className="text-lg font-bold">{pendingRoutes.length}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Rutas pendientes</span>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-2">
+                <Truck className="h-4.5 w-4.5 text-blue-600" />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{pendingRoutes.length}</span>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Rutas</p>
+            </div>
             
-            <Card className="shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex flex-col items-center">
-                  <Package className="h-6 w-6 mb-1 text-green-600 dark:text-green-400" />
-                  <span className="text-lg font-bold">{pendingOrders.length}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Pedidos pendientes</span>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-2">
+                <Package className="h-4.5 w-4.5 text-emerald-600" />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{pendingOrders.length}</span>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Pedidos</p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div className="w-9 h-9 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center mb-2">
+                <TrendingUp className="h-4.5 w-4.5 text-amber-600" />
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{assignedOrders.length}</span>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">Asignados</p>
+            </div>
           </div>
           
-          {/* Accesos rápidos */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <Button 
-              className="py-6 h-auto flex-col rounded-xl shadow-sm" 
-              onClick={goToPendingRoutes}
+          <div className="grid grid-cols-2 gap-3">
+            <button 
+              className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl p-4 shadow-md shadow-blue-500/20 text-left transition-transform active:scale-[0.98]" 
+              onClick={() => setLocation("/mobile-app/rutas-pendientes")}
             >
-              <Navigation className="h-8 w-8 mb-2" />
-              <span className="text-sm">Rutas Pendientes</span>
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                <Navigation className="h-5 w-5" />
+              </div>
+              <span className="text-sm font-semibold block">Rutas Pendientes</span>
               {pendingRoutes.length > 0 && (
-                <Badge className="mt-1" variant="secondary">{pendingRoutes.length}</Badge>
+                <span className="text-xs text-blue-200 mt-0.5 block">{pendingRoutes.length} disponibles</span>
               )}
-            </Button>
+            </button>
             
-            <Button 
-              variant="outline" 
-              className="py-6 h-auto flex-col rounded-xl shadow-sm" 
+            <button 
+              className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 text-left transition-transform active:scale-[0.98]" 
               onClick={() => setLocation("/mobile-app/new-order")}
               data-testid="button-crear-pedido"
             >
-              <ShoppingCart className="h-8 w-8 mb-2" />
-              <span className="text-sm">Crear Pedido</span>
-            </Button>
+              <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mb-3">
+                <ShoppingCart className="h-5 w-5 text-emerald-600" />
+              </div>
+              <span className="text-sm font-semibold text-gray-900 dark:text-white block">Crear Pedido</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 block">Nuevo pedido</span>
+            </button>
           </div>
           
-          {/* Última ruta pendiente */}
           {pendingRoutes.length > 0 && (
-            <Card className="mb-4 shadow-sm overflow-hidden">
-              <CardHeader className="p-3 bg-primary/10">
-                <CardTitle className="text-sm font-medium flex items-center">
-                  <Truck className="h-4 w-4 mr-2" />
-                  Próxima ruta
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="text-sm font-medium mb-1">{pendingRoutes[0].name}</div>
-                <div className="flex items-center text-xs text-muted-foreground mb-2">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>
-                    {formatDateRD(pendingRoutes[0].date, {
-                      day: 'numeric',
-                      month: 'short'
-                    })}
-                  </span>
-                  {pendingRoutes[0].totalDistance && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <span>{Number(pendingRoutes[0].totalDistance).toFixed(1)} km</span>
-                    </>
-                  )}
-                </div>
-                <Button 
-                  size="sm" 
-                  className="w-full h-7 text-xs" 
-                  onClick={() => setLocation(`/mobile-app/ruta?routeId=${pendingRoutes[0].id}`)}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Próxima ruta</h2>
+                <button 
+                  className="text-xs text-blue-600 font-medium flex items-center gap-0.5"
+                  onClick={() => setLocation("/mobile-app/rutas-pendientes")}
                 >
-                  Ver detalles
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Últimos pedidos pendientes */}
-          {pendingOrders.length > 0 && (
-            <Card className="mb-4 shadow-sm overflow-hidden">
-              <CardHeader className="p-3 bg-green-50 dark:bg-green-900/20">
-                <CardTitle className="text-sm font-medium flex items-center">
-                  <Package className="h-4 w-4 mr-2" />
-                  Pedidos recientes
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {pendingOrders.slice(0, 3).map(order => {
-                    // Encontrar el cliente correspondiente
-                    const customer = customers.find((c: any) => c.id === order.customerId);
-                    
-                    return (
-                      <div key={order.id} className="p-3">
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="font-medium text-sm">{customer?.businessname || order.customerName}</div>
-                          <Badge variant="outline" className="text-xs ml-1">
-                            ${Number(order.total).toLocaleString('es-ES', {minimumFractionDigits: 2})}
-                          </Badge>
-                        </div>
-                        <div className="flex items-start text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
-                          <span className="line-clamp-1">{customer?.street} {customer?.streetnumber}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {order.products && order.products.map((product: any, idx: number) => (
-                            <Badge key={idx} variant="secondary" className="text-[10px] h-5">
-                              {product.quantity}x {product.name}
-                            </Badge>
-                          ))}
+                  Ver todas <ChevronRight className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Truck className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm text-gray-900 dark:text-white">{pendingRoutes[0].name}</h3>
+                        <div className="flex items-center text-xs text-gray-500 mt-0.5 gap-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDateRD(pendingRoutes[0].date, { day: 'numeric', month: 'short' })}
+                          </span>
+                          {pendingRoutes[0].totalDistance && (
+                            <span>{Number(pendingRoutes[0].totalDistance).toFixed(1)} km</span>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-                {pendingOrders.length > 3 && (
-                  <div className="p-2 text-center">
-                    <Button 
-                      variant="link" 
-                      size="sm" 
-                      className="text-xs h-7" 
-                      onClick={() => setLocation("/mobile-app/entregas")}
-                    >
-                      Ver todos los pedidos ({pendingOrders.length})
-                    </Button>
+                    </div>
+                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-0 text-xs font-medium">
+                      Pendiente
+                    </Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  <Button 
+                    size="sm" 
+                    className="w-full h-10 rounded-xl text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md shadow-blue-500/15" 
+                    onClick={() => setLocation(`/mobile-app/ruta?routeId=${pendingRoutes[0].id}`)}
+                  >
+                    Iniciar ruta
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
           
-          {/* Botón de estado de sincronización */}
-          <div className="mt-6 text-center">
+          {pendingOrders.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Pedidos recientes</h2>
+                <button 
+                  className="text-xs text-blue-600 font-medium flex items-center gap-0.5"
+                  onClick={() => setLocation("/mobile-app/entregas")}
+                >
+                  Ver todos <ChevronRight className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {pendingOrders.slice(0, 3).map(order => {
+                  const customer = customers.find((c: any) => c.id === order.customerId);
+                  
+                  return (
+                    <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Package className="h-4 w-4 text-emerald-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm text-gray-900 dark:text-white">{customer?.businessname || order.customerName}</div>
+                            <div className="flex items-center text-xs text-gray-500 mt-0.5">
+                              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                              <span className="line-clamp-1">{customer?.street} {customer?.streetnumber}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          ${Number(order.total).toLocaleString('es-ES', {minimumFractionDigits: 2})}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 ml-12">
+                        {order.products && order.products.map((product: any, idx: number) => (
+                          <Badge key={idx} variant="secondary" className="text-[10px] h-5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-0">
+                            {product.quantity}x {product.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          <div className="text-center pt-2">
             <SyncStatusModal>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="ghost" size="sm" className="text-xs text-gray-400 hover:text-gray-600">
                 <Database className="h-3 w-3 mr-1" />
                 Estado de sincronización
               </Button>
             </SyncStatusModal>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Todos los cambios se guardan automáticamente de manera local
-              y se sincronizan cuando hay conexión a internet.
-            </div>
           </div>
         </div>
       </main>
 
-      {/* Barra de navegación inferior */}
       <MobileFooter darkMode={darkMode} />
     </div>
   );

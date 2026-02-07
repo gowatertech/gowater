@@ -1,10 +1,7 @@
-import React from 'react';
 import { useLocation } from 'wouter';
-import { User, UserCog, MapPin, Phone, Calendar, Mail, FileText, Clock, LogOut } from 'lucide-react';
+import { UserCog, MapPin, Phone, Calendar, Mail, FileText, Clock, LogOut, Shield, Building2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { formatDateRD } from '@/lib/date-utils';
 
 import { useCurrentUser } from '@/hooks/use-current-user';
@@ -19,25 +16,22 @@ export default function MobileProfile() {
   const { companyName } = useCompanySettings();
   const { toast } = useToast();
 
-  // Redirigir si no hay usuario
   if (!isLoading && !user) {
     setLocation('/mobile-app/login');
     return null;
   }
 
-  // Si está cargando, mostrar pantalla de carga
   if (isLoading || !user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-primary/5">
+      <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <h3 className="font-medium text-primary">Cargando perfil...</h3>
+          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h3 className="font-medium text-gray-600">Cargando perfil...</h3>
         </div>
       </div>
     );
   }
 
-  // Obtener iniciales para el avatar
   const getInitials = () => {
     if (user && user.name) {
       return user.name
@@ -50,7 +44,6 @@ export default function MobileProfile() {
     return 'U';
   };
 
-  // Función para formatear fecha
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'No disponible';
     try {
@@ -60,21 +53,24 @@ export default function MobileProfile() {
     }
   };
 
-  // Función para manejar el cierre de sesión
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'driver': return 'Conductor';
+      case 'assistant': return 'Asistente';
+      case 'admin': return 'Administrador';
+      default: return role;
+    }
+  };
+
   const handleLogout = async () => {
     try {
-      // Convertimos la función logout (que podría ser void) a una promesa
       await Promise.resolve(logout());
       toast({ 
         title: "Sesión cerrada", 
         description: "Has cerrado sesión correctamente" 
       });
       
-      // Limpiar el historial actual para prevenir navegación hacia atrás después de cerrar sesión
-      // Primero reemplazar la entrada actual
       window.history.replaceState(null, "", "/mobile-app/login");
-      
-      // Redireccionar a la página de login reemplazando la entrada en el historial
       setLocation('/mobile-app/login', { replace: true });
     } catch (error) {
       toast({ 
@@ -85,141 +81,104 @@ export default function MobileProfile() {
     }
   };
 
+  const infoItems = [
+    { icon: UserCog, label: 'Nombre de usuario', value: user.username || 'N/A', color: 'text-blue-600', bg: 'bg-blue-100' },
+    ...(user.phone ? [{ icon: Phone, label: 'Teléfono', value: user.phone, color: 'text-emerald-600', bg: 'bg-emerald-100' }] : []),
+    ...(user.email ? [{ icon: Mail, label: 'Correo electrónico', value: user.email, color: 'text-purple-600', bg: 'bg-purple-100' }] : []),
+    ...(user.license ? [{ icon: FileText, label: 'Licencia', value: user.license, color: 'text-amber-600', bg: 'bg-amber-100' }] : []),
+    ...(user.licenseExpiry ? [{ icon: Calendar, label: 'Vencimiento licencia', value: formatDate(user.licenseExpiry), color: 'text-red-600', bg: 'bg-red-100' }] : []),
+    ...(user.emergencyContact ? [{ icon: Phone, label: 'Contacto emergencia', value: user.emergencyContact, color: 'text-rose-600', bg: 'bg-rose-100' }] : []),
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col pb-16">
-      {/* Cabecera */}
+    <div className="min-h-screen bg-gray-50 flex flex-col pb-20">
       <MobileHeader 
+        title="Mi Perfil"
+        showBackButton
+        onBackButtonClick={() => setLocation('/mobile-app')}
         user={user as any} 
-        darkMode={false} 
-        onToggleDarkMode={() => {}} 
-        onSyncData={() => {}}
         companyName={companyName}
       />
 
-      {/* Contenido */}
-      <main className="flex-1 p-4 max-w-md mx-auto w-full">
-        <Card className="mb-4 overflow-hidden">
-          <div className="bg-primary text-white p-6 flex flex-col items-center">
-            <Avatar className="h-20 w-20 border-4 border-white shadow-md mb-2">
-              <AvatarFallback className="text-xl bg-primary-foreground text-primary">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <h1 className="text-xl font-bold">{user.name}</h1>
-            <p className="text-sm text-primary-200">{user.role === 'driver' ? 'Conductor' : user.role === 'assistant' ? 'Asistente' : user.role}</p>
+      <main className="flex-1 px-4 py-5 max-w-lg mx-auto w-full">
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-center mb-5 shadow-lg shadow-blue-500/20">
+          <Avatar className="h-20 w-20 border-4 border-white/30 shadow-xl mx-auto mb-3">
+            <AvatarFallback className="text-xl bg-white/20 text-white font-bold">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-xl font-bold text-white">{user.name}</h1>
+          <div className="inline-flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1 mt-2">
+            <Shield className="h-3 w-3 text-blue-200" />
+            <span className="text-xs text-blue-100 font-medium">{getRoleLabel(user.role)}</span>
           </div>
-          
-          <CardContent className="p-0">
-            <div className="divide-y">
-              <div className="p-4 flex items-center space-x-3">
-                <UserCog className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-xs text-muted-foreground">ID de Usuario</p>
-                  <p className="font-medium">{user.id}</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <UserCog className="h-4 w-4 text-blue-600" />
+              Información personal
+            </h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {infoItems.map((item, idx) => (
+              <div key={idx} className="px-4 py-3.5 flex items-center gap-3">
+                <div className={`w-9 h-9 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <item.icon className={`h-4 w-4 ${item.color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{item.label}</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{item.value}</p>
                 </div>
               </div>
-              
-              <div className="p-4 flex items-center space-x-3">
-                <User className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Nombre de usuario</p>
-                  <p className="font-medium">{user.username || 'N/A'}</p>
-                </div>
-              </div>
-              
-              {user.phone && (
-                <div className="p-4 flex items-center space-x-3">
-                  <Phone className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Teléfono</p>
-                    <p className="font-medium">{user.phone}</p>
-                  </div>
-                </div>
-              )}
-              
-              {user.email && (
-                <div className="p-4 flex items-center space-x-3">
-                  <Mail className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Correo electrónico</p>
-                    <p className="font-medium">{user.email}</p>
-                  </div>
-                </div>
-              )}
-              
-              {user.license && (
-                <div className="p-4 flex items-center space-x-3">
-                  <FileText className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Licencia</p>
-                    <p className="font-medium">{user.license}</p>
-                  </div>
-                </div>
-              )}
-              
-              {user.licenseExpiry && (
-                <div className="p-4 flex items-center space-x-3">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Expira</p>
-                    <p className="font-medium">{formatDate(user.licenseExpiry)}</p>
-                  </div>
-                </div>
-              )}
-              
-              {user.emergencyContact && (
-                <div className="p-4 flex items-center space-x-3">
-                  <Phone className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Contacto de emergencia</p>
-                    <p className="font-medium">{user.emergencyContact}</p>
-                  </div>
-                </div>
-              )}
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-blue-600" />
+              Empresa
+            </h2>
+          </div>
+          <div className="px-4 py-3.5 flex items-center gap-3">
+            <div className="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <MapPin className="h-4 w-4 text-indigo-600" />
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Información de la empresa */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <MapPin className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Empresa</h2>
+            <div>
+              <p className="text-sm font-medium text-gray-900">{companyName || 'GoWater'}</p>
+              <p className="text-xs text-gray-500">ID: {user.companyId || 'N/A'}</p>
             </div>
-            <p className="text-sm">
-              Trabajas para <span className="font-semibold">{companyName || 'GoWater'}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">ID de empresa: {user.companyId || 'N/A'}</p>
-          </CardContent>
-        </Card>
-        
-        {/* Información de la cuenta */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-3 mb-4">
-              <Clock className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">Información de cuenta</h2>
-            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-600" />
+              Cuenta
+            </h2>
+          </div>
+          <div className="px-4 py-3.5 space-y-2">
             {user.createdAt && (
-              <p className="text-sm">
-                Fecha de registro: <span className="font-medium">{formatDate(user.createdAt)}</span>
+              <p className="text-xs text-gray-500">
+                Registrado: <span className="font-medium text-gray-700">{formatDate(user.createdAt)}</span>
               </p>
             )}
-            <p className="text-sm">
-              Estado: <span className={`font-medium ${user.active ? "text-green-600" : "text-red-600"}`}>
-                {user.active ? "Activo" : "Inactivo"}
+            <div className="flex items-center gap-2">
+              <div className={`h-2 w-2 rounded-full ${user.active ? "bg-emerald-500" : "bg-red-500"}`} />
+              <span className="text-xs font-medium text-gray-700">
+                {user.active ? "Cuenta activa" : "Cuenta inactiva"}
               </span>
-            </p>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
         
-        <Separator className="my-4" />
-        
-        {/* Botón de cerrar sesión */}
         <Button 
-          variant="destructive" 
-          className="w-full py-5" 
+          variant="ghost" 
+          className="w-full h-12 rounded-2xl text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold border border-red-200" 
           onClick={handleLogout}
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -227,7 +186,6 @@ export default function MobileProfile() {
         </Button>
       </main>
       
-      {/* Footer móvil */}
       <MobileFooter />
     </div>
   );
