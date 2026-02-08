@@ -87,7 +87,7 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
             <p className="text-center text-sm font-medium text-gray-400 uppercase tracking-widest mb-8">Empresas que confían en nosotros</p>
             <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-40">
-              {["AquaPura", "HidroMax", "CrystalWater", "AguaVida", "PureFlow", "AquaFresh"].map((name) => (
+              {["Agua ASADIHER", "AquaPura", "HidroMax", "CrystalWater", "AguaVida", "PureFlow"].map((name) => (
                 <div key={name} className="flex items-center gap-2">
                   <Droplet className="h-5 w-5" />
                   <span className="text-lg font-bold text-gray-600 tracking-tight">{name}</span>
