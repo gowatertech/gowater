@@ -75,12 +75,16 @@ export default function NewOrder() {
 
   const filteredCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
-    const term = customerSearch.toLowerCase();
-    return customers.filter((c) =>
-      (c.businessname || "").toLowerCase().includes(term) ||
-      (c.managername || "").toLowerCase().includes(term) ||
-      (c.phone || "").includes(term)
-    );
+    const term = customerSearch.toLowerCase().trim();
+    const termDigits = term.replace(/\D/g, "");
+    return customers.filter((c) => {
+      if ((c.businessname || "").toLowerCase().includes(term)) return true;
+      if ((c.managername || "").toLowerCase().includes(term)) return true;
+      const phone = c.phone || "";
+      if (phone.includes(term)) return true;
+      if (termDigits && phone.replace(/\D/g, "").includes(termDigits)) return true;
+      return false;
+    });
   }, [customers, customerSearch]);
 
   // Get selected customer
