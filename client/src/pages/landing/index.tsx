@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import asadiherLogo from "../../../../attached_assets/IMG_2126_1770597759704.png";
 import { 
   Droplet, 
   Map, 
@@ -86,8 +87,12 @@ export default function LandingPage() {
         <section className="py-12 bg-white border-b border-gray-100">
           <div className="container px-4 md:px-6">
             <p className="text-center text-sm font-medium text-gray-400 uppercase tracking-widest mb-8">Empresas que confían en nosotros</p>
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-40">
-              {["Agua ASADIHER", "AquaPura", "HidroMax", "CrystalWater", "AguaVida", "PureFlow"].map((name) => (
+            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 opacity-60">
+              <div className="flex items-center gap-2">
+                <img src={asadiherLogo} alt="Agua ASADIHER" className="h-12 w-12 rounded-full object-cover" />
+                <span className="text-lg font-bold text-gray-600 tracking-tight">Agua ASADIHER</span>
+              </div>
+              {["AquaPura", "HidroMax", "CrystalWater", "AguaVida", "PureFlow"].map((name) => (
                 <div key={name} className="flex items-center gap-2">
                   <Droplet className="h-5 w-5" />
                   <span className="text-lg font-bold text-gray-600 tracking-tight">{name}</span>
