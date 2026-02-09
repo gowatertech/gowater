@@ -260,50 +260,61 @@ export default function NewOrder() {
               </div>
             </div>
 
-            <div className="border rounded-md overflow-hidden">
-              <div className="max-h-[200px] overflow-y-auto">
-                {loadingCustomers ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    Cargando clientes...
-                  </div>
-                ) : filteredCustomers.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">
-                    No se encontraron clientes
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {filteredCustomers.map((customer) => (
-                      <div
-                        key={customer.id}
-                        className={`flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors ${
-                          selectedCustomerId === customer.id ? "bg-primary/10 border-l-2 border-l-primary" : ""
-                        }`}
-                        onClick={() => setSelectedCustomerId(customer.id)}
-                        data-testid={`option-customer-${customer.id}`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{customer.businessname}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {customer.managername} • {customer.phone}
-                          </p>
+            {!selectedCustomer ? (
+              <div className="border rounded-md overflow-hidden">
+                <div className="max-h-[200px] overflow-y-auto">
+                  {loadingCustomers ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Cargando clientes...
+                    </div>
+                  ) : filteredCustomers.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No se encontraron clientes
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors"
+                          onClick={() => setSelectedCustomerId(customer.id)}
+                          data-testid={`option-customer-${customer.id}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{customer.businessname}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {customer.managername} • {customer.phone}
+                            </p>
+                          </div>
                         </div>
-                        {selectedCustomerId === customer.id && (
-                          <Badge variant="default" className="ml-2 text-xs">Seleccionado</Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {selectedCustomer && (
-              <div className="bg-muted/50 p-3 rounded-md text-sm" data-testid="customer-info">
-                <div className="font-medium">{selectedCustomer.businessname}</div>
-                <div className="text-muted-foreground">{selectedCustomer.managername}</div>
-                <div className="text-muted-foreground text-xs mt-1">
-                  {selectedCustomer.street} #{selectedCustomer.streetnumber}
-                  {selectedCustomer.sector && `, ${selectedCustomer.sector}`}
+            ) : (
+              <div className="bg-primary/5 border border-primary/20 p-3 rounded-md text-sm" data-testid="customer-info">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium">{selectedCustomer.businessname}</div>
+                    <div className="text-muted-foreground">{selectedCustomer.managername}</div>
+                    <div className="text-muted-foreground text-xs mt-1">
+                      {selectedCustomer.street} #{selectedCustomer.streetnumber}
+                      {selectedCustomer.sector && `, ${selectedCustomer.sector}`}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground"
+                    onClick={() => {
+                      setSelectedCustomerId(null);
+                      setCustomerSearch("");
+                    }}
+                    data-testid="button-change-customer"
+                  >
+                    Cambiar
+                  </Button>
                 </div>
               </div>
             )}
