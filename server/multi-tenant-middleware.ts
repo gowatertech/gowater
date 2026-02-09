@@ -24,28 +24,22 @@ import { setCurrentCompanyId } from "./company-db";
  * basado en subdominios, headers o sesión
  */
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Si es una ruta de API de plataforma, no alteramos nada
-  if (req.path.startsWith('/api/platform')) {
+  if (!req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  if (req.path.startsWith('/api/platform') ||
+      req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user' ||
+      req.path === '/api/authtest' || req.path === '/api/mobile/login' || req.path === '/api/mobile/logout' ||
+      req.path.startsWith('/api/public/') || req.path.startsWith('/api/leads/') || req.path === '/api/contact') {
     return next();
   }
   
-  // Si es una ruta de autenticación, no aplicamos el tenant
-  if (req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user' ||
-      req.path === '/api/authtest' || req.path === '/api/mobile/login' || req.path === '/api/mobile/logout') {
-    return next();
-  }
-  
-  // Si no hay companyId en la sesión (no autenticado), y no es una ruta pública
   if (!req.session.companyId) {
-    // Para rutas de API que requieren autenticación, devolver error
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/public/')) {
-      return res.status(401).json({ message: "No autenticado" });
-    }
-  } else {
-    // IMPORTANTE: Sincronizar el companyId con el asyncLocalStorage para getCurrentCompanyId()
-    setCurrentCompanyId(req.session.companyId);
+    return res.status(401).json({ message: "No autenticado" });
   }
-  
+
+  setCurrentCompanyId(req.session.companyId);
   return next();
 }
 
