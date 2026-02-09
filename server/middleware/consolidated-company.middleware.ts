@@ -40,10 +40,14 @@ export function clearCompanySuspensionCache(companyId?: number): void {
  * y lo establece en el contexto para su uso en toda la aplicación.
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Para rutas de plataforma y test-session, no alteramos nada
+  // Para rutas de plataforma, autenticación y test-session, no alteramos nada
   if (req.path.startsWith('/api/platform') || 
       req.path === '/api/login' || 
       req.path === '/api/logout' ||
+      req.path === '/api/authtest' ||
+      req.path === '/api/user' ||
+      req.path === '/api/mobile/login' ||
+      req.path === '/api/mobile/logout' ||
       req.path.startsWith('/api/test-session')) {
     return next();
   }

@@ -30,7 +30,8 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
   }
   
   // Si es una ruta de autenticación, no aplicamos el tenant
-  if (req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user') {
+  if (req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user' ||
+      req.path === '/api/authtest' || req.path === '/api/mobile/login' || req.path === '/api/mobile/logout') {
     return next();
   }
   
