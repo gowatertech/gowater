@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -267,42 +260,41 @@ export default function NewOrder() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Seleccionar cliente</Label>
-              <Select
-                value={selectedCustomerId?.toString() || ""}
-                onValueChange={(value) => setSelectedCustomerId(Number(value))}
-              >
-                <SelectTrigger data-testid="select-customer">
-                  <SelectValue placeholder="Selecciona un cliente" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {loadingCustomers ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      Cargando clientes...
-                    </div>
-                  ) : filteredCustomers.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No se encontraron clientes
-                    </div>
-                  ) : (
-                    filteredCustomers.map((customer) => (
-                      <SelectItem
+            <div className="border rounded-md overflow-hidden">
+              <div className="max-h-[200px] overflow-y-auto">
+                {loadingCustomers ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Cargando clientes...
+                  </div>
+                ) : filteredCustomers.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No se encontraron clientes
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredCustomers.map((customer) => (
+                      <div
                         key={customer.id}
-                        value={customer.id.toString()}
+                        className={`flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 active:bg-muted transition-colors ${
+                          selectedCustomerId === customer.id ? "bg-primary/10 border-l-2 border-l-primary" : ""
+                        }`}
+                        onClick={() => setSelectedCustomerId(customer.id)}
                         data-testid={`option-customer-${customer.id}`}
                       >
-                        <div className="flex flex-col">
-                          <span className="font-medium">{customer.businessname}</span>
-                          <span className="text-xs text-muted-foreground">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{customer.businessname}</p>
+                          <p className="text-xs text-muted-foreground truncate">
                             {customer.managername} • {customer.phone}
-                          </span>
+                          </p>
                         </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                        {selectedCustomerId === customer.id && (
+                          <Badge variant="default" className="ml-2 text-xs">Seleccionado</Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {selectedCustomer && (
