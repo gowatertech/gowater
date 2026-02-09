@@ -179,7 +179,11 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
 
       // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
       const { getCurrentCompanyId } = await import('./company-db');
-      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId() || 1;
+      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId();
+
+      if (!companyId) {
+        return res.status(400).json({ error: "No se pudo determinar el companyId. Debe iniciar sesión." });
+      }
 
       // Asegurar que los campos numéricos sean realmente números
       const validatedData = {
@@ -247,7 +251,10 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
           
           // Intentar crear el pedido directamente en la base de datos
           const { getCurrentCompanyId } = await import('./company-db');
-          const fallbackCompanyId = getCurrentCompanyId() || 1;
+          const fallbackCompanyId = getCurrentCompanyId();
+          if (!fallbackCompanyId) {
+            throw new Error("No se pudo determinar el companyId para crear el pedido recurrente.");
+          }
           
           const dataToInsert: any = {
             ...parseResult.data,
@@ -443,7 +450,11 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
 
       // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
       const { getCurrentCompanyId } = await import('./company-db');
-      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId() || 1;
+      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId();
+
+      if (!companyId) {
+        return res.status(400).json({ error: "No se pudo determinar el companyId. Debe iniciar sesión." });
+      }
       
       // Validar el item y asegurar que los campos numéricos sean números
       const itemData = {

@@ -253,7 +253,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     return res.status(400).json({ error: "ID de orden inválido" });
   }
   
-  console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${getCurrentCompanyId() || 1}`);
+  console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${getCurrentCompanyId() || 'no definida'}`);
   
   try {
     // Obtener el companyId del contexto

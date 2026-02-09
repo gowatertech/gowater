@@ -94,7 +94,10 @@ class RecurringOrdersService {
 
       // Importar la función para obtener el companyId actual
       const { getCurrentCompanyId } = await import('./company-db');
-      const companyId = (recurringOrder as any).companyId || getCurrentCompanyId() || 1;
+      const companyId = (recurringOrder as any).companyId || getCurrentCompanyId();
+      if (!companyId) {
+        throw new Error("No se pudo determinar el companyId para crear el pedido recurrente.");
+      }
 
       // Obtener el siguiente ID
       const nextId = await this.getNextRecurringOrderId();
@@ -369,7 +372,7 @@ class RecurringOrdersService {
       const itemWithCompanyId = {
         ...item,
         recurringOrderId: recurringOrderId, // Usar el ID validado y transformado
-        companyId: (item as any).companyId || getCurrentCompanyId() || 1
+        companyId: (item as any).companyId || getCurrentCompanyId()
       };
 
       console.log("RecurringOrdersService.createRecurringOrderItem - Item a insertar:", itemWithCompanyId);
@@ -553,7 +556,10 @@ class RecurringOrdersService {
 
     // Importar la función para obtener el companyId actual
     const { getCurrentCompanyId } = await import('./company-db');
-    const companyId = recurringOrder.companyId || getCurrentCompanyId() || 1;
+    const companyId = recurringOrder.companyId || getCurrentCompanyId();
+    if (!companyId) {
+      throw new Error("No se pudo determinar el companyId para generar el pedido.");
+    }
 
     console.log(`RecurringOrdersService - Usando companyId:`, companyId);
 
