@@ -73,14 +73,13 @@ export default function NewOrder() {
     queryFn: async () => apiRequest({ method: "GET", url: "/api/products" })
   });
 
-  // Filter customers based on search
   const filteredCustomers = useMemo(() => {
     if (!customerSearch.trim()) return customers;
     const term = customerSearch.toLowerCase();
     return customers.filter((c) =>
-      c.businessname.toLowerCase().includes(term) ||
-      c.managername.toLowerCase().includes(term) ||
-      c.phone.includes(term)
+      (c.businessname || "").toLowerCase().includes(term) ||
+      (c.managername || "").toLowerCase().includes(term) ||
+      (c.phone || "").includes(term)
     );
   }, [customers, customerSearch]);
 
