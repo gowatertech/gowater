@@ -16,7 +16,8 @@ import {
   Settings,
   Briefcase,
   Menu,
-  X
+  X,
+  Video
 } from "lucide-react";
 
 interface PlatformLayoutProps {
@@ -180,6 +181,21 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
           >
             <CreditCard size={18} />
             <span>Facturas</span>
+          </a>
+        </Link>
+      </li>
+      <li>
+        <Link href="/platform/videos-prom">
+          <a 
+            className={`flex items-center gap-2 p-2 rounded-md ${
+              isActive('/platform/videos-prom') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-primary/10'
+            }`}
+            onClick={onLinkClick}
+          >
+            <Video size={18} />
+            <span>Videos Prom</span>
           </a>
         </Link>
       </li>

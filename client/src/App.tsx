@@ -209,6 +209,9 @@ function Router() {
   const InterestedCompanies = lazy(() => import("@/pages/platform/interested-companies"));
   const EmpresasInteresadas = lazy(() => import("@/pages/platform/empresas-interesadas"));
 
+  // Videos Promocionales
+  const VideosProm = lazy(() => import("@/pages/platform/videos-prom"));
+
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
     // Importar el componente de login móvil
@@ -377,6 +380,13 @@ function Router() {
         <Route path="/platform/empresas-interesadas">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <EmpresasInteresadas />
+          </Suspense>
+        </Route>
+
+        {/* Videos Promocionales */}
+        <Route path="/platform/videos-prom">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <VideosProm />
           </Suspense>
         </Route>
 
