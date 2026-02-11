@@ -2,340 +2,174 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { PlatformLayout } from "../_components/PlatformLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Download, 
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Download,
   Video,
-  MessageSquare,
-  FileText,
-  Truck,
-  BarChart3,
-  Smartphone,
-  CheckCircle2,
-  TrendingUp,
-  Droplet
+  Volume2,
+  VolumeX,
+  Loader2,
 } from "lucide-react";
 
+import scene1Img from "@/assets/images/video-scene1-stress.jpg";
+import scene2Img from "@/assets/images/video-scene2-dashboard.jpg";
+import scene3TruckImg from "@/assets/images/video-scene3-truck.jpg";
+import scene3OwnerImg from "@/assets/images/video-scene3-owner.jpg";
+
 const SCENES = [
-  { duration: 4000, label: "Escena 1 - Problema" },
-  { duration: 6000, label: "Escena 2 - Solución" },
-  { duration: 6000, label: "Escena 3 - Resultado" },
+  {
+    duration: 4000,
+    label: "Escena 1 - Problema",
+    narration: "¿Tu empresa de agua aún toma pedidos manualmente?",
+  },
+  {
+    duration: 6000,
+    label: "Escena 2 - Solución",
+    narration:
+      "Con Gowater punto com, digitaliza tus pedidos, organiza rutas y controla tus clientes en un solo lugar.",
+  },
+  {
+    duration: 6000,
+    label: "Escena 3 - Resultado",
+    narration: "Más orden. Más control. Más ventas. Gowater punto com. Impulsa tu empresa hoy.",
+  },
 ];
 
 const TOTAL_DURATION = SCENES.reduce((acc, s) => acc + s.duration, 0);
 
-function Scene1({ progress }: { progress: number }) {
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-      <div className="absolute inset-0 opacity-5">
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-gray-400"
-            style={{
-              left: `${(i * 17) % 100}%`,
-              top: `${(i * 23) % 100}%`,
-              fontSize: `${20 + (i % 3) * 10}px`,
-              transform: `rotate(${i * 15}deg)`,
-            }}
-          >
-            📄
-          </div>
-        ))}
-      </div>
+function createBackgroundMusic(audioCtx: AudioContext): () => void {
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.08;
+  gainNode.connect(audioCtx.destination);
 
-      <div className="relative z-10 flex flex-col items-center gap-8 px-8">
-        <div className="flex items-center gap-6">
-          <div 
-            className="relative"
-            style={{
-              animation: "shake 0.5s ease-in-out infinite",
-              opacity: Math.min(1, progress * 3),
-              transform: `scale(${0.8 + Math.min(0.2, progress * 0.6)})`,
-            }}
-          >
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center border-2 border-red-200">
-              <MessageSquare className="w-12 h-12 text-green-500" />
-            </div>
-            <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">12</span>
-            </div>
-          </div>
+  const notes = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
+  let noteIndex = 0;
+  let intervalId: ReturnType<typeof setInterval>;
 
-          <div 
-            className="text-4xl font-bold text-gray-300"
-            style={{ opacity: Math.min(1, progress * 4) }}
-          >
-            +
-          </div>
+  const playNote = () => {
+    const osc = audioCtx.createOscillator();
+    const noteGain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = notes[noteIndex % notes.length];
+    noteGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    noteGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.8);
+    osc.connect(noteGain);
+    noteGain.connect(gainNode);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 2);
+    noteIndex++;
 
-          <div
-            style={{
-              opacity: Math.min(1, progress * 2),
-              transform: `translateY(${Math.max(0, (1 - progress * 2)) * 30}px)`,
-            }}
-          >
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center border-2 border-orange-200 relative">
-              <FileText className="w-12 h-12 text-orange-500" />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-orange-400 rounded-full flex items-center justify-center">
-                <span className="text-white text-[10px]">!</span>
-              </div>
-            </div>
-          </div>
+    const pad = audioCtx.createOscillator();
+    const padGain = audioCtx.createGain();
+    pad.type = "triangle";
+    pad.frequency.value = notes[noteIndex % notes.length] / 2;
+    padGain.gain.value = 0.15;
+    pad.connect(padGain);
+    padGain.connect(gainNode);
+    pad.start();
+    pad.stop(audioCtx.currentTime + 2);
+  };
 
-          <div 
-            className="text-4xl font-bold text-gray-300"
-            style={{ opacity: Math.min(1, progress * 4) }}
-          >
-            +
-          </div>
+  playNote();
+  intervalId = setInterval(playNote, 2000);
 
-          <div
-            style={{
-              opacity: Math.min(1, progress * 2.5),
-              transform: `rotate(${Math.sin(progress * 10) * 5}deg)`,
-            }}
-          >
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center border-2 border-yellow-200">
-              <span className="text-4xl">😰</span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="text-center max-w-2xl"
-          style={{
-            opacity: Math.min(1, Math.max(0, (progress - 0.2) * 2.5)),
-            transform: `translateY(${Math.max(0, (1 - Math.max(0, (progress - 0.2)) * 3)) * 20}px)`,
-          }}
-        >
-          <p className="text-2xl md:text-3xl font-bold text-gray-800 leading-relaxed">
-            "¿Tu empresa de agua aún toma pedidos{" "}
-            <span className="text-red-500">manualmente</span>?"
-          </p>
-        </div>
-
-        <div
-          className="flex items-center gap-2 mt-2"
-          style={{
-            opacity: Math.min(1, Math.max(0, (progress - 0.5) * 3)),
-          }}
-        >
-          <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-          <span className="text-sm text-gray-500 font-medium">Desorden • Errores • Pérdida de tiempo</span>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-3px) rotate(-1deg); }
-          75% { transform: translateX(3px) rotate(1deg); }
-        }
-      `}</style>
-    </div>
-  );
+  return () => {
+    clearInterval(intervalId);
+    gainNode.disconnect();
+  };
 }
 
-function Scene2({ progress }: { progress: number }) {
-  const features = [
-    { icon: Smartphone, text: "📲 Pedidos online", color: "from-blue-500 to-blue-600", delay: 0.15 },
-    { icon: Truck, text: "🚚 Optimización de rutas", color: "from-emerald-500 to-emerald-600", delay: 0.35 },
-    { icon: BarChart3, text: "📊 Control total", color: "from-purple-500 to-purple-600", delay: 0.55 },
-  ];
+function speakNarration(text: string, onEnd?: () => void) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "es-ES";
+  utterance.rate = 0.9;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
 
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 overflow-hidden">
-      <div className="absolute inset-0">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-white/5"
-            style={{
-              width: `${100 + i * 80}px`,
-              height: `${100 + i * 80}px`,
-              left: `${50 + Math.cos(i) * 30}%`,
-              top: `${50 + Math.sin(i) * 30}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        ))}
-      </div>
+  const voices = window.speechSynthesis.getVoices();
+  const spanishVoice = voices.find(
+    (v) => v.lang.startsWith("es") && v.name.toLowerCase().includes("google")
+  ) || voices.find((v) => v.lang.startsWith("es"));
+  if (spanishVoice) utterance.voice = spanishVoice;
 
-      <div className="relative z-10 flex flex-col items-center gap-8 px-8 max-w-4xl w-full">
-        <div
-          className="text-center"
-          style={{
-            opacity: Math.min(1, progress * 4),
-            transform: `translateY(${Math.max(0, (1 - progress * 3)) * 30}px)`,
-          }}
-        >
-          <p className="text-xl md:text-2xl text-white/90 leading-relaxed max-w-2xl">
-            Con <span className="font-extrabold text-white text-3xl md:text-4xl">Gowater.com</span> digitaliza tus pedidos, organiza rutas y controla tus clientes{" "}
-            <span className="text-yellow-300 font-bold">en un solo lugar.</span>
-          </p>
-        </div>
-
-        <div
-          className="w-full max-w-2xl bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 shadow-2xl"
-          style={{
-            opacity: Math.min(1, Math.max(0, (progress - 0.1) * 3)),
-            transform: `scale(${0.9 + Math.min(0.1, Math.max(0, (progress - 0.1)) * 0.3)})`,
-          }}
-        >
-          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-white/10">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-            </div>
-            <div className="flex-1 bg-white/10 rounded-lg px-3 py-1 text-sm text-white/60">
-              gowater.com/dashboard
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Pedidos hoy", value: "47", color: "text-blue-300" },
-              { label: "Entregas", value: "38", color: "text-emerald-300" },
-              { label: "Clientes", value: "156", color: "text-purple-300" },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white/10 rounded-xl p-3 text-center">
-                <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-white/60 mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-3 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"
-                  style={{ width: `${40 + i * 15}%` }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-          {features.map((feature, i) => (
-            <div
-              key={i}
-              className="flex-1 bg-white/15 backdrop-blur-sm rounded-xl p-4 border border-white/20 text-center"
-              style={{
-                opacity: Math.min(1, Math.max(0, (progress - feature.delay) * 4)),
-                transform: `translateY(${Math.max(0, (1 - Math.max(0, (progress - feature.delay)) * 4)) * 30}px)`,
-              }}
-            >
-              <div className="text-lg font-bold text-white">{feature.text}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Scene3({ progress }: { progress: number }) {
-  const phrases = [
-    { text: "Más orden.", delay: 0, color: "text-blue-600" },
-    { text: "Más control.", delay: 0.15, color: "text-indigo-600" },
-    { text: "Más ventas.", delay: 0.3, color: "text-emerald-600" },
-  ];
-
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-white via-blue-50 to-indigo-50 overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${10 + (i % 4) * 25}%`,
-              top: `${20 + Math.floor(i / 4) * 60}%`,
-              opacity: 0.05,
-              fontSize: "80px",
-            }}
-          >
-            💧
-          </div>
-        ))}
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center gap-8 px-8">
-        <div className="flex items-center gap-6 mb-4">
-          {[Truck, Smartphone, CheckCircle2].map((Icon, i) => (
-            <div
-              key={i}
-              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"
-              style={{
-                opacity: Math.min(1, Math.max(0, (progress - i * 0.1) * 5)),
-                transform: `scale(${0.5 + Math.min(0.5, Math.max(0, (progress - i * 0.1)) * 2)})`,
-              }}
-            >
-              <Icon className="w-8 h-8 text-white" />
-            </div>
-          ))}
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-          {phrases.map((phrase, i) => (
-            <div
-              key={i}
-              className="text-center"
-              style={{
-                opacity: Math.min(1, Math.max(0, (progress - phrase.delay) * 4)),
-                transform: `translateY(${Math.max(0, (1 - Math.max(0, (progress - phrase.delay)) * 4)) * 20}px)`,
-              }}
-            >
-              <span className={`text-3xl md:text-4xl font-extrabold ${phrase.color}`}>
-                {phrase.text}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div
-          className="mt-8 text-center"
-          style={{
-            opacity: Math.min(1, Math.max(0, (progress - 0.5) * 3)),
-            transform: `scale(${0.8 + Math.min(0.2, Math.max(0, (progress - 0.5)) * 0.6)})`,
-          }}
-        >
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <Droplet className="w-10 h-10 text-blue-600" />
-            <span className="text-5xl md:text-6xl font-black bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
-              Gowater.com
-            </span>
-          </div>
-          <p className="text-xl md:text-2xl font-bold text-gray-700 mt-4">
-            Impulsa tu empresa hoy.
-          </p>
-        </div>
-
-        <div
-          className="flex items-center gap-2 mt-4"
-          style={{
-            opacity: Math.min(1, Math.max(0, (progress - 0.7) * 4)),
-          }}
-        >
-          <TrendingUp className="w-5 h-5 text-emerald-500" />
-          <span className="text-sm font-medium text-gray-500">
-            Plataforma líder en gestión de empresas de agua
-          </span>
-        </div>
-      </div>
-    </div>
-  );
+  if (onEnd) utterance.onend = onEnd;
+  window.speechSynthesis.speak(utterance);
 }
 
 export default function VideosProm() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingProgress, setRecordingProgress] = useState(0);
   const animationRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const stopMusicRef = useRef<(() => void) | null>(null);
+  const lastNarratedSceneRef = useRef<number>(-1);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  useEffect(() => {
+    const imageUrls: { [key: string]: string } = {
+      scene1: scene1Img,
+      scene2: scene2Img,
+      scene3truck: scene3TruckImg,
+      scene3owner: scene3OwnerImg,
+    };
+    let loaded = 0;
+    const total = Object.keys(imageUrls).length;
+    Object.entries(imageUrls).forEach(([key, url]) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        imagesRef.current[key] = img;
+        loaded++;
+        if (loaded >= total) setImagesLoaded(true);
+      };
+      img.onerror = () => {
+        loaded++;
+        if (loaded >= total) setImagesLoaded(true);
+      };
+      img.src = url;
+    });
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.getVoices();
+    }
+
+    return () => {
+      stopAllAudio();
+    };
+  }, []);
+
+  const stopAllAudio = useCallback(() => {
+    if (stopMusicRef.current) {
+      stopMusicRef.current();
+      stopMusicRef.current = null;
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
+  const startAudio = useCallback(() => {
+    if (isMuted) return;
+    try {
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      stopMusicRef.current = createBackgroundMusic(ctx);
+    } catch (e) {}
+  }, [isMuted]);
 
   const getCurrentScene = useCallback(() => {
     let accumulated = 0;
@@ -347,6 +181,262 @@ export default function VideosProm() {
     }
     return { index: SCENES.length - 1, progress: 1 };
   }, [currentTime]);
+
+  const drawScene = useCallback(
+    (ctx: CanvasRenderingContext2D, width: number, height: number, sceneIdx: number, progress: number) => {
+      ctx.clearRect(0, 0, width, height);
+
+      if (sceneIdx === 0) {
+        const img = imagesRef.current.scene1;
+        if (img) {
+          ctx.globalAlpha = 0.4;
+          const scale = Math.max(width / img.width, height / img.height);
+          const iw = img.width * scale;
+          const ih = img.height * scale;
+          ctx.drawImage(img, (width - iw) / 2, (height - ih) / 2, iw, ih);
+          ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 0, width, height);
+
+        const textOpacity = Math.min(1, Math.max(0, (progress - 0.15) * 3));
+        ctx.globalAlpha = textOpacity;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.round(width * 0.04)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const line1 = '"¿Tu empresa de agua aún toma pedidos';
+        const line2 = 'manualmente?"';
+        ctx.fillText(line1, width / 2, height / 2 - width * 0.03);
+
+        ctx.fillStyle = "#ef4444";
+        ctx.fillText(line2, width / 2, height / 2 + width * 0.03);
+
+        ctx.globalAlpha = Math.min(1, Math.max(0, (progress - 0.6) * 3));
+        ctx.fillStyle = "rgba(255,255,255,0.6)";
+        ctx.font = `${Math.round(width * 0.018)}px -apple-system, sans-serif`;
+        ctx.fillText("Desorden  •  Errores  •  Pérdida de tiempo", width / 2, height / 2 + width * 0.08);
+        ctx.globalAlpha = 1;
+      }
+
+      if (sceneIdx === 1) {
+        const img = imagesRef.current.scene2;
+        if (img) {
+          ctx.globalAlpha = 0.3;
+          const scale = Math.max(width / img.width, height / img.height);
+          const iw = img.width * scale;
+          const ih = img.height * scale;
+          ctx.drawImage(img, (width - iw) / 2, (height - ih) / 2, iw, ih);
+          ctx.globalAlpha = 1;
+        }
+        const grad = ctx.createLinearGradient(0, 0, width, height);
+        grad.addColorStop(0, "rgba(37,99,235,0.85)");
+        grad.addColorStop(1, "rgba(55,48,163,0.85)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+
+        const titleOpacity = Math.min(1, progress * 4);
+        ctx.globalAlpha = titleOpacity;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.round(width * 0.05)}px -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("Gowater.com", width / 2, height * 0.18);
+
+        ctx.font = `${Math.round(width * 0.022)}px -apple-system, sans-serif`;
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        const descLine1 = "Digitaliza tus pedidos, organiza rutas";
+        const descLine2 = "y controla tus clientes en un solo lugar.";
+        ctx.fillText(descLine1, width / 2, height * 0.28);
+        ctx.fillText(descLine2, width / 2, height * 0.33);
+
+        const mockOpacity = Math.min(1, Math.max(0, (progress - 0.15) * 4));
+        ctx.globalAlpha = mockOpacity;
+
+        const mockW = width * 0.55;
+        const mockH = height * 0.28;
+        const mockX = (width - mockW) / 2;
+        const mockY = height * 0.38;
+        ctx.fillStyle = "rgba(255,255,255,0.1)";
+        ctx.beginPath();
+        const r = 16;
+        ctx.moveTo(mockX + r, mockY);
+        ctx.lineTo(mockX + mockW - r, mockY);
+        ctx.quadraticCurveTo(mockX + mockW, mockY, mockX + mockW, mockY + r);
+        ctx.lineTo(mockX + mockW, mockY + mockH - r);
+        ctx.quadraticCurveTo(mockX + mockW, mockY + mockH, mockX + mockW - r, mockY + mockH);
+        ctx.lineTo(mockX + r, mockY + mockH);
+        ctx.quadraticCurveTo(mockX, mockY + mockH, mockX, mockY + mockH - r);
+        ctx.lineTo(mockX, mockY + r);
+        ctx.quadraticCurveTo(mockX, mockY, mockX + r, mockY);
+        ctx.fill();
+
+        const stats = [
+          { label: "Pedidos hoy", value: "47", color: "#93c5fd" },
+          { label: "Entregas", value: "38", color: "#6ee7b7" },
+          { label: "Clientes", value: "156", color: "#c4b5fd" },
+        ];
+        const statW = mockW / 3 - 10;
+        stats.forEach((stat, i) => {
+          const sx = mockX + 15 + i * (statW + 10);
+          const sy = mockY + 20;
+          ctx.fillStyle = "rgba(255,255,255,0.1)";
+          ctx.fillRect(sx, sy, statW, mockH - 40);
+          ctx.fillStyle = stat.color;
+          ctx.font = `bold ${Math.round(width * 0.035)}px -apple-system, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(stat.value, sx + statW / 2, sy + (mockH - 40) / 2 - 5);
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.font = `${Math.round(width * 0.014)}px -apple-system, sans-serif`;
+          ctx.fillText(stat.label, sx + statW / 2, sy + (mockH - 40) / 2 + 20);
+        });
+
+        const features = ["📲 Pedidos online", "🚚 Optimización de rutas", "📊 Control total"];
+        const featureW = width * 0.25;
+        const featureGap = 20;
+        const totalFeatureW = featureW * 3 + featureGap * 2;
+        const startX = (width - totalFeatureW) / 2;
+        const featureY = height * 0.75;
+
+        features.forEach((text, i) => {
+          const fOpacity = Math.min(1, Math.max(0, (progress - 0.2 - i * 0.15) * 4));
+          ctx.globalAlpha = fOpacity;
+          const fx = startX + i * (featureW + featureGap);
+          ctx.fillStyle = "rgba(255,255,255,0.15)";
+          ctx.beginPath();
+          ctx.moveTo(fx + 12, featureY);
+          ctx.lineTo(fx + featureW - 12, featureY);
+          ctx.quadraticCurveTo(fx + featureW, featureY, fx + featureW, featureY + 12);
+          ctx.lineTo(fx + featureW, featureY + 50 - 12);
+          ctx.quadraticCurveTo(fx + featureW, featureY + 50, fx + featureW - 12, featureY + 50);
+          ctx.lineTo(fx + 12, featureY + 50);
+          ctx.quadraticCurveTo(fx, featureY + 50, fx, featureY + 50 - 12);
+          ctx.lineTo(fx, featureY + 12);
+          ctx.quadraticCurveTo(fx, featureY, fx + 12, featureY);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.round(width * 0.018)}px -apple-system, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(text, fx + featureW / 2, featureY + 30);
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      if (sceneIdx === 2) {
+        const truckImg = imagesRef.current.scene3truck;
+        const ownerImg = imagesRef.current.scene3owner;
+
+        if (truckImg) {
+          ctx.globalAlpha = 0.25 * Math.min(1, progress * 3);
+          const scale = Math.max(width / truckImg.width, height / truckImg.height);
+          ctx.drawImage(
+            truckImg,
+            (width - truckImg.width * scale) / 2,
+            (height - truckImg.height * scale) / 2,
+            truckImg.width * scale,
+            truckImg.height * scale
+          );
+          ctx.globalAlpha = 1;
+        }
+
+        const grad2 = ctx.createLinearGradient(0, 0, width, height);
+        grad2.addColorStop(0, "rgba(255,255,255,0.8)");
+        grad2.addColorStop(0.5, "rgba(239,246,255,0.8)");
+        grad2.addColorStop(1, "rgba(238,242,255,0.8)");
+        ctx.fillStyle = grad2;
+        ctx.fillRect(0, 0, width, height);
+
+        if (ownerImg && progress > 0.1) {
+          ctx.globalAlpha = Math.min(0.4, Math.max(0, (progress - 0.1) * 1.5));
+          const ow = width * 0.25;
+          const oh = (ow / ownerImg.width) * ownerImg.height;
+          ctx.drawImage(ownerImg, width * 0.72, height * 0.15, ow, Math.min(oh, height * 0.5));
+          ctx.globalAlpha = 1;
+        }
+
+        const phrases = [
+          { text: "Más orden.", color: "#2563eb", delay: 0 },
+          { text: "Más control.", color: "#4f46e5", delay: 0.15 },
+          { text: "Más ventas.", color: "#059669", delay: 0.3 },
+        ];
+
+        const phraseY = height * 0.3;
+        phrases.forEach((phrase, i) => {
+          const pOpacity = Math.min(1, Math.max(0, (progress - phrase.delay) * 4));
+          ctx.globalAlpha = pOpacity;
+          ctx.fillStyle = phrase.color;
+          ctx.font = `800 ${Math.round(width * 0.05)}px -apple-system, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(phrase.text, width * 0.4, phraseY + i * width * 0.065);
+        });
+
+        const brandOpacity = Math.min(1, Math.max(0, (progress - 0.5) * 3));
+        ctx.globalAlpha = brandOpacity;
+
+        ctx.fillStyle = "#2563eb";
+        ctx.font = `900 ${Math.round(width * 0.07)}px -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("💧 Gowater.com", width / 2, height * 0.7);
+
+        ctx.fillStyle = "#374151";
+        ctx.font = `bold ${Math.round(width * 0.03)}px -apple-system, sans-serif`;
+        ctx.fillText("Impulsa tu empresa hoy.", width / 2, height * 0.8);
+        ctx.globalAlpha = 1;
+      }
+    },
+    []
+  );
+
+  const drawSubtitleOnCanvas = useCallback(
+    (ctx: CanvasRenderingContext2D, text: string, cWidth: number, cHeight: number) => {
+      ctx.save();
+      const fontSize = Math.round(cWidth * 0.022);
+      ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+
+      const padding = 16;
+      const boxH = fontSize + padding * 2;
+      const boxY = cHeight - boxH - 30;
+
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      const boxW = Math.min(cWidth * 0.85, ctx.measureText(text).width + padding * 4);
+      const boxX = (cWidth - boxW) / 2;
+      ctx.beginPath();
+      ctx.moveTo(boxX + 10, boxY);
+      ctx.lineTo(boxX + boxW - 10, boxY);
+      ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + 10);
+      ctx.lineTo(boxX + boxW, boxY + boxH - 10);
+      ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - 10, boxY + boxH);
+      ctx.lineTo(boxX + 10, boxY + boxH);
+      ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - 10);
+      ctx.lineTo(boxX, boxY + 10);
+      ctx.quadraticCurveTo(boxX, boxY, boxX + 10, boxY);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, cWidth / 2, boxY + boxH - padding);
+      ctx.restore();
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isPlaying || !canvasRef.current || !imagesLoaded) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { index, progress } = getCurrentScene();
+    drawScene(ctx, canvas.width, canvas.height, index, progress);
+    drawSubtitleOnCanvas(ctx, SCENES[index].narration, canvas.width, canvas.height);
+
+    if (index !== lastNarratedSceneRef.current && !isMuted) {
+      lastNarratedSceneRef.current = index;
+      speakNarration(SCENES[index].narration);
+    }
+  }, [currentTime, isPlaying, imagesLoaded, isMuted, getCurrentScene, drawScene, drawSubtitleOnCanvas]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -366,6 +456,7 @@ export default function VideosProm() {
         const next = prev + delta;
         if (next >= TOTAL_DURATION) {
           setIsPlaying(false);
+          stopAllAudio();
           return TOTAL_DURATION;
         }
         return next;
@@ -378,140 +469,234 @@ export default function VideosProm() {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, stopAllAudio]);
 
   const handlePlayPause = () => {
     if (currentTime >= TOTAL_DURATION) {
       setCurrentTime(0);
       lastTimestampRef.current = null;
+      lastNarratedSceneRef.current = -1;
     }
-    setIsPlaying(!isPlaying);
+    if (!isPlaying) {
+      startAudio();
+      setIsPlaying(true);
+    } else {
+      stopAllAudio();
+      setIsPlaying(false);
+    }
   };
 
   const handleRestart = () => {
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    stopAllAudio();
+    setIsPlaying(false);
+    lastTimestampRef.current = null;
+    lastNarratedSceneRef.current = -1;
+    setCurrentTime(0);
+    requestAnimationFrame(() => {
+      startAudio();
+      setIsPlaying(true);
+    });
+  };
+
+  const handleToggleMute = () => {
+    if (!isMuted) {
+      stopAllAudio();
+    } else if (isPlaying) {
+      startAudio();
+    }
+    setIsMuted(!isMuted);
+  };
+
+  const handleRecordAndDownload = async () => {
+    if (!canvasRef.current || isRecording) return;
+    setIsRecording(true);
+    setRecordingProgress(0);
+
+    stopAllAudio();
     setCurrentTime(0);
     lastTimestampRef.current = null;
-    setIsPlaying(true);
+    lastNarratedSceneRef.current = -1;
+    setIsPlaying(false);
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setIsRecording(false);
+      return;
+    }
+
+    const audioCtx = new AudioContext();
+    const dest = audioCtx.createMediaStreamDestination();
+
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.08;
+    gainNode.connect(dest);
+
+    const notes = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
+    let noteIdx = 0;
+    const playRecNote = () => {
+      const osc = audioCtx.createOscillator();
+      const ng = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = notes[noteIdx % notes.length];
+      ng.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      ng.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.8);
+      osc.connect(ng);
+      ng.connect(gainNode);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 2);
+
+      const pad = audioCtx.createOscillator();
+      const pg = audioCtx.createGain();
+      pad.type = "triangle";
+      pad.frequency.value = notes[noteIdx % notes.length] / 2;
+      pg.gain.value = 0.15;
+      pad.connect(pg);
+      pg.connect(gainNode);
+      pad.start();
+      pad.stop(audioCtx.currentTime + 2);
+      noteIdx++;
+    };
+    playRecNote();
+    const musicInterval = setInterval(playRecNote, 2000);
+
+    const canvasStream = canvas.captureStream(30);
+    const audioTrack = dest.stream.getAudioTracks()[0];
+    if (audioTrack) canvasStream.addTrack(audioTrack);
+
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+      ? "video/webm;codecs=vp9,opus"
+      : MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : "video/webm";
+
+    const recorder = new MediaRecorder(canvasStream, {
+      mimeType,
+      videoBitsPerSecond: 2500000,
+    });
+
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      clearInterval(musicInterval);
+      audioCtx.close().catch(() => {});
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gowater-video-promocional.webm";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setIsRecording(false);
+      setRecordingProgress(100);
+    };
+
+    recorder.start(100);
+
+    let recTime = 0;
+    const FPS = 30;
+    const frameInterval = 1000 / FPS;
+    let lastRecNarratedScene = -1;
+
+    const drawSubtitle = (text: string, cWidth: number, cHeight: number) => {
+      ctx.save();
+      const fontSize = Math.round(cWidth * 0.022);
+      ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+
+      const padding = 16;
+      const boxH = fontSize + padding * 2;
+      const boxY = cHeight - boxH - 30;
+
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      const boxW = Math.min(cWidth * 0.85, ctx.measureText(text).width + padding * 4);
+      const boxX = (cWidth - boxW) / 2;
+      ctx.beginPath();
+      ctx.moveTo(boxX + 10, boxY);
+      ctx.lineTo(boxX + boxW - 10, boxY);
+      ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + 10);
+      ctx.lineTo(boxX + boxW, boxY + boxH - 10);
+      ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - 10, boxY + boxH);
+      ctx.lineTo(boxX + 10, boxY + boxH);
+      ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - 10);
+      ctx.lineTo(boxX, boxY + 10);
+      ctx.quadraticCurveTo(boxX, boxY, boxX + 10, boxY);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, cWidth / 2, boxY + boxH - padding);
+      ctx.restore();
+    };
+
+    const renderFrame = () => {
+      if (recTime >= TOTAL_DURATION) {
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        recorder.stop();
+        return;
+      }
+
+      let accumulated = 0;
+      let sceneIdx = 0;
+      let sceneProgress = 0;
+      for (let i = 0; i < SCENES.length; i++) {
+        if (recTime < accumulated + SCENES[i].duration) {
+          sceneIdx = i;
+          sceneProgress = (recTime - accumulated) / SCENES[i].duration;
+          break;
+        }
+        accumulated += SCENES[i].duration;
+        if (i === SCENES.length - 1) {
+          sceneIdx = i;
+          sceneProgress = 1;
+        }
+      }
+
+      drawScene(ctx, canvas.width, canvas.height, sceneIdx, sceneProgress);
+
+      const narrationText = SCENES[sceneIdx].narration;
+      if (narrationText) {
+        drawSubtitle(narrationText, canvas.width, canvas.height);
+      }
+
+      if (sceneIdx !== lastRecNarratedScene) {
+        lastRecNarratedScene = sceneIdx;
+        speakNarration(SCENES[sceneIdx].narration);
+      }
+
+      setRecordingProgress(Math.round((recTime / TOTAL_DURATION) * 100));
+
+      recTime += frameInterval;
+      setTimeout(renderFrame, frameInterval);
+    };
+
+    renderFrame();
   };
 
-  const handleDownloadHTML = () => {
-    const htmlContent = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gowater.com - Video Promocional</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;width:100vw;height:100vh}
-.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.8s ease}
-.scene.active{opacity:1}
-.scene1{background:linear-gradient(135deg,#f3f4f6,#e5e7eb)}
-.scene2{background:linear-gradient(135deg,#2563eb,#3730a3)}
-.scene3{background:linear-gradient(135deg,#ffffff,#eff6ff,#eef2ff)}
-.icon-box{width:96px;height:96px;background:white;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-size:48px;border:2px solid #fee2e2}
-.voice-text{font-size:clamp(1.5rem,4vw,2rem);font-weight:700;color:#1f2937;text-align:center;max-width:600px;line-height:1.4;animation:fadeUp 0.8s ease forwards}
-.manual{color:#ef4444}
-.dashboard-mock{background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);border-radius:16px;border:1px solid rgba(255,255,255,0.2);padding:24px;max-width:500px;width:90%;margin:20px auto}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.stat{background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center}
-.stat-value{font-size:1.8rem;font-weight:700;color:#93c5fd}
-.stat-label{font-size:0.75rem;color:rgba(255,255,255,0.6);margin-top:4px}
-.feature-row{display:flex;gap:16px;margin-top:20px;flex-wrap:wrap;justify-content:center}
-.feature-card{background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.2);text-align:center;font-size:1.1rem;font-weight:700;color:white;flex:1;min-width:150px;animation:fadeUp 0.6s ease forwards}
-.scene2-title{font-size:clamp(1.2rem,3vw,1.5rem);color:rgba(255,255,255,0.9);text-align:center;max-width:600px;line-height:1.5}
-.scene2-title strong{color:white;font-size:clamp(1.8rem,5vw,2.5rem);display:block;margin-bottom:8px}
-.highlight{color:#fde047;font-weight:700}
-.phrases{display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
-.phrase{font-size:clamp(1.8rem,5vw,2.5rem);font-weight:800}
-.phrase.blue{color:#2563eb}
-.phrase.indigo{color:#4f46e5}
-.phrase.green{color:#059669}
-.brand{text-align:center;margin-top:32px}
-.brand-name{font-size:clamp(2.5rem,7vw,4rem);font-weight:900;background:linear-gradient(90deg,#2563eb,#4338ca);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.brand-sub{font-size:clamp(1.2rem,3vw,1.5rem);font-weight:700;color:#374151;margin-top:12px}
-.icons-row{display:flex;gap:16px;margin-bottom:16px}
-.icon-circle{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:24px;color:white;box-shadow:0 8px 20px rgba(59,130,246,0.3)}
-.controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:100}
-.ctrl-btn{padding:10px 20px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;background:#2563eb;color:white}
-.ctrl-btn:hover{background:#1d4ed8}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.progress-bar{position:fixed;top:0;left:0;height:4px;background:#2563eb;z-index:100;transition:width 0.1s linear}
-</style>
-</head>
-<body>
-<div class="progress-bar" id="progressBar"></div>
-<div class="scene scene1" id="scene1">
-<div style="display:flex;align-items:center;gap:24px;margin-bottom:32px">
-<div class="icon-box">💬</div>
-<span style="font-size:2rem;color:#d1d5db;font-weight:700">+</span>
-<div class="icon-box" style="border-color:#fed7aa">📄</div>
-<span style="font-size:2rem;color:#d1d5db;font-weight:700">+</span>
-<div class="icon-box" style="border-color:#fef08a">😰</div>
-</div>
-<p class="voice-text">"¿Tu empresa de agua aún toma pedidos <span class="manual">manualmente</span>?"</p>
-</div>
-<div class="scene scene2" id="scene2">
-<p class="scene2-title"><strong>Gowater.com</strong>Digitaliza tus pedidos, organiza rutas y controla tus clientes <span class="highlight">en un solo lugar.</span></p>
-<div class="dashboard-mock">
-<div class="stat-grid">
-<div class="stat"><div class="stat-value">47</div><div class="stat-label">Pedidos hoy</div></div>
-<div class="stat"><div class="stat-value">38</div><div class="stat-label">Entregas</div></div>
-<div class="stat"><div class="stat-value">156</div><div class="stat-label">Clientes</div></div>
-</div>
-</div>
-<div class="feature-row">
-<div class="feature-card">📲 Pedidos online</div>
-<div class="feature-card" style="animation-delay:0.2s">🚚 Optimización de rutas</div>
-<div class="feature-card" style="animation-delay:0.4s">📊 Control total</div>
-</div>
-</div>
-<div class="scene scene3" id="scene3">
-<div class="icons-row">
-<div class="icon-circle">🚚</div>
-<div class="icon-circle">📱</div>
-<div class="icon-circle">✅</div>
-</div>
-<div class="phrases">
-<span class="phrase blue">Más orden.</span>
-<span class="phrase indigo">Más control.</span>
-<span class="phrase green">Más ventas.</span>
-</div>
-<div class="brand">
-<div style="display:flex;align-items:center;justify-content:center;gap:12px"><span style="font-size:2.5rem">💧</span><span class="brand-name">Gowater.com</span></div>
-<p class="brand-sub">Impulsa tu empresa hoy.</p>
-</div>
-</div>
-<div class="controls">
-<button class="ctrl-btn" id="playBtn" onclick="startVideo()">▶ Reproducir</button>
-<button class="ctrl-btn" onclick="location.reload()">↺ Reiniciar</button>
-</div>
-<script>
-const scenes=[{el:document.getElementById('scene1'),duration:4000},{el:document.getElementById('scene2'),duration:6000},{el:document.getElementById('scene3'),duration:6000}];
-const totalDuration=scenes.reduce((a,s)=>a+s.duration,0);
-const progressBar=document.getElementById('progressBar');
-let currentScene=0;let startTime=0;let running=false;
-function showScene(i){scenes.forEach((s,idx)=>{s.el.classList.toggle('active',idx===i)})}
-function animate(ts){if(!running)return;if(!startTime)startTime=ts;const elapsed=ts-startTime;progressBar.style.width=(elapsed/totalDuration*100)+'%';let acc=0;for(let i=0;i<scenes.length;i++){if(elapsed<acc+scenes[i].duration){showScene(i);break}acc+=scenes[i].duration;if(i===scenes.length-1)showScene(i)}if(elapsed<totalDuration)requestAnimationFrame(animate);else{progressBar.style.width='100%';running=false;document.getElementById('playBtn').textContent='▶ Reproducir'}}
-function startVideo(){startTime=0;running=true;document.getElementById('playBtn').textContent='⏸ Pausar';requestAnimationFrame(animate)}
-showScene(0);scenes[0].el.classList.add('active');
-</script>
-</body>
-</html>`;
+  useEffect(() => {
+    if (!canvasRef.current || isPlaying) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx || !imagesLoaded) return;
 
-    const blob = new Blob([htmlContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "gowater-video-promocional.html";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+    const { index, progress } = getCurrentScene();
+    drawScene(ctx, canvas.width, canvas.height, index, progress);
+    drawSubtitleOnCanvas(ctx, SCENES[index].narration, canvas.width, canvas.height);
+  }, [imagesLoaded, getCurrentScene, drawScene, drawSubtitleOnCanvas, isPlaying]);
 
-  const { index: currentSceneIndex, progress: sceneProgress } = getCurrentScene();
   const overallProgress = (currentTime / TOTAL_DURATION) * 100;
+  const { index: currentSceneIndex } = getCurrentScene();
 
   return (
     <PlatformLayout>
@@ -523,28 +708,39 @@ showScene(0);scenes[0].el.classList.add('active');
               Videos Promocionales
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Presentación animada de Gowater.com - 16 segundos
+              Video promocional de Gowater.com - 16 segundos
             </p>
           </div>
-          <Button
-            onClick={handleDownloadHTML}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Descargar HTML
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleRecordAndDownload}
+              disabled={isRecording || !imagesLoaded}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex items-center gap-2"
+            >
+              {isRecording ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Grabando {recordingProgress}%
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Descargar Video
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <Card className="overflow-hidden rounded-2xl shadow-lg">
-          <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
-            <div className="absolute inset-0">
-              {currentSceneIndex === 0 && <Scene1 progress={sceneProgress} />}
-              {currentSceneIndex === 1 && <Scene2 progress={sceneProgress} />}
-              {currentSceneIndex === 2 && <Scene3 progress={sceneProgress} />}
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10">
+          <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+            <canvas
+              ref={canvasRef}
+              width={1280}
+              height={720}
+              className="w-full h-full"
+            />
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
               <div
                 className="h-full bg-blue-500 transition-all duration-100"
                 style={{ width: `${overallProgress}%` }}
@@ -557,6 +753,7 @@ showScene(0);scenes[0].el.classList.add('active');
               <Button
                 size="sm"
                 onClick={handlePlayPause}
+                disabled={!imagesLoaded || isRecording}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
               >
                 {isPlaying ? (
@@ -564,11 +761,14 @@ showScene(0);scenes[0].el.classList.add('active');
                 ) : (
                   <Play className="w-4 h-4 mr-1" />
                 )}
-                {isPlaying ? "Pausar" : currentTime >= TOTAL_DURATION ? "Reproducir" : "Reproducir"}
+                {isPlaying ? "Pausar" : "Reproducir"}
               </Button>
-              <Button size="sm" variant="outline" onClick={handleRestart}>
+              <Button size="sm" variant="outline" onClick={handleRestart} disabled={isRecording}>
                 <RotateCcw className="w-4 h-4 mr-1" />
                 Reiniciar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleToggleMute}>
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </Button>
             </div>
 
@@ -581,7 +781,9 @@ showScene(0);scenes[0].el.classList.add('active');
               </span>
               <span className="hidden sm:inline">|</span>
               <span className="hidden sm:inline font-medium">
-                {SCENES[currentSceneIndex]?.label || "Finalizado"}
+                {currentTime >= TOTAL_DURATION
+                  ? "Finalizado"
+                  : SCENES[currentSceneIndex]?.label}
               </span>
             </div>
 
@@ -590,9 +792,9 @@ showScene(0);scenes[0].el.classList.add('active');
                 <div
                   key={i}
                   className={`w-3 h-3 rounded-full transition-colors ${
-                    i === currentSceneIndex
+                    i === currentSceneIndex && currentTime < TOTAL_DURATION
                       ? "bg-blue-600 scale-110"
-                      : i < currentSceneIndex
+                      : i < currentSceneIndex || currentTime >= TOTAL_DURATION
                       ? "bg-blue-300"
                       : "bg-gray-300"
                   }`}
@@ -609,11 +811,7 @@ showScene(0);scenes[0].el.classList.add('active');
               <div className="flex items-center gap-2 mb-2">
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm ${
-                    i === 0
-                      ? "bg-red-500"
-                      : i === 1
-                      ? "bg-blue-600"
-                      : "bg-emerald-500"
+                    i === 0 ? "bg-red-500" : i === 1 ? "bg-blue-600" : "bg-emerald-500"
                   }`}
                 >
                   {i + 1}
@@ -623,13 +821,16 @@ showScene(0);scenes[0].el.classList.add('active');
                   <p className="text-xs text-gray-400">{scene.duration / 1000} segundos</p>
                 </div>
               </div>
+              <p className="text-xs text-gray-600 leading-relaxed mb-2">
+                <span className="font-medium text-gray-800">Narración:</span> "{scene.narration}"
+              </p>
               <p className="text-xs text-gray-500 leading-relaxed">
                 {i === 0 &&
-                  'Dueño revisando pedidos por WhatsApp y papeles desordenados. Voz: "¿Tu empresa de agua aún toma pedidos manualmente?"'}
+                  "Imagen de fondo: persona estresada con papeles y celular. Overlay oscuro con texto animado."}
                 {i === 1 &&
-                  'Dashboard Gowater.com con pedidos, rutas y clientes. Voz: "Con Gowater.com digitaliza tus pedidos..."'}
+                  "Imagen de fondo: dashboard en pantalla. Overlay azul con mockup de estadísticas y features."}
                 {i === 2 &&
-                  'Eficiencia y estadísticas. Voz: "Más orden. Más control. Más ventas." Texto final: Gowater.com - Impulsa tu empresa hoy.'}
+                  "Imágenes: camión de entregas + dueño con celular. Texto final grande con branding Gowater."}
               </p>
             </Card>
           ))}
