@@ -1421,7 +1421,6 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para obtener rutas activas (pending o in_progress)
   router.get("/routes/active", async (req, res) => {
     try {
-      // Obtener companyId desde la sesión
       const companyId = req.session.companyId || req.session.user?.companyId;
       if (!companyId) {
         return res.status(403).json({ 
@@ -1430,21 +1429,29 @@ export async function registerRoutes(router: express.Router) {
         });
       }
 
-      console.log(`GET /api/routes/active - Obteniendo rutas activas para compañía ${companyId}`);
-      
-      // Filtrar por companyId y status
+      const currentUser = req.session.user;
+      const isDriver = currentUser?.role === 'driver';
+      const isAssistant = currentUser?.role === 'assistant';
+
+      console.log(`GET /api/routes/active - Usuario: ${currentUser?.id} (${currentUser?.role}), Compañía: ${companyId}`);
+
+      const conditions = [
+        eq(routes.companyId, companyId),
+        inArray(routes.status, ["pending", "in_progress"])
+      ];
+
+      if (isDriver && currentUser?.id) {
+        conditions.push(eq(routes.driverId, currentUser.id));
+      } else if (isAssistant && currentUser?.id) {
+        conditions.push(eq(routes.assistantId, currentUser.id));
+      }
+
       const activeRoutes = await db
         .select()
         .from(routes)
-        .where(
-          and(
-            eq(routes.companyId, companyId),
-            inArray(routes.status, ["pending", "in_progress"])
-          )
-        )
+        .where(and(...conditions))
         .orderBy(routes.date);
       
-      // Para cada ruta, obtener los IDs de pedidos asociados
       const routesWithOrders = await Promise.all(
         activeRoutes.map(async (route) => {
           const routeOrders = await db
@@ -1459,7 +1466,7 @@ export async function registerRoutes(router: express.Router) {
         })
       );
       
-      console.log(`GET /api/routes/active - Retornando ${routesWithOrders.length} rutas activas para compañía ${companyId}`);
+      console.log(`GET /api/routes/active - Retornando ${routesWithOrders.length} rutas para usuario ${currentUser?.id} (${currentUser?.role})`);
       res.json(routesWithOrders);
     } catch (error) {
       console.error("Error al obtener rutas activas:", error);

@@ -44,10 +44,19 @@ export function createMobileApiEndpoints(): Router {
       const statusFilter = req.query.status ? 
         eq(routes.status, req.query.status as string) : undefined;
         
-      // Filtrar por chofer si se proporciona
-      const driverId = req.query.driverId ? safeParseInt(req.query.driverId as string, -1) : -1;
-      const driverFilter = isPositiveInteger(driverId) ? 
-        eq(routes.driverId, driverId) : undefined;
+      const currentUser = req.session?.user;
+      const isDriverRole = currentUser?.role === 'driver';
+      const isAssistantRole = currentUser?.role === 'assistant';
+
+      let driverFilter;
+      if (isDriverRole && currentUser?.id) {
+        driverFilter = eq(routes.driverId, currentUser.id);
+      } else if (isAssistantRole && currentUser?.id) {
+        driverFilter = eq(routes.assistantId, currentUser.id);
+      } else {
+        const driverId = req.query.driverId ? safeParseInt(req.query.driverId as string, -1) : -1;
+        driverFilter = isPositiveInteger(driverId) ? eq(routes.driverId, driverId) : undefined;
+      }
       
       // Construir el filtro completo
       let filter;
