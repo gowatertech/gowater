@@ -703,8 +703,8 @@ export default function VideosProm() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Video className="w-6 h-6 text-blue-600" />
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Video className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               Videos Promocionales
             </h1>
             <p className="text-sm text-gray-500 mt-1">
@@ -748,8 +748,8 @@ export default function VideosProm() {
             </div>
           </div>
 
-          <div className="p-4 bg-gray-50 border-t flex flex-col sm:flex-row items-center gap-4">
-            <div className="flex items-center gap-2">
+          <div className="p-3 sm:p-4 bg-gray-50 border-t flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-start">
               <Button
                 size="sm"
                 onClick={handlePlayPause}
@@ -787,7 +787,7 @@ export default function VideosProm() {
               </span>
             </div>
 
-            <div className="flex gap-1.5 ml-auto">
+            <div className="flex gap-1.5 sm:ml-auto">
               {SCENES.map((scene, i) => (
                 <div
                   key={i}

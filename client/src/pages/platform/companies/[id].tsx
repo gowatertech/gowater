@@ -326,21 +326,22 @@ export default function CompanyFormPage() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center">
             <Button 
               variant="ghost" 
+              size="sm"
               onClick={() => setLocation("/platform/companies")}
-              className="mr-4"
+              className="mr-2 sm:mr-4"
               data-testid="button-back"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Volver
+              <ArrowLeft className="mr-1 sm:mr-2 h-4 w-4" /> <span className="hidden sm:inline">Volver</span>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold" data-testid="text-page-title">
+              <h1 className="text-lg sm:text-2xl font-bold" data-testid="text-page-title">
                 {isEditMode ? "Editar Empresa" : "Crear Nueva Empresa"}
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {isEditMode 
                   ? "Actualiza la información de la empresa" 
                   : "Completa el formulario para registrar una nueva empresa"}
@@ -348,7 +349,7 @@ export default function CompanyFormPage() {
             </div>
           </div>
           {isEditMode && companyData && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-10 sm:ml-0">
               {getStatusBadge(companyData.status)}
             </div>
           )}
@@ -357,15 +358,15 @@ export default function CompanyFormPage() {
         {isSuspended && (
           <Card className="border-red-200 bg-red-50 dark:bg-red-900/10" data-testid="card-suspended-alert">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <AlertTriangle className="h-8 w-8 text-red-500" />
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 flex-shrink-0" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-red-700 dark:text-red-400">Esta empresa está suspendida</h3>
-                  <p className="text-sm text-red-600 dark:text-red-300">
+                  <h3 className="font-semibold text-sm sm:text-base text-red-700 dark:text-red-400">Esta empresa está suspendida</h3>
+                  <p className="text-xs sm:text-sm text-red-600 dark:text-red-300">
                     Razón: {companyData?.suspensionReason || "No especificada"}
                   </p>
                   {companyData?.suspendedAt && (
-                    <p className="text-sm text-red-600 dark:text-red-300">
+                    <p className="text-xs sm:text-sm text-red-600 dark:text-red-300">
                       Suspendida el: {format(new Date(companyData.suspendedAt), "dd/MM/yyyy HH:mm", { locale: es })}
                     </p>
                   )}
@@ -420,7 +421,7 @@ export default function CompanyFormPage() {
             )}
             
             <TabsContent value="info">
-              <Card className="max-w-2xl">
+              <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                   <CardTitle>{isEditMode ? "Editar Empresa" : "Nueva Empresa"}</CardTitle>
                   <CardDescription>

@@ -216,14 +216,14 @@ export default function PlatformSettings() {
   return (
     <PlatformLayout>
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-              <Settings className="w-5 h-5" />
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <Settings className="w-4 h-4 md:w-5 md:h-5" />
             </div>
-            Configuración de la Plataforma
+            Configuración
           </h1>
-          <p className="text-blue-100 mt-1">Ajustes globales del sistema GoWater</p>
+          <p className="text-blue-100 mt-1 text-sm">Ajustes globales del sistema GoWater</p>
         </div>
 
         {isLoadingSettings ? (
@@ -233,10 +233,10 @@ export default function PlatformSettings() {
           </div>
         ) : (
           <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="billing">Facturación</TabsTrigger>
-              <TabsTrigger value="email">Correo Electrónico</TabsTrigger>
+            <TabsList className="mb-4 w-full sm:w-auto flex">
+              <TabsTrigger value="general" className="flex-1 sm:flex-initial text-xs sm:text-sm">General</TabsTrigger>
+              <TabsTrigger value="billing" className="flex-1 sm:flex-initial text-xs sm:text-sm">Facturación</TabsTrigger>
+              <TabsTrigger value="email" className="flex-1 sm:flex-initial text-xs sm:text-sm">Correo</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
@@ -347,8 +347,8 @@ export default function PlatformSettings() {
                     <CardDescription>Imagen que aparecerá en las facturas y documentos</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-start gap-6">
-                      <div className="flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                      <div className="flex-shrink-0 mx-auto sm:mx-0">
                         {logoPreview ? (
                           <div className="relative group">
                             <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden bg-white flex items-center justify-center p-2">

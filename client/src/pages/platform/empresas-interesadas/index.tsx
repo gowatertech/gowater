@@ -231,20 +231,19 @@ export default function EmpresasInteresadas() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Empresas Interesadas</h1>
-            <p className="text-muted-foreground">
-              Gestiona las empresas que han mostrado interés en nuestro servicio
+            <h1 className="text-xl md:text-2xl font-bold">Empresas Interesadas</h1>
+            <p className="text-sm text-muted-foreground">
+              Gestiona las empresas que han mostrado interés
             </p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2">
+          <Button size="sm" onClick={handleCreate} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             <span>Registrar interés</span>
           </Button>
         </div>
         
-        {/* Buscador */}
         <div className="relative w-full max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -257,9 +256,9 @@ export default function EmpresasInteresadas() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Listado de Empresas Interesadas</CardTitle>
+            <CardTitle className="text-base md:text-lg">Listado de Empresas Interesadas</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -268,114 +267,172 @@ export default function EmpresasInteresadas() {
             ) : error ? (
               <div className="text-center py-8 text-destructive">
                 <p>Ocurrió un error al cargar los datos.</p>
-                <p>Por favor, intenta nuevamente más tarde.</p>
+                <p className="text-sm">Por favor, intenta nuevamente más tarde.</p>
               </div>
             ) : filteredLeads.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-muted-foreground text-sm">
                 {searchTerm 
                   ? "No se encontraron empresas con el término de búsqueda."
                   : "No hay empresas interesadas registradas."}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Encargado</TableHead>
-                      <TableHead>Contacto</TableHead>
-                      <TableHead>Clientes/Vehículos</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLeads.map((lead) => (
-                      <TableRow key={lead.id}>
-                        <TableCell className="font-medium">
-                          {lead.companyName}
-                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {lead.address} ({lead.country})
-                          </div>
-                        </TableCell>
-                        <TableCell>{lead.managerName}</TableCell>
-                        <TableCell>
-                          <div>{lead.phone}</div>
-                          {lead.email && (
-                            <div className="text-xs text-muted-foreground">{lead.email}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div>Clientes: {lead.approximateClients}</div>
-                          <div>Vehículos: {lead.vehicleCount}</div>
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(lead.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusBadgeVariant(lead.status)}>
-                            {getStatusLabel(lead.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleEdit(lead)}
-                            >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Editar</span>
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Más acciones</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleEdit(lead)}>
-                                  Editar detalles
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
-                                <DropdownMenuItem 
-                                  disabled={lead.status === "new"}
-                                  onClick={() => handleChangeStatus(lead.id, "new")}
-                                >
-                                  Marcar como Nuevo
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  disabled={lead.status === "contacted"}
-                                  onClick={() => handleChangeStatus(lead.id, "contacted")}
-                                >
-                                  Marcar como Contactado
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  disabled={lead.status === "converted"}
-                                  onClick={() => handleChangeStatus(lead.id, "converted")}
-                                >
-                                  Marcar como Convertido
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  disabled={lead.status === "declined"}
-                                  onClick={() => handleChangeStatus(lead.id, "declined")}
-                                >
-                                  Marcar como Descartado
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Empresa</TableHead>
+                        <TableHead>Encargado</TableHead>
+                        <TableHead>Contacto</TableHead>
+                        <TableHead>Clientes/Vehículos</TableHead>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Acciones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLeads.map((lead) => (
+                        <TableRow key={lead.id}>
+                          <TableCell className="font-medium">
+                            {lead.companyName}
+                            <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                              {lead.address} ({lead.country})
+                            </div>
+                          </TableCell>
+                          <TableCell>{lead.managerName}</TableCell>
+                          <TableCell>
+                            <div>{lead.phone}</div>
+                            {lead.email && (
+                              <div className="text-xs text-muted-foreground">{lead.email}</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div>Clientes: {lead.approximateClients}</div>
+                            <div>Vehículos: {lead.vehicleCount}</div>
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(lead.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusBadgeVariant(lead.status)}>
+                              {getStatusLabel(lead.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleEdit(lead)}
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Editar</span>
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Más acciones</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleEdit(lead)}>
+                                    Editar detalles
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
+                                  <DropdownMenuItem 
+                                    disabled={lead.status === "new"}
+                                    onClick={() => handleChangeStatus(lead.id, "new")}
+                                  >
+                                    Marcar como Nuevo
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    disabled={lead.status === "contacted"}
+                                    onClick={() => handleChangeStatus(lead.id, "contacted")}
+                                  >
+                                    Marcar como Contactado
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    disabled={lead.status === "converted"}
+                                    onClick={() => handleChangeStatus(lead.id, "converted")}
+                                  >
+                                    Marcar como Convertido
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    disabled={lead.status === "declined"}
+                                    onClick={() => handleChangeStatus(lead.id, "declined")}
+                                  >
+                                    Marcar como Descartado
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="md:hidden space-y-3">
+                  {filteredLeads.map((lead) => (
+                    <Card key={lead.id} className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{lead.companyName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{lead.address} ({lead.country})</p>
+                        </div>
+                        <Badge variant={getStatusBadgeVariant(lead.status)} className="text-xs ml-2 flex-shrink-0">
+                          {getStatusLabel(lead.status)}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                        <div>
+                          <span className="text-muted-foreground block">Encargado</span>
+                          <span>{lead.managerName}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">Teléfono</span>
+                          <span>{lead.phone}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">Clientes</span>
+                          <span>{lead.approximateClients}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">Vehículos</span>
+                          <span>{lead.vehicleCount}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
+                        <div className="flex gap-1">
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(lead)}>
+                            <Edit className="h-3 w-3 mr-1" /> Editar
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Cambiar estado</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem disabled={lead.status === "new"} onClick={() => handleChangeStatus(lead.id, "new")}>Nuevo</DropdownMenuItem>
+                              <DropdownMenuItem disabled={lead.status === "contacted"} onClick={() => handleChangeStatus(lead.id, "contacted")}>Contactado</DropdownMenuItem>
+                              <DropdownMenuItem disabled={lead.status === "converted"} onClick={() => handleChangeStatus(lead.id, "converted")}>Convertido</DropdownMenuItem>
+                              <DropdownMenuItem disabled={lead.status === "declined"} onClick={() => handleChangeStatus(lead.id, "declined")}>Descartado</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

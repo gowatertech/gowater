@@ -350,26 +350,28 @@ export default function InvoicesPage() {
         <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <FileText className="w-5 h-5" />
+              <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <FileText className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
                 Facturación
               </h1>
-              <p className="text-blue-100 mt-1">Gestión de facturas de membresía</p>
+              <p className="text-blue-100 mt-1 text-sm">Gestión de facturas de membresía</p>
             </div>
             <div className="flex gap-2">
               <Button
+                size="sm"
                 onClick={() => setShowGenerateDialog(true)}
                 className="bg-white/15 hover:bg-white/25 text-white border-0"
               >
-                <Zap className="mr-2 h-4 w-4" /> Generar Ciclo
+                <Zap className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Generar </span>Ciclo
               </Button>
               <Button
+                size="sm"
                 onClick={() => setLocation("/platform/invoices/new")}
                 className="bg-white text-blue-700 hover:bg-blue-50 border-0"
               >
-                <PlusIcon className="mr-2 h-4 w-4" /> Nueva Factura
+                <PlusIcon className="mr-2 h-4 w-4" /> <span className="hidden sm:inline">Nueva </span>Factura
               </Button>
             </div>
           </div>
@@ -384,7 +386,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Total Facturado</p>
-                  <p className="text-lg font-bold text-blue-700">{stats ? formatPrice(stats.totalInvoiced) : "$0.00"}</p>
+                  <p className="text-sm md:text-lg font-bold text-blue-700 truncate">{stats ? formatPrice(stats.totalInvoiced) : "$0.00"}</p>
                 </div>
               </div>
             </CardContent>
@@ -397,7 +399,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Cobrado</p>
-                  <p className="text-lg font-bold text-emerald-700">{stats ? formatPrice(stats.paidAmount) : "$0.00"}</p>
+                  <p className="text-sm md:text-lg font-bold text-emerald-700 truncate">{stats ? formatPrice(stats.paidAmount) : "$0.00"}</p>
                 </div>
               </div>
             </CardContent>
@@ -410,7 +412,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Pendiente</p>
-                  <p className="text-lg font-bold text-amber-700">{stats ? formatPrice(stats.pendingAmount) : "$0.00"}</p>
+                  <p className="text-sm md:text-lg font-bold text-amber-700 truncate">{stats ? formatPrice(stats.pendingAmount) : "$0.00"}</p>
                 </div>
               </div>
             </CardContent>
@@ -423,7 +425,7 @@ export default function InvoicesPage() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Vencidas</p>
-                  <p className="text-lg font-bold text-red-700">{stats?.overdueCount || 0}</p>
+                  <p className="text-sm md:text-lg font-bold text-red-700">{stats?.overdueCount || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -487,95 +489,145 @@ export default function InvoicesPage() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50/50">
-                      <TableHead className="font-semibold">#</TableHead>
-                      <TableHead className="font-semibold">Empresa</TableHead>
-                      <TableHead className="font-semibold">Plan</TableHead>
-                      <TableHead className="font-semibold">Monto</TableHead>
-                      <TableHead className="font-semibold">Estado</TableHead>
-                      <TableHead className="font-semibold">Emisión</TableHead>
-                      <TableHead className="font-semibold">Vencimiento</TableHead>
-                      <TableHead className="text-right font-semibold">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInvoices.map((invoice: MembershipInvoice) => {
-                      const statusBadge = getStatusBadge(invoice.status, invoice.dueDate);
-                      return (
-                        <TableRow key={invoice.id} className="hover:bg-gray-50/50">
-                          <TableCell className="font-mono text-sm text-muted-foreground">
-                            {String(invoice.id).padStart(4, '0')}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {invoice.companyName || `Empresa #${invoice.companyId}`}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {invoice.planName || `Plan #${invoice.planId}`}
-                          </TableCell>
-                          <TableCell className="font-semibold">{formatPrice(invoice.amount)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={cn("text-xs font-medium", statusBadge.className)}>
-                              {statusBadge.icon} {statusBadge.text}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatDate(invoice.invoiceDate)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{formatDate(invoice.dueDate)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              {invoice.status === "pending" && (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50/50">
+                        <TableHead className="font-semibold">#</TableHead>
+                        <TableHead className="font-semibold">Empresa</TableHead>
+                        <TableHead className="font-semibold">Plan</TableHead>
+                        <TableHead className="font-semibold">Monto</TableHead>
+                        <TableHead className="font-semibold">Estado</TableHead>
+                        <TableHead className="font-semibold">Emisión</TableHead>
+                        <TableHead className="font-semibold">Vencimiento</TableHead>
+                        <TableHead className="text-right font-semibold">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInvoices.map((invoice: MembershipInvoice) => {
+                        const statusBadge = getStatusBadge(invoice.status, invoice.dueDate);
+                        return (
+                          <TableRow key={invoice.id} className="hover:bg-gray-50/50">
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              {String(invoice.id).padStart(4, '0')}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {invoice.companyName || `Empresa #${invoice.companyId}`}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {invoice.planName || `Plan #${invoice.planId}`}
+                            </TableCell>
+                            <TableCell className="font-semibold">{formatPrice(invoice.amount)}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={cn("text-xs font-medium", statusBadge.className)}>
+                                {statusBadge.icon} {statusBadge.text}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(invoice.invoiceDate)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(invoice.dueDate)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                {invoice.status === "pending" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => markAsPaidMutation.mutate(invoice.id)}
+                                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                    title="Marcar como pagada"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => markAsPaidMutation.mutate(invoice.id)}
-                                  className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                  title="Marcar como pagada"
+                                  onClick={() => generatePdf(invoice.id)}
+                                  disabled={generatingPdf === invoice.id}
+                                  className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="Descargar PDF"
                                 >
-                                  <CheckCircle className="h-4 w-4" />
+                                  {generatingPdf === invoice.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Download className="h-4 w-4" />
+                                  )}
                                 </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => generatePdf(invoice.id)}
-                                disabled={generatingPdf === invoice.id}
-                                className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                title="Descargar PDF"
-                              >
-                                {generatingPdf === invoice.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Download className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setLocation(`/platform/invoices/${invoice.id}`)}
-                                className="h-8 w-8 text-gray-600 hover:text-gray-700 hover:bg-gray-100"
-                                title="Editar"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setInvoiceToDelete(invoice)}
-                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                title="Eliminar"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setLocation(`/platform/invoices/${invoice.id}`)}
+                                  className="h-8 w-8 text-gray-600 hover:text-gray-700 hover:bg-gray-100"
+                                  title="Editar"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setInvoiceToDelete(invoice)}
+                                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  title="Eliminar"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="md:hidden space-y-3">
+                  {filteredInvoices.map((invoice: MembershipInvoice) => {
+                    const statusBadge = getStatusBadge(invoice.status, invoice.dueDate);
+                    return (
+                      <Card key={invoice.id} className="p-3 border">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">{invoice.companyName || `Empresa #${invoice.companyId}`}</p>
+                            <p className="text-xs text-muted-foreground">#{String(invoice.id).padStart(4, '0')} · {invoice.planName || `Plan #${invoice.planId}`}</p>
+                          </div>
+                          <Badge variant="outline" className={cn("text-xs font-medium flex-shrink-0 ml-2", statusBadge.className)}>
+                            {statusBadge.icon} {statusBadge.text}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1 text-xs mb-3">
+                          <div>
+                            <span className="text-muted-foreground block">Monto</span>
+                            <span className="font-semibold">{formatPrice(invoice.amount)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Emisión</span>
+                            <span>{formatDate(invoice.invoiceDate)}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Vence</span>
+                            <span>{formatDate(invoice.dueDate)}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-1">
+                          {invoice.status === "pending" && (
+                            <Button variant="ghost" size="sm" onClick={() => markAsPaidMutation.mutate(invoice.id)} className="text-emerald-600 h-7 text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" /> Pagada
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => generatePdf(invoice.id)} disabled={generatingPdf === invoice.id} className="text-blue-600 h-7 text-xs">
+                            {generatingPdf === invoice.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 mr-1" />} PDF
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setLocation(`/platform/invoices/${invoice.id}`)} className="text-gray-600 h-7 text-xs">
+                            <PencilIcon className="h-3 w-3 mr-1" /> Editar
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setInvoiceToDelete(invoice)} className="text-red-500 h-7 text-xs">
+                            <TrashIcon className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
             )}
 
             {filteredInvoices.length > 0 && (

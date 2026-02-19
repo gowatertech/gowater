@@ -175,22 +175,22 @@ export default function CompaniesPage() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Gestión de Empresas</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-bold">Gestión de Empresas</h1>
+            <p className="text-sm text-muted-foreground">
               Administra todas las empresas registradas en la plataforma
             </p>
           </div>
-          <Button onClick={() => setLocation("/platform/companies/new")}>
+          <Button size="sm" onClick={() => setLocation("/platform/companies/new")}>
             <PlusIcon className="mr-2 h-4 w-4" /> Nueva Empresa
           </Button>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Empresas</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Empresas</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               Lista de todas las empresas registradas en la plataforma
             </CardDescription>
             <div className="flex items-center mt-2 gap-2">
@@ -209,7 +209,7 @@ export default function CompaniesPage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin">
@@ -220,79 +220,117 @@ export default function CompaniesPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <Building2 className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-2 text-lg font-medium">No hay empresas</h3>
-                <p className="mt-1">
+                <p className="mt-1 text-sm">
                   {searchTerm 
                     ? "No se encontraron empresas con el término de búsqueda" 
                     : "Aún no hay empresas registradas en la plataforma"}
                 </p>
                 <Button 
                   className="mt-4" 
+                  size="sm"
                   onClick={() => setLocation("/platform/companies/new")}
                 >
                   <PlusIcon className="mr-2 h-4 w-4" /> Crear Empresa
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Subdominio</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead>Expiración</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCompanies.map((company: Company) => (
-                      <TableRow key={company.id}>
-                        <TableCell className="font-medium">{company.name}</TableCell>
-                        <TableCell>{company.subdomain}</TableCell>
-                        <TableCell>
-                          {company.planId === 1 ? 'Plan Básico' : 
-                           company.planId === 2 ? 'Plan Profesional' : 
-                           company.planId === 3 ? 'Plan Empresarial' : 
-                           `Plan #${company.planId}`}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(company.expirationDate)}
-                        </TableCell>
-                        <TableCell>
-                          {company.active ? (
-                            <Badge className="bg-green-500">
-                              <Check className="mr-1 h-3 w-3" /> Activa
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              <X className="mr-1 h-3 w-3" /> Inactiva
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setLocation(`/platform/companies/${company.id}`)}
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeleteCompany(company)}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Subdominio</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Expiración</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCompanies.map((company: Company) => (
+                        <TableRow key={company.id}>
+                          <TableCell className="font-medium">{company.name}</TableCell>
+                          <TableCell>{company.subdomain}</TableCell>
+                          <TableCell>
+                            {company.planId === 1 ? 'Plan Básico' : 
+                             company.planId === 2 ? 'Plan Profesional' : 
+                             company.planId === 3 ? 'Plan Empresarial' : 
+                             `Plan #${company.planId}`}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(company.expirationDate)}
+                          </TableCell>
+                          <TableCell>
+                            {company.active ? (
+                              <Badge className="bg-green-500">
+                                <Check className="mr-1 h-3 w-3" /> Activa
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <X className="mr-1 h-3 w-3" /> Inactiva
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setLocation(`/platform/companies/${company.id}`)}
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleDeleteCompany(company)}
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="md:hidden space-y-3">
+                  {filteredCompanies.map((company: Company) => (
+                    <Card key={company.id} className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-medium text-sm">{company.name}</p>
+                          <p className="text-xs text-muted-foreground">{company.subdomain}</p>
+                        </div>
+                        {company.active ? (
+                          <Badge className="bg-green-500 text-xs">Activa</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">Inactiva</Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-xs mb-3">
+                        <div>
+                          <span className="text-muted-foreground">Plan: </span>
+                          <span>{company.planId === 1 ? 'Básico' : company.planId === 2 ? 'Profesional' : company.planId === 3 ? 'Empresarial' : `#${company.planId}`}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Expira: </span>
+                          <span>{formatDate(company.expirationDate)}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setLocation(`/platform/companies/${company.id}`)}>
+                          <PencilIcon className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeleteCompany(company)}>
+                          <TrashIcon className="h-3 w-3 mr-1" /> Eliminar
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

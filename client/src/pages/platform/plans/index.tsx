@@ -127,22 +127,22 @@ export default function PlansPage() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Gestión de Planes</h1>
-            <p className="text-muted-foreground">
-              Administra los planes de suscripción disponibles para las empresas
+            <h1 className="text-xl md:text-2xl font-bold">Gestión de Planes</h1>
+            <p className="text-sm text-muted-foreground">
+              Administra los planes de suscripción disponibles
             </p>
           </div>
-          <Button onClick={() => setLocation("/platform/plans/new")}>
+          <Button size="sm" onClick={() => setLocation("/platform/plans/new")}>
             <PlusIcon className="mr-2 h-4 w-4" /> Nuevo Plan
           </Button>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle>Planes</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Planes</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               Lista de planes de suscripción disponibles
             </CardDescription>
             <div className="flex justify-end mt-2">
@@ -151,7 +151,7 @@ export default function PlansPage() {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
                 <div className="animate-spin">
@@ -162,72 +162,114 @@ export default function PlansPage() {
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-2 text-lg font-medium">No hay planes</h3>
-                <p className="mt-1">Aún no hay planes de suscripción registrados</p>
+                <p className="mt-1 text-sm">Aún no hay planes de suscripción registrados</p>
                 <Button 
                   className="mt-4" 
+                  size="sm"
                   onClick={() => setLocation("/platform/plans/new")}
                 >
                   <PlusIcon className="mr-2 h-4 w-4" /> Crear Plan
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead>Precio</TableHead>
-                      <TableHead>Usuarios</TableHead>
-                      <TableHead>Unidades</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {plans.map((plan: Plan) => (
-                      <TableRow key={plan.id}>
-                        <TableCell className="font-medium">{plan.name}</TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {plan.description}
-                        </TableCell>
-                        <TableCell>{formatPrice(plan.price)}/mes</TableCell>
-                        <TableCell>{plan.maxUsers}</TableCell>
-                        <TableCell>{plan.maxTrucks}</TableCell>
-                        <TableCell>
-                          {plan.isActive ? (
-                            <Badge className="bg-green-500">
-                              <Check className="mr-1 h-3 w-3" /> Activo
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              <X className="mr-1 h-3 w-3" /> Inactivo
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => setLocation(`/platform/plans/${plan.id}`)}
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDeletePlan(plan)}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead>Precio</TableHead>
+                        <TableHead>Usuarios</TableHead>
+                        <TableHead>Unidades</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {plans.map((plan: Plan) => (
+                        <TableRow key={plan.id}>
+                          <TableCell className="font-medium">{plan.name}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {plan.description}
+                          </TableCell>
+                          <TableCell>{formatPrice(plan.price)}/mes</TableCell>
+                          <TableCell>{plan.maxUsers}</TableCell>
+                          <TableCell>{plan.maxTrucks}</TableCell>
+                          <TableCell>
+                            {plan.isActive ? (
+                              <Badge className="bg-green-500">
+                                <Check className="mr-1 h-3 w-3" /> Activo
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <X className="mr-1 h-3 w-3" /> Inactivo
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setLocation(`/platform/plans/${plan.id}`)}
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleDeletePlan(plan)}
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="md:hidden space-y-3">
+                  {plans.map((plan: Plan) => (
+                    <Card key={plan.id} className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="font-medium text-sm">{plan.name}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{plan.description}</p>
+                        </div>
+                        {plan.isActive ? (
+                          <Badge className="bg-green-500 text-xs">Activo</Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs">Inactivo</Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-xs mb-3">
+                        <div>
+                          <span className="text-muted-foreground block">Precio</span>
+                          <span className="font-medium">{formatPrice(plan.price)}/mes</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">Usuarios</span>
+                          <span className="font-medium">{plan.maxUsers}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">Unidades</span>
+                          <span className="font-medium">{plan.maxTrucks}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setLocation(`/platform/plans/${plan.id}`)}>
+                          <PencilIcon className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(plan)}>
+                          <TrashIcon className="h-3 w-3 mr-1" /> Eliminar
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
