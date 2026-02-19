@@ -142,7 +142,6 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   login: async (username: string, password: string): Promise<LoginResult> => {
     set({ isLoading: true, error: null });
     try {
-      // Intentar login con la API móvil
       console.log('Intentando login con credenciales:', { username, password });
       const response = await fetch('/api/mobile/login', {
         method: 'POST',
@@ -150,7 +149,7 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, email: username }),
         credentials: 'include'
       });
       

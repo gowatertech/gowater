@@ -110,12 +110,15 @@ export default function Users() {
   // Formulario con esquema de validación condicional
   const formSchema = editingUser
     ? insertUserSchema.extend({
+        email: z.string().email("El email es requerido y debe ser válido").min(1, "El email es requerido"),
         password: z.union([
-          z.string().length(0), // Permite string vacío para mantener la contraseña actual
+          z.string().length(0),
           z.string().min(8, "La contraseña debe tener al menos 8 caracteres")
         ]),
       })
-    : insertUserSchema;
+    : insertUserSchema.extend({
+        email: z.string().email("El email es requerido y debe ser válido").min(1, "El email es requerido"),
+      });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -276,13 +279,17 @@ export default function Users() {
         return;
       }
 
-      if (!data.name || !data.username || !data.password || !data.role) {
+      if (!data.name || !data.email || !data.password || !data.role) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Faltan campos obligatorios: nombre, usuario, contraseña o rol"
+          description: "Faltan campos obligatorios: nombre, email, contraseña o rol"
         });
         return;
+      }
+
+      if (!data.username || data.username.trim() === '') {
+        data.username = data.email.split('@')[0];
       }
 
       if (!data.companyId) {
@@ -730,7 +737,7 @@ export default function Users() {
                                     >
                                       {user.name}
                                     </h3>
-                                    <p className="text-xs text-muted-foreground">@{user.username}</p>
+                                    <p className="text-xs text-muted-foreground">{user.email || `@${user.username}`}</p>
                                     <Badge 
                                       className={`text-xs mt-1 ${getRoleBadgeClass(user.role)}`}
                                     >
@@ -839,7 +846,7 @@ export default function Users() {
                                         </div>
                                         <div>
                                           <p className="font-medium">{user.name}</p>
-                                          <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                          <p className="text-sm text-muted-foreground">{user.email || `@${user.username}`}</p>
                                         </div>
                                       </div>
                                     </TableCell>
@@ -996,16 +1003,24 @@ export default function Users() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
-                          name="username"
+                          name="email"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t("username")}</FormLabel>
+                              <FormLabel>{t("email")} *</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
-                                  placeholder={t("enterUsername")}
-                                  autoComplete="username"
-                                  data-testid="input-username"
+                                  placeholder="ejemplo@correo.com"
+                                  autoComplete="email"
+                                  type="email"
+                                  data-testid="input-email"
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    const emailVal = e.target.value;
+                                    if (emailVal && emailVal.includes('@')) {
+                                      form.setValue('username', emailVal.split('@')[0]);
+                                    }
+                                  }}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1014,17 +1029,17 @@ export default function Users() {
                         />
                         <FormField
                           control={form.control}
-                          name="email"
+                          name="username"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t("email")}</FormLabel>
+                              <FormLabel>{t("username")}</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
-                                  placeholder="ejemplo@correo.com"
-                                  autoComplete="email"
-                                  type="email"
-                                  data-testid="input-email"
+                                  placeholder="Se genera del email"
+                                  autoComplete="username"
+                                  data-testid="input-username"
+                                  className="bg-muted/50"
                                 />
                               </FormControl>
                               <FormMessage />

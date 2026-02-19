@@ -6,12 +6,12 @@ import { z } from 'zod';
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, Droplets, User, Lock } from 'lucide-react';
+import { Loader2, Droplets, Mail, Lock } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from '@/hooks/use-current-user';
 
 const loginSchema = z.object({
-  username: z.string().min(1, "El nombre de usuario es requerido"),
+  email: z.string().min(1, "El email o usuario es requerido"),
   password: z.string().min(1, "La contraseña es requerida"),
 });
 
@@ -32,7 +32,7 @@ export default function MobileAppLogin() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -41,7 +41,7 @@ export default function MobileAppLogin() {
     setIsSubmitting(true);
     
     try {
-      const result = await login(data.username, data.password);
+      const result = await login(data.email, data.password);
       
       if (result.success) {
         toast({
@@ -93,16 +93,17 @@ export default function MobileAppLogin() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
                         <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <Input 
-                            placeholder="Nombre de usuario" 
+                            placeholder="Email" 
                             {...field} 
-                            autoComplete="username"
+                            autoComplete="email"
+                            type="email"
                             disabled={isSubmitting}
                             className="pl-10 h-12 rounded-xl bg-gray-50 border-gray-200 focus:bg-white transition-colors text-sm"
                           />

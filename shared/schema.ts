@@ -35,7 +35,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   username: z.string().min(1, "El nombre de usuario es requerido"),
-  email: z.union([z.string().email("El email debe ser válido"), z.literal("")]).optional(), // Email puede estar vacío o ser un email válido
+  email: z.union([z.string().email("El email debe ser válido"), z.literal("")]).optional(),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
   companyId: z.union([
