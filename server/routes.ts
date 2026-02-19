@@ -3531,46 +3531,67 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases para empresa ${companyId}`);
       
-      // Obtener envases pendientes de devolución
-      const pendingReturns = await db
-        .select({
-          count: sql`COUNT(*)`.mapWith(Number),
-          totalQty: sql`COALESCE(SUM(expected_quantity), 0)`.mapWith(Number),
-          returnedQty: sql`COALESCE(SUM(returned_quantity), 0)`.mapWith(Number),
-        })
-        .from(bottleReturns)
-        .where(
-          and(
-            sql`expected_quantity > returned_quantity`,
-            eq(bottleReturns.companyId, companyId)
-          )
-        );
-      
-      // Envases con devolución vencida (más de 30 días)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      console.log(`Buscando devoluciones vencidas anteriores a: ${thirtyDaysAgo.toISOString().split('T')[0]}`);
-      
-      const overdueReturns = await db
-        .select({
-          count: sql`COUNT(*)`.mapWith(Number),
-        })
-        .from(bottleReturns)
-        .where(
-          and(
-            sql`expected_quantity > returned_quantity`,
-            sql`return_date < ${thirtyDaysAgo}`,
-            eq(bottleReturns.companyId, companyId)
-          )
-        );
+      // 1. Pedidos entregados con productos retornables SIN registro de devolución
+      const ordersWithoutReturnsResult = await db.execute(sql`
+        SELECT 
+          COUNT(DISTINCT o.id) as order_count,
+          COALESCE(SUM(oi.quantity), 0) as total_qty
+        FROM orders o
+        JOIN order_items oi ON o.id = oi.order_id
+        JOIN products p ON oi.product_id = p.id
+        LEFT JOIN bottle_returns br ON o.id = br.order_id AND br.product_id = p.id
+        WHERE o.company_id = ${companyId}
+          AND o.status = 'delivered'
+          AND p.is_returnable = true
+          AND br.id IS NULL
+      `);
+
+      // 2. Retornos incompletos en bottle_returns
+      const incompleteReturnsResult = await db.execute(sql`
+        SELECT 
+          COUNT(*) as return_count,
+          COALESCE(SUM(br.pending_quantity), 0) as pending_qty
+        FROM bottle_returns br
+        WHERE br.company_id = ${companyId}
+          AND br.status IN ('pending', 'incomplete')
+      `);
+
+      // 3. Devoluciones vencidas (más de 30 días)
+      const overdueResult = await db.execute(sql`
+        SELECT COUNT(*) as overdue_count
+        FROM (
+          SELECT o.id
+          FROM orders o
+          JOIN order_items oi ON o.id = oi.order_id
+          JOIN products p ON oi.product_id = p.id
+          LEFT JOIN bottle_returns br ON o.id = br.order_id AND br.product_id = p.id
+          WHERE o.company_id = ${companyId}
+            AND o.status = 'delivered'
+            AND p.is_returnable = true
+            AND br.id IS NULL
+            AND o.actual_delivery_time < NOW() - INTERVAL '30 days'
+          UNION ALL
+          SELECT br.id
+          FROM bottle_returns br
+          WHERE br.company_id = ${companyId}
+            AND br.status IN ('pending', 'incomplete')
+            AND br.return_date < NOW() - INTERVAL '30 days'
+        ) overdue
+      `);
+
+      const noReturnOrders = Number(ordersWithoutReturnsResult.rows[0]?.order_count || 0);
+      const noReturnQty = Number(ordersWithoutReturnsResult.rows[0]?.total_qty || 0);
+      const incompleteCount = Number(incompleteReturnsResult.rows[0]?.return_count || 0);
+      const incompletePendingQty = Number(incompleteReturnsResult.rows[0]?.pending_qty || 0);
+      const overdueCount = Number(overdueResult.rows[0]?.overdue_count || 0);
 
       const stats = {
-        pendingReturns: pendingReturns[0]?.count || 0,
-        totalPendingQty: (pendingReturns[0]?.totalQty || 0) - (pendingReturns[0]?.returnedQty || 0),
-        overdueReturns: overdueReturns[0]?.count || 0,
+        pendingReturns: noReturnOrders + incompleteCount,
+        totalPendingQty: noReturnQty + incompletePendingQty,
+        overdueReturns: overdueCount,
       };
 
+      console.log(`📦 Envases dashboard: ${stats.pendingReturns} pendientes, ${stats.totalPendingQty} unidades, ${stats.overdueReturns} vencidos`);
       res.json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas de envases:", error);
