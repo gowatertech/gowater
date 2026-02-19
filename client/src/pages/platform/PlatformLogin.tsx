@@ -62,6 +62,19 @@ export default function PlatformLogin() {
     loginMutation.mutate(data);
   };
   
+  useEffect(() => {
+    document.querySelectorAll('[data-radix-portal]').forEach(el => el.remove());
+    document.body.style.pointerEvents = '';
+    document.body.style.overflow = '';
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.classList.remove('pointer-events-none');
+    const root = document.getElementById('root');
+    if (root) {
+      root.removeAttribute('aria-hidden');
+      root.style.pointerEvents = '';
+    }
+  }, []);
+
   // Evitar que el usuario pueda volver a esta página si ya está autenticado
   useEffect(() => {
     // Verificar si hay un usuario ya autenticado en la plataforma

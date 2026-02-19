@@ -25,6 +25,19 @@ interface PlatformLayoutProps {
   children: React.ReactNode;
 }
 
+function cleanupRadixOverlays() {
+  document.querySelectorAll('[data-radix-portal]').forEach(el => el.remove());
+  document.body.style.pointerEvents = '';
+  document.body.style.overflow = '';
+  document.body.removeAttribute('data-scroll-locked');
+  document.body.classList.remove('pointer-events-none');
+  const root = document.getElementById('root');
+  if (root) {
+    root.removeAttribute('aria-hidden');
+    root.style.pointerEvents = '';
+  }
+}
+
 export function PlatformLayout({ children }: PlatformLayoutProps) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
@@ -37,14 +50,13 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
       setIsMobile(window.innerWidth < 768);
     };
     
-    // Check on initial load
     checkMobile();
-    
-    // Add listener for window resize
     window.addEventListener('resize', checkMobile);
     
-    // Cleanup
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      cleanupRadixOverlays();
+    };
   }, []);
 
   // Función para cerrar sesión
@@ -60,11 +72,9 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
         description: "Has cerrado sesión correctamente",
       });
 
-      // Limpiar el historial actual para prevenir navegación hacia atrás después de cerrar sesión
-      // Primero reemplazar la entrada actual
+      cleanupRadixOverlays();
+
       window.history.replaceState(null, "", "/platform/login");
-      
-      // Redireccionar a la página de login reemplazando la entrada en el historial
       setLocation("/platform/login", { replace: true });
     } catch (error) {
       toast({
