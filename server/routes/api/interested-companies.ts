@@ -180,4 +180,33 @@ router.patch("/interested-companies/:id", async (req, res) => {
   }
 });
 
+router.delete("/interested-companies/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [deleted] = await db
+      .delete(companyLeads)
+      .where(eq(companyLeads.id, Number(id)))
+      .returning();
+    
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Empresa no encontrada"
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: "Empresa eliminada correctamente"
+    });
+  } catch (error) {
+    console.error("Error al eliminar empresa interesada:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error al eliminar la empresa"
+    });
+  }
+});
+
 export default router;

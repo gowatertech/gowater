@@ -5,7 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Plus, Edit, MoreHorizontal } from "lucide-react";
+import { Loader2, Search, Plus, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -40,9 +50,9 @@ export default function EmpresasInteresadas() {
   const [leads, setLeads] = useState<CompanyLead[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Estados para el formulario modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<CompanyLead | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyLead | null>(null);
   
   const fetchLeads = async () => {
     try {
@@ -183,6 +193,34 @@ export default function EmpresasInteresadas() {
         description: "No se pudo actualizar el estado de la empresa",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDelete = async (lead: CompanyLead) => {
+    try {
+      const response = await fetch(`/api/interested-companies/${lead.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      toast({
+        title: "Empresa eliminada",
+        description: `"${lead.companyName}" ha sido eliminada correctamente`,
+      });
+
+      fetchLeads();
+    } catch (error) {
+      console.error("Error al eliminar empresa:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la empresa",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -328,6 +366,15 @@ export default function EmpresasInteresadas() {
                                 <Edit className="h-4 w-4" />
                                 <span className="sr-only">Editar</span>
                               </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setDeleteTarget(lead)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Eliminar</span>
+                              </Button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon">
@@ -412,6 +459,14 @@ export default function EmpresasInteresadas() {
                           <Button variant="outline" size="sm" onClick={() => handleEdit(lead)}>
                             <Edit className="h-3 w-3 mr-1" /> Editar
                           </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                            onClick={() => setDeleteTarget(lead)}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" /> Borrar
+                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -438,13 +493,32 @@ export default function EmpresasInteresadas() {
         </Card>
       </div>
 
-      {/* Formulario Modal */}
       <FormularioEmpresa
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         empresa={selectedLead}
         onSave={handleSave}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar empresa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar <strong>"{deleteTarget?.companyName}"</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PlatformLayout>
   );
 }
