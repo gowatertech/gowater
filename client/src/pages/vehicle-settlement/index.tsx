@@ -1,22 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDateRD } from "@/lib/date-utils";
-import { 
-  Calculator, Truck, AlertCircle, Calendar, Clock, 
-  User as UserIcon, // Renombrar el icono para evitar conflicto
-  DollarSign, Package, CheckCircle, BanknoteIcon, TrendingDown, 
-  TrendingUp, FileText, Tag, ClipboardList, BarChart3, 
-  History as HistoryIcon, ListCheck as ListChecks, Route as RouteIcon,
-  BadgeCheck, Filter as FilterIcon, CheckSquare, ShoppingBag, User
+import {
+  Calculator, Truck, AlertCircle, Calendar, Clock,
+  User as UserIcon, DollarSign, Package, CheckCircle,
+  BanknoteIcon, FileText, ClipboardList, BarChart3,
+  ListCheck as ListChecks, CheckSquare, Plus, Loader2,
+  TrendingUp, ArrowLeft
 } from "lucide-react";
 import type { VehicleLoading, Product, User as UserType, Truck as TruckType, Route } from "@shared/schema";
-import { Loader2 } from "lucide-react";
 import VehicleSettlementForm from "./VehicleSettlementForm";
+import ManualSettlementForm from "./ManualSettlementForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import DebugApiView from "./DebugApiView";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
@@ -44,37 +43,21 @@ interface CompletedLoadingWithStats extends Omit<LoadingWithRelations, 'notes'> 
   notes: string | null;
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case "pending":
-      return "bg-yellow-100 text-yellow-800";
-    case "in_progress":
-      return "bg-blue-100 text-blue-800";
-    case "completed":
-      return "bg-green-100 text-green-800";
-    case "cancelled":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
-};
-
 export default function VehicleSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
   const [selectedSettlementId, setSelectedSettlementId] = useState<number | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
 
-  // Obtener solo cargas pendientes
-  const { 
-    data: loadings = [], 
-    isLoading: isLoadingPending, 
-    error: errorPending 
+  const {
+    data: loadings = [],
+    isLoading: isLoadingPending,
+    error: errorPending
   } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading/pending"],
     retry: 1,
     refetchOnWindowFocus: false,
   });
-  
-  // Obtener cargas completadas (cuadres)
+
   const {
     data: completedSettlements = { settlements: [], totalCount: 0 },
     isLoading: isLoadingCompleted,
@@ -91,16 +74,15 @@ export default function VehicleSettlementPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (error) {
-    console.error("Error loading data:", error);
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
-        <AlertCircle className="h-6 w-6 text-red-500" />
+        <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="text-red-500 text-sm">Error al cargar los datos</p>
       </div>
     );
@@ -109,16 +91,14 @@ export default function VehicleSettlementPage() {
   const selectedLoading = loadings.find(loading => loading.id === selectedLoadingId);
   const selectedSettlement = completedSettlements.settlements.find(settlement => settlement.id === selectedSettlementId);
 
-  // Calcular valor total de la carga
   const calculateTotalValue = (items: LoadingWithRelations['items']) => {
     return items.reduce((sum, item) => {
-      const price = item.product?.price && !isNaN(parseFloat(item.product.price)) ? 
+      const price = item.product?.price && !isNaN(parseFloat(item.product.price)) ?
         parseFloat(item.product.price) : 0;
       return sum + (price * item.quantity);
     }, 0).toFixed(2);
   };
 
-  // Obtener estadísticas de la carga
   const getLoadingStats = (loading: LoadingWithRelations) => {
     return {
       totalItems: loading.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -127,346 +107,424 @@ export default function VehicleSettlementPage() {
     };
   };
 
-  return (
-    <div className="space-y-3 p-2">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-          <h1 className="text-lg sm:text-xl font-bold">Cuadre de Vehículo</h1>
-        </div>
-        
-        {(selectedLoadingId || selectedSettlementId) && (
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setSelectedLoadingId(null);
-              setSelectedSettlementId(null);
-            }}
-            className="h-7 sm:h-8 text-xs sm:text-sm flex items-center gap-1"
-          >
-            <span className="hidden sm:inline">Volver a la lista</span>
-            <span className="sm:hidden">Volver</span>
+  const todayPending = loadings.filter(l => {
+    const today = new Date();
+    const loadingDate = new Date(l.date);
+    return loadingDate.toDateString() === today.toDateString();
+  }).length;
+
+  const totalPendingValue = loadings.reduce((sum, loading) => {
+    return sum + parseFloat(calculateTotalValue(loading.items));
+  }, 0);
+
+  const totalCompletedSales = completedSettlements.settlements.reduce((sum, s) => {
+    return sum + Number(s.stats.totalSales || 0);
+  }, 0);
+
+  if (selectedLoadingId && selectedLoading) {
+    return (
+      <div className="space-y-4 p-3 sm:p-4 md:p-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedLoadingId(null)} className="h-8 gap-1">
+            <ArrowLeft className="h-4 w-4" /> Volver
           </Button>
-        )}
-      </div>
-
-      {/* Stats Cards */}
-      {!selectedLoadingId && !selectedSettlementId && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Card className="p-0 overflow-hidden">
-            <div className="flex items-center border-l-4 border-l-amber-500">
-              <div className="p-2.5 flex-1">
-                <p className="text-xs text-gray-500">Cargas Pendientes</p>
-                <p className="font-semibold text-lg">{loadings.length}</p>
-              </div>
-              <div className="pr-2.5">
-                <ClipboardList className="h-5 w-5 text-amber-500" />
-              </div>
-            </div>
-          </Card>
-          <Card className="p-0 overflow-hidden">
-            <div className="flex items-center border-l-4 border-l-green-500">
-              <div className="p-2.5 flex-1">
-                <p className="text-xs text-gray-500">Por Cuadrar Hoy</p>
-                <p className="font-semibold text-lg">
-                  {loadings.filter(l => {
-                    const today = new Date();
-                    const loadingDate = new Date(l.date);
-                    return loadingDate.toDateString() === today.toDateString();
-                  }).length}
-                </p>
-              </div>
-              <div className="pr-2.5">
-                <Calendar className="h-5 w-5 text-green-500" />
-              </div>
-            </div>
-          </Card>
-          <Card className="p-0 overflow-hidden">
-            <div className="flex items-center border-l-4 border-l-purple-500">
-              <div className="p-2.5 flex-1">
-                <p className="text-xs text-gray-500">Valor Pendiente</p>
-                <p className="font-semibold text-lg">
-                  RD$ {loadings.reduce((sum, loading) => {
-                    return sum + parseFloat(calculateTotalValue(loading.items));
-                  }, 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="pr-2.5">
-                <DollarSign className="h-5 w-5 text-purple-500" />
-              </div>
-            </div>
-          </Card>
-          <Card className="p-0 overflow-hidden">
-            <div className="flex items-center border-l-4 border-l-blue-500">
-              <div className="p-2.5 flex-1">
-                <p className="text-xs text-gray-500">Efectivo Inicial</p>
-                <p className="font-semibold text-lg">
-                  RD$ {loadings.reduce((sum, loading) => {
-                    return sum + parseFloat(loading.initialCash);
-                  }, 0).toFixed(2)}
-                </p>
-              </div>
-              <div className="pr-2.5">
-                <BanknoteIcon className="h-5 w-5 text-blue-500" />
-              </div>
-            </div>
-          </Card>
+          <div>
+            <h2 className="text-lg font-bold">Cuadre para Carga #{selectedLoading.loadingNumber}</h2>
+            <p className="text-xs text-muted-foreground">Completar cuadre de vehículo</p>
+          </div>
         </div>
-      )}
-
-      {/* Lista de cargas o formulario de cuadre o detalle de cuadre completado */}
-      {selectedSettlementId ? (
-        <Card className="p-2 sm:p-3 overflow-hidden">
-          <CardHeader className="p-2 sm:p-3 pb-1 sm:pb-2 flex flex-row justify-between items-center">
-            <div className="flex items-center gap-1">
-              <CheckSquare className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base truncate">
-                Detalle de Cuadre #{selectedSettlement?.loadingNumber}
-              </CardTitle>
-            </div>
-            <Badge variant="outline" className="text-xs text-green-700 border-green-200 bg-green-50 whitespace-nowrap">
-              Completado
-            </Badge>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-3 pt-0">
-            {/* Convertir selectedSettlement a formato LoadingWithRelations para pasar al formulario */}
-            {selectedSettlement && (
-              <VehicleSettlementForm 
-                loading={{
-                  // Extraer sólo las propiedades que existen en LoadingWithRelations
-                  id: selectedSettlement.id,
-                  companyId: selectedSettlement.companyId,
-                  date: selectedSettlement.date,
-                  loadingNumber: selectedSettlement.loadingNumber,
-                  truckId: selectedSettlement.truckId,
-                  driverId: selectedSettlement.driverId,
-                  assistantId: selectedSettlement.assistantId,
-                  initialCash: selectedSettlement.initialCash,
-                  status: selectedSettlement.status,
-                  routeId: selectedSettlement.routeId,
-                  cashTotal: selectedSettlement.cashTotal || null,
-                  transferTotal: selectedSettlement.transferTotal || null,
-                  totalInvoiced: selectedSettlement.totalInvoiced || null,
-                  difference: selectedSettlement.difference || null,
-                  notes: selectedSettlement.notes || null,
-                  items: selectedSettlement.items || [],
-                  truck: selectedSettlement.truck,
-                  driver: selectedSettlement.driver,
-                  route: selectedSettlement.route,
-                  createdAt: selectedSettlement.createdAt || new Date().toISOString(),
-                  completedAt: selectedSettlement.completedAt || null
-                }}
-                onSuccess={() => setSelectedSettlementId(null)}
-                readOnly={true}
-              />
-            )}
-          </CardContent>
-        </Card>
-      ) : selectedLoading ? (
-        <Card className="p-2 sm:p-3 overflow-hidden">
-          <CardHeader className="p-2 sm:p-3 pb-1 sm:pb-2 flex flex-row justify-between items-center">
-            <div className="flex items-center gap-1">
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
-              <CardTitle className="text-sm sm:text-base truncate">
-                Cuadre para Vehículo #{selectedLoading.loadingNumber}
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-3 pt-0">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 bg-gray-50 p-1.5 sm:p-2 mb-2 sm:mb-3 rounded-lg text-xs">
-              <div className="border-l-4 border-l-blue-500 pl-1.5 sm:pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <Calendar className="h-3 w-3 mr-1 text-blue-500" />
-                  Fecha
-                </p>
-                <p className="font-medium text-xs sm:text-sm">{formatDateRD(selectedLoading.date, {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })}</p>
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-blue-500">
+                <p className="text-[10px] uppercase text-muted-foreground">Fecha</p>
+                <p className="text-sm font-medium">{formatDateRD(selectedLoading.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
               </div>
-              <div className="border-l-4 border-l-green-500 pl-1.5 sm:pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <UserIcon className="h-3 w-3 mr-1 text-green-500" />
-                  Conductor
-                </p>
-                <p className="font-medium text-xs sm:text-sm truncate">{selectedLoading.driver?.name}</p>
+              <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-green-500">
+                <p className="text-[10px] uppercase text-muted-foreground">Conductor</p>
+                <p className="text-sm font-medium truncate">{selectedLoading.driver?.name}</p>
               </div>
-              <div className="border-l-4 border-l-purple-500 pl-1.5 sm:pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <Truck className="h-3 w-3 mr-1 text-purple-500" />
-                  Vehículo
-                </p>
-                <p className="font-medium text-xs sm:text-sm">{selectedLoading.truck?.plate}</p>
+              <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-purple-500">
+                <p className="text-[10px] uppercase text-muted-foreground">Vehículo</p>
+                <p className="text-sm font-medium">{selectedLoading.truck?.plate}</p>
               </div>
-              <div className="border-l-4 border-l-amber-500 pl-1.5 sm:pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <BanknoteIcon className="h-3 w-3 mr-1 text-amber-500" />
-                  Efectivo Inicial
-                </p>
-                <p className="font-medium text-xs sm:text-sm">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
+              <div className="p-3 bg-gray-50 rounded-lg border-l-4 border-l-amber-500">
+                <p className="text-[10px] uppercase text-muted-foreground">Efectivo Inicial</p>
+                <p className="text-sm font-medium">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
               </div>
             </div>
-            <VehicleSettlementForm 
+            <VehicleSettlementForm
               loading={selectedLoading}
               onSuccess={() => setSelectedLoadingId(null)}
             />
           </CardContent>
         </Card>
-      ) : (
-        <>
-          {/* Lista única de cuadres */}
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-sm font-semibold flex items-center gap-1.5">
-              <ListChecks className="h-4 w-4 text-primary" />
-              Todos los Cuadres ({loadings.length + completedSettlements.totalCount})
-            </h2>
-          </div>
+      </div>
+    );
+  }
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {loadings.length === 0 && completedSettlements.settlements.length === 0 ? (
-              <div className="col-span-full text-center py-4">
-                <p className="text-gray-500 text-sm">No hay cuadres para mostrar</p>
+  if (selectedSettlementId && selectedSettlement) {
+    return (
+      <div className="space-y-4 p-3 sm:p-4 md:p-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setSelectedSettlementId(null)} className="h-8 gap-1">
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </Button>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold">Detalle de Cuadre #{selectedSettlement.loadingNumber}</h2>
+            <Badge variant="outline" className="text-xs text-green-700 border-green-200 bg-green-50">
+              Completado
+            </Badge>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <VehicleSettlementForm
+              loading={{
+                id: selectedSettlement.id,
+                companyId: selectedSettlement.companyId,
+                date: selectedSettlement.date,
+                loadingNumber: selectedSettlement.loadingNumber,
+                truckId: selectedSettlement.truckId,
+                driverId: selectedSettlement.driverId,
+                assistantId: selectedSettlement.assistantId,
+                initialCash: selectedSettlement.initialCash,
+                status: selectedSettlement.status,
+                routeId: selectedSettlement.routeId,
+                cashTotal: selectedSettlement.cashTotal || null,
+                transferTotal: selectedSettlement.transferTotal || null,
+                totalInvoiced: selectedSettlement.totalInvoiced || null,
+                difference: selectedSettlement.difference || null,
+                notes: selectedSettlement.notes || null,
+                items: selectedSettlement.items || [],
+                truck: selectedSettlement.truck,
+                driver: selectedSettlement.driver,
+                route: selectedSettlement.route,
+                createdAt: selectedSettlement.createdAt || new Date().toISOString(),
+                completedAt: selectedSettlement.completedAt || null
+              }}
+              onSuccess={() => setSelectedSettlementId(null)}
+              readOnly={true}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 dark:from-emerald-800 dark:to-teal-950 rounded-lg sm:rounded-xl p-4 sm:p-6 text-white shadow-lg">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-lg">
+                <Calculator className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-            ) : (
-              <>
-                {/* Ordenar los cuadres pendientes por fecha más reciente */}
-                {[...loadings]
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((loading) => {
-                    const stats = getLoadingStats(loading);
-                    return (
-                      <Card 
-                        key={loading.id} 
-                        className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                        onClick={() => setSelectedLoadingId(loading.id)}
-                      >
-                        <div className="flex flex-col border-l-4 border-l-amber-500">
-                          <div className="p-2.5 pb-1.5">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium text-sm text-amber-700">Carga #{loading.loadingNumber}</span>
-                              <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                                Pendiente
-                              </span>
+              <div>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Cuadre de Vehículo</h1>
+                <p className="text-emerald-100 text-xs sm:text-sm md:text-base">
+                  Gestión de cuadres automáticos y manuales
+                </p>
+              </div>
+            </div>
+          </div>
+          <Button
+            onClick={() => setShowManualForm(true)}
+            size="default"
+            className="bg-white text-emerald-700 hover:bg-emerald-50 shadow-md text-sm sm:text-base w-full sm:w-auto"
+          >
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+            Cuadre Manual
+          </Button>
+        </div>
+      </div>
+
+      <Dialog open={showManualForm} onOpenChange={setShowManualForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3 sm:pb-4">
+              <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold">Nuevo Cuadre Manual</h2>
+                <p className="text-xs text-muted-foreground">Complete los datos del cuadre sin necesidad de una carga previa</p>
+              </div>
+            </div>
+            <ManualSettlementForm
+              onSuccess={() => setShowManualForm(false)}
+              onCancel={() => setShowManualForm(false)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="border-l-4 border-l-amber-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Cargas Pendientes</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">{loadings.length}</p>
+                  <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
+                </div>
+              </div>
+              <div className="p-2 sm:p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Por Cuadrar Hoy</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">{todayPending}</p>
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                </div>
+              </div>
+              <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Valor Pendiente</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-xl sm:text-2xl font-bold">RD$ {totalPendingValue.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="p-2 sm:p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Cuadres Completados</p>
+                <div className="flex items-baseline gap-1 sm:gap-2">
+                  <p className="text-2xl sm:text-3xl font-bold">{completedSettlements.totalCount}</p>
+                  <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+                </div>
+              </div>
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-10 sm:h-11">
+          <TabsTrigger value="pending" className="text-xs sm:text-sm gap-1.5">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Pendientes ({loadings.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs sm:text-sm gap-1.5">
+            <CheckSquare className="h-3.5 w-3.5" />
+            Completados ({completedSettlements.totalCount})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="mt-4">
+          {loadings.length === 0 ? (
+            <Card className="border-2 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+                <div className="p-3 sm:p-4 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-3 sm:mb-4">
+                  <ClipboardList className="h-10 w-10 sm:h-12 sm:w-12 text-amber-600 dark:text-amber-400" />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold mb-2">No hay cargas pendientes de cuadre</h3>
+                <p className="text-sm sm:text-base text-muted-foreground text-center mb-4 sm:mb-6 max-w-md">
+                  Todas las cargas han sido cuadradas o no hay cargas registradas. Puede crear un cuadre manual.
+                </p>
+                <Button onClick={() => setShowManualForm(true)} className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
+                  Crear Cuadre Manual
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {[...loadings]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map((loading) => {
+                  const stats = getLoadingStats(loading);
+                  return (
+                    <Card
+                      key={loading.id}
+                      className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-amber-500"
+                      onClick={() => setSelectedLoadingId(loading.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                                <Truck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm">Carga #{loading.loadingNumber}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDateRD(loading.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                              </div>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                              <div className="flex items-center">
-                                <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                                <span className="text-gray-600">{formatDateRD(loading.date, {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric'
-                                })}</span>
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                              Pendiente
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-muted-foreground uppercase">Conductor</p>
+                                <p className="text-xs font-medium truncate">{loading.driver?.name || "N/A"}</p>
                               </div>
-                              <div className="flex items-center">
-                                <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
-                                <span className="text-gray-600 truncate">{loading.driver?.name || loading.driverId}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Truck className="h-3 w-3 mr-1 text-gray-500" />
-                                <span className="text-gray-600">{loading.truck?.plate || loading.truckId}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <DollarSign className="h-3 w-3 mr-1 text-gray-500" />
-                                <span className="text-gray-600">RD$ {parseFloat(loading.initialCash).toFixed(2)}</span>
+                            </div>
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                              <Truck className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-muted-foreground uppercase">Vehículo</p>
+                                <p className="text-xs font-medium truncate">{loading.truck?.plate || "N/A"}</p>
                               </div>
                             </div>
                           </div>
-                          
-                          <div className="bg-gray-50 p-2 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <p className="text-xs text-gray-500">Productos</p>
-                              <p className="font-medium">{stats.totalProducts}</p>
+
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Productos</p>
+                              <p className="text-sm font-semibold">{stats.totalProducts}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Cantidad</p>
-                              <p className="font-medium">{stats.totalItems}</p>
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Cantidad</p>
+                              <p className="text-sm font-semibold">{stats.totalItems}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Valor Total</p>
-                              <p className="font-medium">RD$ {stats.totalValue}</p>
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Valor</p>
+                              <p className="text-sm font-semibold text-green-600">RD$ {stats.totalValue}</p>
                             </div>
                           </div>
                         </div>
-                      </Card>
-                    );
-                  })}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+            </div>
+          )}
+        </TabsContent>
 
-                {/* Ordenar los cuadres completados por fecha más reciente */}
-                {[...completedSettlements.settlements]
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((settlement) => (
-                    <Card 
-                      key={settlement.id} 
-                      className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+        <TabsContent value="completed" className="mt-4">
+          {completedSettlements.settlements.length === 0 ? (
+            <Card className="border-2 border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+                <div className="p-3 sm:p-4 bg-green-100 dark:bg-green-900/30 rounded-full mb-3 sm:mb-4">
+                  <CheckSquare className="h-10 w-10 sm:h-12 sm:w-12 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-base sm:text-lg font-semibold mb-2">No hay cuadres completados</h3>
+                <p className="text-sm sm:text-base text-muted-foreground text-center max-w-md">
+                  Los cuadres completados aparecerán aquí una vez que se procesen.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {[...completedSettlements.settlements]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map((settlement) => {
+                  const isManual = settlement.notes?.includes("[Cuadre Manual]");
+                  return (
+                    <Card
+                      key={settlement.id}
+                      className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-green-500"
                       onClick={() => setSelectedSettlementId(settlement.id)}
                     >
-                      <div className="flex flex-col border-l-4 border-l-green-500">
-                        <div className="p-2.5 pb-1.5">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium text-sm text-green-700">Carga #{settlement.loadingNumber}</span>
-                            <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Completado
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                            <div className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600">{formatDateRD(settlement.date, {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric'
-                              })}</span>
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-sm">Carga #{settlement.loadingNumber}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDateRD(settlement.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600 truncate">
-                                {settlement.completedAt 
-                                  ? formatDateRD(settlement.completedAt, {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric'
-                                    })
-                                  : 'Sin fecha de cuadre'}
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600 truncate">{settlement.driver?.name || settlement.driverId}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <FileText className="h-3 w-3 mr-1 text-gray-500" />
-                              <span className="text-gray-600">{settlement.route?.name || 'Sin ruta asignada'}</span>
+                            <div className="flex items-center gap-1.5">
+                              {isManual && (
+                                <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                  Manual
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                Completado
+                              </Badge>
                             </div>
                           </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                              <UserIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-muted-foreground uppercase">Conductor</p>
+                                <p className="text-xs font-medium truncate">{settlement.driver?.name || "N/A"}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-muted-foreground uppercase">Ruta</p>
+                                <p className="text-xs font-medium truncate">{settlement.route?.name || 'Sin ruta'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Órdenes</p>
+                              <p className="text-sm font-semibold">{settlement.stats.orderCount}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Total Vendido</p>
+                              <p className="text-sm font-semibold text-green-600">RD$ {Number(settlement.stats.totalSales).toFixed(2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground">Vehículo</p>
+                              <p className="text-sm font-semibold">{settlement.truck?.plate || 'N/A'}</p>
+                            </div>
+                          </div>
+
+                          {settlement.completedAt && (
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground pt-1">
+                              <Clock className="h-3 w-3" />
+                              Cuadrado: {formatDateRD(settlement.completedAt, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </div>
+                          )}
                         </div>
-                        
-                        <div className="bg-gray-50 p-2 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <p className="text-xs text-gray-500">Órdenes</p>
-                            <p className="font-medium">{settlement.stats.orderCount}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Total Vendido</p>
-                            <p className="font-medium">RD$ {Number(settlement.stats.totalSales).toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Vehículo</p>
-                            <p className="font-medium">{settlement.truck?.plate || 'N/A'}</p>
-                          </div>
-                        </div>
-                      </div>
+                      </CardContent>
                     </Card>
-                  ))}
-              </>
-            )}
-          </div>
-        </>
-      )}
+                  );
+                })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -856,6 +856,137 @@ export async function registerRouteSettlements(app: Express) {
       });
     }
   });
+
+  app.post("/route-settlements/manual", async (req: Request, res: Response) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+
+      const {
+        driverId,
+        truckId,
+        date,
+        initialCash,
+        totalCashReceived,
+        totalCreditReceived,
+        totalInvoiced,
+        cashDifference,
+        notes,
+        items
+      } = req.body;
+
+      if (!driverId || !truckId || !totalCashReceived || !totalInvoiced) {
+        return res.status(400).json({
+          error: "Datos incompletos",
+          message: "Conductor, vehículo, efectivo recibido y total facturado son requeridos"
+        });
+      }
+
+      const currentDate = getTimestampRD();
+      const settlementDate = date || currentDate;
+
+      const [newLoading] = await db
+        .insert(vehicleLoading)
+        .values({
+          companyId,
+          date: settlementDate,
+          truckId: Number(truckId),
+          driverId: Number(driverId),
+          status: "completed",
+          initialCash: initialCash || "0.00",
+          cashTotal: totalCashReceived,
+          transferTotal: totalCreditReceived || "0.00",
+          totalInvoiced,
+          difference: cashDifference || "0.00",
+          notes: notes ? `[Cuadre Manual] ${notes}` : "[Cuadre Manual]",
+          createdAt: currentDate,
+          completedAt: currentDate
+        })
+        .returning();
+
+      if (!newLoading) {
+        throw new Error("No se pudo crear el registro de carga");
+      }
+
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await db.insert(vehicleLoadingItems).values({
+            companyId,
+            loadingId: newLoading.id,
+            productId: item.productId,
+            quantity: item.loadedQuantity || 0,
+            returnedQuantity: item.returnedQuantity || 0,
+            notes: item.notes || null
+          });
+        }
+      }
+
+      const [newSettlement] = await db
+        .insert(routeSettlements)
+        .values({
+          vehicleLoadingId: newLoading.id,
+          companyId,
+          settlementDate,
+          totalCashReceived,
+          totalCreditReceived: totalCreditReceived || "0.00",
+          totalInvoiced,
+          cashDifference: cashDifference || "0.00",
+          status: "completed",
+          notes: notes || null,
+          createdAt: currentDate,
+          completedAt: currentDate
+        })
+        .returning();
+
+      if (!newSettlement) {
+        throw new Error("No se pudo crear el registro de cuadre");
+      }
+
+      if (items && Array.isArray(items) && items.length > 0) {
+        for (const item of items) {
+          await db.insert(routeSettlementItems).values({
+            settlementId: newSettlement.id,
+            companyId,
+            productId: item.productId,
+            loadedQuantity: item.loadedQuantity || 0,
+            returnedQuantity: item.returnedQuantity || 0,
+            soldQuantity: item.soldQuantity || 0,
+            difference: (item.loadedQuantity || 0) - (item.returnedQuantity || 0) - (item.soldQuantity || 0),
+            returnedContainers: item.returnedContainers || 0,
+            notes: item.notes || null
+          });
+        }
+      }
+
+      const createdSettlement = await db.query.routeSettlements.findFirst({
+        where: and(
+          eq(routeSettlements.id, newSettlement.id),
+          eq(routeSettlements.companyId, companyId)
+        ),
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          }
+        }
+      });
+
+      res.json({
+        message: "Cuadre manual creado exitosamente",
+        loading: newLoading,
+        settlement: createdSettlement
+      });
+    } catch (error) {
+      console.error("Error al crear cuadre manual:", error);
+      res.status(500).json({
+        error: "Error interno del servidor",
+        message: String(error)
+      });
+    }
+  });
 }
 
 // Función auxiliar para generar resumen de productos vendidos de forma optimizada
