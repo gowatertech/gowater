@@ -798,7 +798,7 @@ export class PlatformStorage implements IPlatformStorage {
     const paymentsResult = await platformPool.query(`
       SELECT COALESCE(SUM(amount), 0) as total_payments
       FROM platform_payments
-      WHERE status = 'confirmed'
+      WHERE status IN ('completed', 'confirmed')
     `);
     
     // Calcular MRR basado en empresas activas y sus planes

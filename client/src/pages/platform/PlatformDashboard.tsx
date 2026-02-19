@@ -133,10 +133,15 @@ export default function PlatformDashboard() {
             <Button 
               size="sm" 
               onClick={() => dashboardQuery.refetch()}
-              className="bg-white text-blue-700 hover:bg-blue-50 border-0"
+              disabled={dashboardQuery.isFetching}
+              className="bg-white text-blue-700 hover:bg-blue-50 border-0 disabled:opacity-70"
               data-testid="button-refresh-dashboard"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              {dashboardQuery.isFetching ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Actualizar
             </Button>
           </div>

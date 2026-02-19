@@ -1989,8 +1989,11 @@ export function registerPlatformRoutes(router: Router) {
   
   router.get("/dashboard", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
-      // Obtener métricas actualizadas
-      const metrics = await platformStorage.calculatePlatformMetrics();
+      let metrics = await platformStorage.getLatestMetrics();
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      if (!metrics || new Date(metrics.createdAt) < oneMinuteAgo) {
+        metrics = await platformStorage.calculatePlatformMetrics();
+      }
       
       // Obtener empresas próximas a vencer (7 días)
       const nearExpiration = await platformStorage.getCompaniesNearExpiration(7);
