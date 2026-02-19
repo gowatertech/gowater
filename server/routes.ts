@@ -3964,7 +3964,7 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(eq(orders.companyId, companyId))
         .groupBy(orders.customerId, customers.businessname)
-        .orderBy(desc(orders.id))
+        .orderBy(sql`COUNT(*) DESC`)
         .limit(5);
 
       // Formatear datos para el gráfico
