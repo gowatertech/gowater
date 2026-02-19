@@ -175,16 +175,21 @@ export default function CompaniesPage() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Gestión de Empresas</h1>
-            <p className="text-sm text-muted-foreground">
-              Administra todas las empresas registradas en la plataforma
-            </p>
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Building2 className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                Gestión de Empresas
+              </h1>
+              <p className="text-blue-100 mt-1 text-sm">Administra todas las empresas registradas en la plataforma</p>
+            </div>
+            <Button size="sm" onClick={() => setLocation("/platform/companies/new")} className="bg-white text-blue-700 hover:bg-blue-50 border-0">
+              <PlusIcon className="mr-2 h-4 w-4" /> Nueva Empresa
+            </Button>
           </div>
-          <Button size="sm" onClick={() => setLocation("/platform/companies/new")}>
-            <PlusIcon className="mr-2 h-4 w-4" /> Nueva Empresa
-          </Button>
         </div>
 
         <Card>

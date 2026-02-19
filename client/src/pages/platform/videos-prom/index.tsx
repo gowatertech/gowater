@@ -701,21 +701,22 @@ export default function VideosProm() {
   return (
     <PlatformLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Video className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
-              Videos Promocionales
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Video promocional de Gowater.com - 16 segundos
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Video className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                Videos Promocionales
+              </h1>
+              <p className="text-blue-100 mt-1 text-sm">Video promocional de Gowater.com - 16 segundos</p>
+            </div>
             <Button
+              size="sm"
               onClick={handleRecordAndDownload}
               disabled={isRecording || !imagesLoaded}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex items-center gap-2"
+              className="bg-white text-blue-700 hover:bg-blue-50 border-0 flex items-center gap-2"
             >
               {isRecording ? (
                 <>
