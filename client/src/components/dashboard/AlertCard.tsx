@@ -1,10 +1,10 @@
 import React from "react";
-import { AlertCircle, Clock, CheckCircle } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface AlertItem {
+export interface AlertItem {
   id: string;
-  type: "warning" | "info" | "success";
+  type: "warning" | "info" | "success" | "error";
   message: string;
   action?: {
     label: string;
@@ -37,6 +37,11 @@ export function AlertCard({ alerts }: AlertCardProps) {
       bg: "bg-green-50 dark:bg-green-900/20",
       icon: CheckCircle,
       iconColor: "text-green-600 dark:text-green-400"
+    },
+    error: {
+      bg: "bg-red-50 dark:bg-red-900/20",
+      icon: XCircle,
+      iconColor: "text-red-600 dark:text-red-400"
     }
   };
 

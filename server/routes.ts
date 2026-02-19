@@ -4489,10 +4489,14 @@ export async function registerRoutes(router: express.Router) {
           name: products.name,
           price: products.price,
           stock: products.stock,
+          minStock: products.minStock,
           icon: products.icon,
           isReturnable: products.isReturnable,
           depositAmount: products.depositAmount,
           hasCommission: products.hasCommission,
+          isCommissionable: products.isCommissionable,
+          driverCommissionValue: products.driverCommissionValue,
+          helperCommissionValue: products.helperCommissionValue,
           companyId: products.companyId
         })
         .from(products)
@@ -4503,6 +4507,37 @@ export async function registerRoutes(router: express.Router) {
       res.json(allProducts);
     } catch (error) {
       console.error("Error al obtener productos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  router.get("/products/low-stock", async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({ error: "Acceso denegado" });
+      }
+
+      const lowStockProducts = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          stock: products.stock,
+          minStock: products.minStock,
+          icon: products.icon,
+        })
+        .from(products)
+        .where(
+          and(
+            eq(products.companyId, companyId),
+            lte(products.stock, products.minStock)
+          )
+        )
+        .orderBy(products.stock);
+
+      res.json(lowStockProducts);
+    } catch (error) {
+      console.error("Error al obtener productos con stock bajo:", error);
       res.status(500).json({ error: String(error) });
     }
   });

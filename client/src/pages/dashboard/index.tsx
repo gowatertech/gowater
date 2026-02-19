@@ -192,27 +192,39 @@ export default function Dashboard() {
     }
   ];
 
-  // Datos para alertas
-  const alerts = [
-    {
-      id: "1",
-      type: "warning" as const,
-      message: t("Inventario bajo de producto Botellón 5L"),
-      action: {
-        label: t("Ver"),
-        onClick: () => navigateTo("/inventory")
-      }
-    },
-    {
-      id: "2",
+  const { data: lowStockProducts } = useQuery<{ id: number; name: string; stock: number; minStock: number }[]>({
+    queryKey: ["/api/products/low-stock"],
+  });
+
+  const alerts: { id: string; type: "warning" | "info" | "error"; message: string; action: { label: string; onClick: () => void } }[] = [];
+
+  if (lowStockProducts && lowStockProducts.length > 0) {
+    lowStockProducts.forEach((product, index) => {
+      alerts.push({
+        id: `low-stock-${product.id}`,
+        type: product.stock === 0 ? "error" as const : "warning" as const,
+        message: product.stock === 0
+          ? t(`Sin inventario de ${product.name}`)
+          : t(`Inventario bajo de ${product.name} (${product.stock} unidades, mínimo: ${product.minStock})`),
+        action: {
+          label: t("Ver"),
+          onClick: () => navigateTo("/productos")
+        }
+      });
+    });
+  }
+
+  if (bottleStats?.overdueReturns) {
+    alerts.push({
+      id: "overdue-bottles",
       type: "info" as const,
-      message: t(`${bottleStats?.overdueReturns || 0} envases pendientes de devolución vencidos`),
+      message: t(`${bottleStats.overdueReturns} envases pendientes de devolución vencidos`),
       action: {
         label: t("Revisar"),
         onClick: () => navigateTo("/bottles/pending")
       }
-    }
-  ];
+    });
+  }
 
   // Si hay una ruta activa, agregamos una alerta de información
   if (routeStats?.activeRoutes) {

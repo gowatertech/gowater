@@ -74,6 +74,7 @@ export default function ProductsPage() {
       insertProductSchema.extend({
         price: insertProductSchema.shape.price,
         stock: insertProductSchema.shape.stock.or(z.string()),
+        minStock: insertProductSchema.shape.minStock.or(z.string()),
         depositAmount: insertProductSchema.shape.depositAmount.or(z.string()),
       })
     ),
@@ -81,6 +82,7 @@ export default function ProductsPage() {
       name: "",
       price: "0.00",
       stock: 0,
+      minStock: 5,
       icon: undefined,
       isReturnable: false,
       depositAmount: "0.00",
@@ -93,6 +95,7 @@ export default function ProductsPage() {
       insertProductSchema.extend({
         price: insertProductSchema.shape.price,
         stock: insertProductSchema.shape.stock.or(z.string()),
+        minStock: insertProductSchema.shape.minStock.or(z.string()),
         depositAmount: insertProductSchema.shape.depositAmount.or(z.string()),
       })
     ),
@@ -100,6 +103,7 @@ export default function ProductsPage() {
       name: "",
       price: "0.00",
       stock: 0,
+      minStock: 5,
       icon: undefined,
       isReturnable: false,
       depositAmount: "0.00",
@@ -230,6 +234,7 @@ export default function ProductsPage() {
       name: product.name,
       price: product.price.toString(),
       stock: product.stock,
+      minStock: product.minStock ?? 5,
       icon: product.icon || undefined,
       isReturnable: product.isReturnable ?? false,
       depositAmount: product.depositAmount?.toString() || "0.00",
@@ -359,6 +364,27 @@ export default function ProductsPage() {
                             value={field.value}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="minStock"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stock Mínimo</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            value={field.value}
+                          />
+                        </FormControl>
+                        <FormDescription className="text-xs">
+                          Alerta cuando el inventario sea igual o menor a este valor
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -583,6 +609,27 @@ export default function ProductsPage() {
                         value={field.value}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="minStock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock Mínimo</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Alerta cuando el inventario sea igual o menor a este valor
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
