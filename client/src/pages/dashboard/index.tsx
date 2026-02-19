@@ -209,7 +209,7 @@ export default function Dashboard() {
       message: t(`${bottleStats?.overdueReturns || 0} envases pendientes de devolución vencidos`),
       action: {
         label: t("Revisar"),
-        onClick: () => navigateTo("/envases/faltantes")
+        onClick: () => navigateTo("/bottles/pending")
       }
     }
   ];
