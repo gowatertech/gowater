@@ -27,10 +27,10 @@ export default function CustomerReports() {
 
   // Obtener top clientes
   const { data: topCustomers = [], isLoading: isLoadingTopCustomers } = useQuery({
-    queryKey: ["/api/stats/top-customers"],
+    queryKey: ["/api/stats/top-customers", timeRange],
     queryFn: async () => {
       const response = await apiRequest({
-        url: "/api/stats/top-customers",
+        url: `/api/stats/top-customers?range=${timeRange}`,
         method: "GET",
       });
       return response;

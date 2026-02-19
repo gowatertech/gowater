@@ -30,10 +30,10 @@ export default function OperationsReports() {
 
   // Obtener estado de pedidos
   const { data: orderStatusData = [], isLoading: isLoadingOrderStatus } = useQuery({
-    queryKey: ["/api/stats/order-status"],
+    queryKey: ["/api/stats/order-status", timeRange],
     queryFn: async () => {
       const response = await apiRequest({
-        url: "/api/stats/order-status",
+        url: `/api/stats/order-status?range=${timeRange}`,
         method: "GET",
       });
       return response;

@@ -3884,10 +3884,9 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/order-status", async (req, res) => {
     try {
-      // Obtener el companyId del contexto
+      const range = req.query.range || 'month';
       const companyId = getCurrentCompanyId();
       
-      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
         console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
         return res.status(403).json({ 
@@ -3896,16 +3895,33 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      console.log(`GET /api/stats/order-status - Obteniendo estado de pedidos para empresa ${companyId}`);
+      console.log(`GET /api/stats/order-status - Obteniendo estado de pedidos para empresa ${companyId}, rango: ${range}`);
       
-      // Obtener conteo de pedidos por estado
+      let dateFilter;
+      switch(range) {
+        case 'week':
+          dateFilter = sql`${orders.date} >= NOW() - INTERVAL '7 days'`;
+          break;
+        case 'month':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('month', NOW())`;
+          break;
+        case 'quarter':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('quarter', NOW())`;
+          break;
+        case 'year':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('year', NOW())`;
+          break;
+        default:
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('month', NOW())`;
+      }
+
       const orderStatusData = await db
         .select({
           status: orders.status,
           count: sql`COUNT(*)`.mapWith(Number)
         })
         .from(orders)
-        .where(eq(orders.companyId, companyId))
+        .where(and(eq(orders.companyId, companyId), dateFilter))
         .groupBy(orders.status);
 
       // Formatear datos para el gráfico de pie
@@ -3938,10 +3954,9 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/top-customers", async (req, res) => {
     try {
-      // Obtener el companyId del contexto
+      const range = req.query.range || 'month';
       const companyId = getCurrentCompanyId();
       
-      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
         console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
         return res.status(403).json({ 
@@ -3950,9 +3965,26 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      console.log(`GET /api/stats/top-customers - Obteniendo top clientes para empresa ${companyId}`);
+      console.log(`GET /api/stats/top-customers - Obteniendo top clientes para empresa ${companyId}, rango: ${range}`);
       
-      // Obtener los clientes con más pedidos
+      let dateFilter;
+      switch(range) {
+        case 'week':
+          dateFilter = sql`${orders.date} >= NOW() - INTERVAL '7 days'`;
+          break;
+        case 'month':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('month', NOW())`;
+          break;
+        case 'quarter':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('quarter', NOW())`;
+          break;
+        case 'year':
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('year', NOW())`;
+          break;
+        default:
+          dateFilter = sql`${orders.date} >= DATE_TRUNC('month', NOW())`;
+      }
+
       const topCustomersData = await db
         .select({
           customerId: orders.customerId,
@@ -3962,7 +3994,7 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
-        .where(eq(orders.companyId, companyId))
+        .where(and(eq(orders.companyId, companyId), dateFilter))
         .groupBy(orders.customerId, customers.businessname)
         .orderBy(sql`COUNT(*) DESC`)
         .limit(5);
