@@ -47,10 +47,15 @@ export default function PlatformLogin() {
       setLocation("/platform/dashboard", { replace: true });
     },
     onError: (error: any) => {
-      setError(error.response?.data?.message || "Error en el inicio de sesión");
+      let msg = error.message?.replace(/^Error \d+:\s*/, '') || "Error en el inicio de sesión";
+      try {
+        const parsed = JSON.parse(msg);
+        if (parsed.message) msg = parsed.message;
+      } catch {}
+      setError(msg);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Error en el inicio de sesión",
+        description: msg,
         variant: "destructive",
       });
     },

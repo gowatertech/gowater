@@ -1737,6 +1737,10 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: "Usuario inactivo" });
       }
       
+      if (user.role !== "platform_admin") {
+        return res.status(403).json({ message: "Permiso no autorizado" });
+      }
+      
       // Obtener las compañías asociadas al usuario si es un administrador de empresa
       const userCompanyAssignments = user.role === 'company_admin' ? 
         await platformDb
