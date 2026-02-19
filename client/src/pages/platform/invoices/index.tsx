@@ -712,7 +712,7 @@ export default function InvoicesPage() {
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="max-h-60 overflow-y-auto">
                   {monthNames.map((name, i) => (
                     <SelectItem key={i} value={(i + 1).toString()}>{name}</SelectItem>
                   ))}
@@ -725,7 +725,7 @@ export default function InvoicesPage() {
                 <SelectTrigger className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="max-h-60 overflow-y-auto">
                   {years.map(y => (
                     <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                   ))}
