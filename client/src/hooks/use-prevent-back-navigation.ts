@@ -26,7 +26,7 @@ export function usePreventBackNavigation(
     async function checkAuthentication() {
       try {
         // Usar el endpoint específico para cada sistema (company, platform, mobile)
-        const response = await fetch(authEndpoint);
+        const response = await fetch(authEndpoint, { credentials: 'include' });
         if (!response.ok) {
           // Si no hay sesión, redirigir a la página de inicio
           console.log(`[usePreventBackNavigation] No hay sesión activa en ${authEndpoint}, redirigiendo a ${redirectTo}`);
