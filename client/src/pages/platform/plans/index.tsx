@@ -144,13 +144,15 @@ export default function PlansPage() {
           </div>
         </div>
 
-        <Card>
+        <Card className="rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base md:text-lg">Planes</CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              Lista de planes de suscripción disponibles
-            </CardDescription>
-            <div className="flex justify-end mt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base md:text-lg">Planes</CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  Lista de planes de suscripción disponibles
+                </CardDescription>
+              </div>
               <Button variant="outline" size="icon" onClick={() => refetch()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -159,9 +161,7 @@ export default function PlansPage() {
           <CardContent className="px-2 sm:px-6">
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin">
-                  <RefreshCw className="h-8 w-8 text-primary" />
-                </div>
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
               </div>
             ) : !plans?.length ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -178,15 +178,15 @@ export default function PlansPage() {
               </div>
             ) : (
               <>
-                <div className="hidden md:block overflow-x-auto">
+                <div className="hidden lg:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Descripción</TableHead>
                         <TableHead>Precio</TableHead>
-                        <TableHead>Usuarios</TableHead>
-                        <TableHead>Unidades</TableHead>
+                        <TableHead className="text-center">Usuarios</TableHead>
+                        <TableHead className="text-center">Unidades</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
@@ -194,20 +194,20 @@ export default function PlansPage() {
                     <TableBody>
                       {plans.map((plan: Plan) => (
                         <TableRow key={plan.id}>
-                          <TableCell className="font-medium">{plan.name}</TableCell>
-                          <TableCell className="max-w-xs truncate">
+                          <TableCell className="font-medium text-sm whitespace-nowrap">{plan.name}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px] xl:max-w-xs truncate">
                             {plan.description}
                           </TableCell>
-                          <TableCell>{formatPrice(plan.price)}/mes</TableCell>
-                          <TableCell>{plan.maxUsers}</TableCell>
-                          <TableCell>{plan.maxTrucks}</TableCell>
+                          <TableCell className="text-sm font-semibold whitespace-nowrap">{formatPrice(plan.price)}/mes</TableCell>
+                          <TableCell className="text-sm text-center">{plan.maxUsers}</TableCell>
+                          <TableCell className="text-sm text-center">{plan.maxTrucks}</TableCell>
                           <TableCell>
                             {plan.isActive ? (
-                              <Badge className="bg-green-500">
+                              <Badge className="bg-emerald-100 text-emerald-700 text-xs">
                                 <Check className="mr-1 h-3 w-3" /> Activo
                               </Badge>
                             ) : (
-                              <Badge variant="destructive">
+                              <Badge className="bg-red-100 text-red-700 text-xs">
                                 <X className="mr-1 h-3 w-3" /> Inactivo
                               </Badge>
                             )}
@@ -217,6 +217,7 @@ export default function PlansPage() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => setLocation(`/platform/plans/${plan.id}`)}
                               >
                                 <PencilIcon className="h-4 w-4" />
@@ -224,6 +225,7 @@ export default function PlansPage() {
                               <Button
                                 variant="destructive"
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleDeletePlan(plan)}
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -235,42 +237,44 @@ export default function PlansPage() {
                     </TableBody>
                   </Table>
                 </div>
-                <div className="md:hidden space-y-3">
+                <div className="lg:hidden space-y-3">
                   {plans.map((plan: Plan) => (
-                    <Card key={plan.id} className="p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-medium text-sm">{plan.name}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">{plan.description}</p>
+                    <Card key={plan.id} className="rounded-xl">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="min-w-0 flex-1 mr-3">
+                            <p className="font-semibold text-sm">{plan.name}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{plan.description}</p>
+                          </div>
+                          {plan.isActive ? (
+                            <Badge className="bg-emerald-100 text-emerald-700 text-xs flex-shrink-0">Activo</Badge>
+                          ) : (
+                            <Badge className="bg-red-100 text-red-700 text-xs flex-shrink-0">Inactivo</Badge>
+                          )}
                         </div>
-                        {plan.isActive ? (
-                          <Badge className="bg-green-500 text-xs">Activo</Badge>
-                        ) : (
-                          <Badge variant="destructive" className="text-xs">Inactivo</Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-1 text-xs mb-3">
-                        <div>
-                          <span className="text-muted-foreground block">Precio</span>
-                          <span className="font-medium">{formatPrice(plan.price)}/mes</span>
+                        <div className="grid grid-cols-3 gap-2 text-xs mb-3 bg-muted/30 rounded-lg p-2.5">
+                          <div>
+                            <span className="text-muted-foreground block">Precio</span>
+                            <span className="font-semibold">{formatPrice(plan.price)}/mes</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Usuarios</span>
+                            <span className="font-semibold">{plan.maxUsers}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block">Unidades</span>
+                            <span className="font-semibold">{plan.maxTrucks}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground block">Usuarios</span>
-                          <span className="font-medium">{plan.maxUsers}</span>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setLocation(`/platform/plans/${plan.id}`)}>
+                            <PencilIcon className="h-3 w-3 mr-1" /> Editar
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(plan)}>
+                            <TrashIcon className="h-3 w-3 mr-1" /> Eliminar
+                          </Button>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground block">Unidades</span>
-                          <span className="font-medium">{plan.maxTrucks}</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setLocation(`/platform/plans/${plan.id}`)}>
-                          <PencilIcon className="h-3 w-3 mr-1" /> Editar
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDeletePlan(plan)}>
-                          <TrashIcon className="h-3 w-3 mr-1" /> Eliminar
-                        </Button>
-                      </div>
+                      </CardContent>
                     </Card>
                   ))}
                 </div>
