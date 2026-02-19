@@ -4,7 +4,6 @@ import { db, pool } from "../db";
 import { orders, routes, customers, orderItems, products, users, bottleReturns, trucks } from "@shared/schema";
 import { storage } from "../storage";
 import { getNowRD, getTimestampRD } from "../date-utils";
-import { getCurrentCompanyId } from "../company-db";
 
 // Para añadir tipos de req.user (simulando autenticación)
 declare global {
@@ -56,34 +55,36 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener las entregas del día para un conductor
   app.get("/api/driver/deliveries/today", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
-      const driverId = req.user?.id || 2;
+      const driverId = req.session?.user?.id || req.user?.id;
+      const companyId = req.session?.companyId || req.session?.user?.companyId;
+      if (!driverId || !companyId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
       
-      // Buscar la ruta activa para el conductor
       const activeRoute = await db.select()
         .from(routes)
         .where(and(
           eq(routes.driverId, driverId),
+          eq(routes.companyId, companyId),
           eq(routes.status, 'pending')
         ))
         .orderBy(desc(routes.date))
         .limit(1);
       
       if (!activeRoute || activeRoute.length === 0) {
-        // No hay rutas activas, pero en lugar de devolver un array vacío, vamos a usar los datos de las rutas
-        // para crear entregas representativas
-        
-        // Buscar cualquier ruta para el conductor
         const anyRoute = await db.select()
           .from(routes)
-          .where(eq(routes.driverId, driverId))
+          .where(and(
+            eq(routes.driverId, driverId),
+            eq(routes.companyId, companyId)
+          ))
           .orderBy(desc(routes.date))
           .limit(1);
           
         if (anyRoute && anyRoute.length > 0 && anyRoute[0].stops && anyRoute[0].stops.length > 0) {
-          // Obtener clientes
           const allCustomers = await db.select()
             .from(customers)
+            .where(eq(customers.companyId, companyId))
             .limit(5);
           
           // Crear entregas basadas en las paradas de la ruta
@@ -136,9 +137,9 @@ export async function registerDriverRoutes(app: Express) {
           try {
             const stopCoords = activeRoute[0].stops[i].split(',').map(Number) as [number, number];
             
-            // Buscar el cliente más cercano a estas coordenadas
             const allCustomers = await db.select()
               .from(customers)
+              .where(eq(customers.companyId, companyId))
               .limit(10);
             
             let closestCustomer = allCustomers[0];
@@ -217,10 +218,9 @@ export async function registerDriverRoutes(app: Express) {
       
       // Obtener datos detallados para cada pedido
       for (const order of routeOrders) {
-        // Obtener el cliente
         const customer = await db.select()
           .from(customers)
-          .where(eq(customers.id, order.customerId))
+          .where(and(eq(customers.id, order.customerId), eq(customers.companyId, companyId)))
           .limit(1);
         
         if (!customer || customer.length === 0) continue;
@@ -252,10 +252,9 @@ export async function registerDriverRoutes(app: Express) {
           orderDescription = orderDescription.slice(0, -1);
         }
         
-        // Obtener los datos de retorno de envases
         const bottleReturn = await db.select()
           .from(bottleReturns)
-          .where(eq(bottleReturns.orderId, order.orderId))
+          .where(and(eq(bottleReturns.orderId, order.orderId), eq(bottleReturns.companyId, companyId)))
           .limit(1);
         
         // Extraer coordenadas (si existen) o usar una ubicación por defecto
@@ -326,8 +325,10 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener el balance de efectivo del conductor
   app.get("/api/driver/cash-balance", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
-      const driverId = req.user?.id || 2;
+      const driverId = req.session?.user?.id || req.user?.id;
+      if (!driverId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
       
       // En una implementación real, estos datos vendrían de la base de datos
       // Por ahora, retornaremos datos de ejemplo
@@ -348,15 +349,20 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para obtener estadísticas de rendimiento del conductor
   app.get("/api/driver/performance", async (req: Request, res: Response) => {
     try {
-      // Obtener el ID del conductor (usar ID 2 como default si no hay usuario autenticado)
-      const driverId = req.user?.id || 2;
+      const driverId = req.session?.user?.id || req.user?.id;
+      const companyId = req.session?.companyId || req.session?.user?.companyId;
+      if (!driverId || !companyId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
       
-      // Obtener total de pedidos asignados al conductor
       const routesWithOrders = await db.select({
         routeId: routes.id
       })
       .from(routes)
-      .where(eq(routes.driverId, driverId));
+      .where(and(
+        eq(routes.driverId, driverId),
+        eq(routes.companyId, companyId)
+      ));
       
       const routeIds = routesWithOrders.map(r => r.routeId);
       
@@ -416,7 +422,7 @@ export async function registerDriverRoutes(app: Express) {
       const orderId = parseInt(req.params.id);
       console.log(`📱 [Mobile App] Completando entrega de pedido #${orderId}`);
       
-      const companyId = getCurrentCompanyId();
+      const companyId = req.session?.companyId || req.session?.user?.companyId;
       
       if (!companyId) {
         console.error("❌ No se encontró companyId para completar entrega");
@@ -494,10 +500,10 @@ export async function registerDriverRoutes(app: Express) {
         if (returnedContainers !== undefined) {
           const bottleReturnQuery = `
             SELECT * FROM bottle_returns 
-            WHERE order_id = $1
+            WHERE order_id = $1 AND company_id = $2
             LIMIT 1
           `;
-          const bottleReturnResult = await client.query(bottleReturnQuery, [orderId]);
+          const bottleReturnResult = await client.query(bottleReturnQuery, [orderId, companyId]);
           
           if (bottleReturnResult.rows.length > 0) {
             await client.query(
@@ -507,11 +513,12 @@ export async function registerDriverRoutes(app: Express) {
           } else {
             await client.query(
               `INSERT INTO bottle_returns (
-                order_id, product_id, expected_quantity, returned_quantity, 
+                company_id, order_id, product_id, expected_quantity, returned_quantity, 
                 pending_quantity, return_date, status, amount_charged, 
                 deposit_amount, automatic_alert, manually_assigned
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
               [
+                companyId,
                 orderId,
                 req.body.productId || 1,
                 req.body.expectedQuantity || returnedContainers,
@@ -726,7 +733,10 @@ export async function registerDriverRoutes(app: Express) {
   // Endpoint para actualizar la ubicación del conductor
   app.post("/api/driver/location", async (req: Request, res: Response) => {
     try {
-      const driverId = req.user?.id || 2;
+      const driverId = req.session?.user?.id || req.user?.id;
+      if (!driverId) {
+        return res.status(401).json({ error: "Autenticación requerida" });
+      }
       const { latitude, longitude } = req.body;
       
       if (!latitude || !longitude) {

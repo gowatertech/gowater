@@ -6,7 +6,7 @@ import {
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
-import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
+import { companyDb, setCurrentCompanyId } from '../company-db';
 import { safeParseInt, isPositiveInteger } from '../utils/validation';
 import { recalculateInvoiceStatus } from '../utils/invoice-status';
 import { getNowRD } from '../date-utils';
@@ -17,6 +17,14 @@ import { storage } from '../storage';
  */
 export function createMobileApiEndpoints(): Router {
   const router = express.Router();
+
+  function getSessionCompanyId(req: Request): number | undefined {
+    return req.session?.companyId || req.session?.user?.companyId;
+  }
+
+  function getSessionUser(req: Request) {
+    return req.session?.user;
+  }
   
   /**
    * GET /api/mobile/routes
@@ -24,15 +32,8 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/routes', async (req, res) => {
     try {
-      // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      const companyId = getSessionCompanyId(req);
       
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
@@ -100,15 +101,8 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/orders', async (req, res) => {
     try {
-      // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      const companyId = getSessionCompanyId(req);
       
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
@@ -124,28 +118,23 @@ export function createMobileApiEndpoints(): Router {
       const routeId = req.query.routeId ? safeParseInt(req.query.routeId as string, -1) : -1;
       const routeFilter = isPositiveInteger(routeId) ? 
         eq(orders.routeId, routeId) : undefined;
-      
-      // Construir el filtro completo
-      let filter;
-      if (statusFilter && routeFilter) {
-        filter = and(
-          eq(orders.companyId, companyId),
-          statusFilter,
-          routeFilter
-        );
-      } else if (statusFilter) {
-        filter = and(
-          eq(orders.companyId, companyId),
-          statusFilter
-        );
-      } else if (routeFilter) {
-        filter = and(
-          eq(orders.companyId, companyId),
-          routeFilter
-        );
-      } else {
-        filter = eq(orders.companyId, companyId);
+
+      const currentUser = getSessionUser(req);
+      const isDriver = currentUser?.role === 'driver';
+      const isAssistant = currentUser?.role === 'assistant';
+
+      let driverRouteFilter;
+      if (isDriver && currentUser?.id) {
+        driverRouteFilter = sql`${orders.routeId} IN (SELECT id FROM routes WHERE driver_id = ${currentUser.id} AND company_id = ${companyId})`;
+      } else if (isAssistant && currentUser?.id) {
+        driverRouteFilter = sql`${orders.routeId} IN (SELECT id FROM routes WHERE assistant_id = ${currentUser.id} AND company_id = ${companyId})`;
       }
+      
+      const conditions = [eq(orders.companyId, companyId)];
+      if (statusFilter) conditions.push(statusFilter);
+      if (routeFilter) conditions.push(routeFilter);
+      if (driverRouteFilter) conditions.push(driverRouteFilter);
+      const filter = and(...conditions);
       
       // Obtener órdenes con información del cliente (incluyendo isCharity)
       const result = await db.select({
@@ -244,15 +233,8 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/customers', async (req, res) => {
     try {
-      // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      const companyId = getSessionCompanyId(req);
       
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
@@ -317,15 +299,8 @@ export function createMobileApiEndpoints(): Router {
         return res.status(400).json({ error: "ID de cliente inválido" });
       }
       
-      // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      const companyId = getSessionCompanyId(req);
       
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
@@ -385,15 +360,8 @@ export function createMobileApiEndpoints(): Router {
     try {
       const routeId = parseInt(req.params.id);
       
-      // Obtener el companyId adecuado de diferentes fuentes
-      let companyId = getCurrentCompanyId();
+      const companyId = getSessionCompanyId(req);
       
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ 
@@ -520,22 +488,13 @@ export function createMobileApiEndpoints(): Router {
    */
   router.post('/orders/:id/deliver-and-invoice', async (req, res) => {
     // Variable para guardar el companyId y limpiar el contexto al final
-    let companyId: number | undefined;
+    let companyId: number | undefined = getSessionCompanyId(req);
     
     try {
       console.log(`POST /api/mobile/orders/${req.params.id}/deliver-and-invoice - Body:`, req.body);
       
       const orderId = parseInt(req.params.id);
       
-      // Obtener el companyId adecuado de diferentes fuentes
-      companyId = getCurrentCompanyId();
-      
-      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
-      // Si todavía no tenemos companyId, devolvemos error
       if (!companyId) {
         console.warn(`MobileAPI - No se encontró companyId para la petición.`);
         return res.status(401).json({ 
@@ -934,18 +893,28 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/deliveries', async (req, res) => {
     try {
-      let companyId = getCurrentCompanyId();
-      
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
+      const companyId = getSessionCompanyId(req);
       
       if (!companyId) {
         return res.status(401).json({ error: "No se pudo determinar la compañía" });
       }
+
+      const currentUser = getSessionUser(req);
+      const isDriver = currentUser?.role === 'driver';
+      const isAssistant = currentUser?.role === 'assistant';
       
-      // Usar raw query para obtener todas las órdenes con sus items, productos y bottle-returns
       const { pool } = await import('../db');
+
+      let driverCondition = '';
+      const queryParams: any[] = [companyId];
+
+      if (isDriver && currentUser?.id) {
+        driverCondition = ' AND r.driver_id = $2';
+        queryParams.push(currentUser.id);
+      } else if (isAssistant && currentUser?.id) {
+        driverCondition = ' AND r.assistant_id = $2';
+        queryParams.push(currentUser.id);
+      }
       
       const deliveriesQuery = `
         WITH order_bottle_returns AS (
@@ -1007,13 +976,14 @@ export function createMobileApiEndpoints(): Router {
         JOIN customers c ON o.customer_id = c.id
         LEFT JOIN order_products op ON o.id = op.order_id
         LEFT JOIN order_bottle_returns obr ON o.id = obr.order_id
-        WHERE o.company_id = $1
+        LEFT JOIN routes r ON o.route_id = r.id
+        WHERE o.company_id = $1${driverCondition}
         ORDER BY o.date DESC
       `;
       
-      const result = await pool.query(deliveriesQuery, [companyId]);
+      const result = await pool.query(deliveriesQuery, queryParams);
       
-      console.log(`MobileAPI - Devolviendo ${result.rows.length} entregas con bottle-returns incluidos`);
+      console.log(`MobileAPI - Devolviendo ${result.rows.length} entregas para usuario ${currentUser?.id} (${currentUser?.role})`);
       res.json(result.rows);
     } catch (error) {
       console.error("Error al obtener deliveries:", error);
@@ -1027,11 +997,7 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/customers/:id/pending-invoices', async (req, res) => {
     try {
-      let companyId = getCurrentCompanyId();
-      
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
+      const companyId = getSessionCompanyId(req);
       
       if (!companyId) {
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
@@ -1138,15 +1104,9 @@ export function createMobileApiEndpoints(): Router {
    * Aplica un pago a cuenta distribuido automáticamente entre las facturas pendientes
    */
   router.post('/payments/account-payment', async (req, res) => {
-    let companyId: number | undefined;
+    let companyId: number | undefined = getSessionCompanyId(req);
     
     try {
-      companyId = getCurrentCompanyId();
-      
-      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
-        companyId = req.session.companyId || req.session.user?.companyId;
-      }
-      
       if (!companyId) {
         return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
       }
