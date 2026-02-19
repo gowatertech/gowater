@@ -15,7 +15,6 @@ import type { VehicleLoading, Product, User as UserType, Truck as TruckType, Rou
 import VehicleSettlementForm from "./VehicleSettlementForm";
 import ManualSettlementForm from "./ManualSettlementForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
@@ -120,6 +119,31 @@ export default function VehicleSettlementPage() {
   const totalCompletedSales = completedSettlements.settlements.reduce((sum, s) => {
     return sum + Number(s.stats.totalSales || 0);
   }, 0);
+
+  if (showManualForm) {
+    return (
+      <div className="space-y-4 p-3 sm:p-4 md:p-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowManualForm(false)} className="h-8 gap-1">
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Calculator className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">Nuevo Cuadre Manual</h2>
+              <p className="text-xs text-muted-foreground">Complete los datos del cuadre sin necesidad de una carga previa</p>
+            </div>
+          </div>
+        </div>
+        <ManualSettlementForm
+          onSuccess={() => setShowManualForm(false)}
+          onCancel={() => setShowManualForm(false)}
+        />
+      </div>
+    );
+  }
 
   if (selectedLoadingId && selectedLoading) {
     return (
@@ -239,24 +263,6 @@ export default function VehicleSettlementPage() {
           </Button>
         </div>
       </div>
-
-      <Dialog open={showManualForm} onOpenChange={setShowManualForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center gap-2 border-b pb-3 sm:pb-4">
-              <Calculator className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold">Nuevo Cuadre Manual</h2>
-                <p className="text-xs text-muted-foreground">Complete los datos del cuadre sin necesidad de una carga previa</p>
-              </div>
-            </div>
-            <ManualSettlementForm
-              onSuccess={() => setShowManualForm(false)}
-              onCancel={() => setShowManualForm(false)}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-l-4 border-l-amber-500 hover:shadow-lg transition-shadow">

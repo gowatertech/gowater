@@ -346,10 +346,10 @@ export default function ManualSettlementForm({ onSuccess, onCancel }: ManualSett
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <p className="text-xs text-blue-700 font-medium">Efectivo Esperado</p>
-              <p className="text-lg font-bold text-blue-800">RD$ {expectedCash}</p>
+              <p className="text-base sm:text-lg font-bold text-blue-800">RD$ {expectedCash}</p>
               <p className="text-[10px] text-blue-600">(Inicial + Ventas efectivo)</p>
             </div>
             <div className={`p-3 rounded-lg border ${
@@ -362,16 +362,16 @@ export default function ManualSettlementForm({ onSuccess, onCancel }: ManualSett
               <p className={`text-xs font-medium ${
                 parseFloat(cashDifference) < 0 ? "text-red-700" : parseFloat(cashDifference) > 0 ? "text-yellow-700" : "text-green-700"
               }`}>Diferencia de Efectivo</p>
-              <p className={`text-lg font-bold ${
+              <p className={`text-base sm:text-lg font-bold ${
                 parseFloat(cashDifference) < 0 ? "text-red-800" : parseFloat(cashDifference) > 0 ? "text-yellow-800" : "text-green-800"
               }`}>RD$ {cashDifference}</p>
               <p className={`text-[10px] ${
                 parseFloat(cashDifference) < 0 ? "text-red-600" : parseFloat(cashDifference) > 0 ? "text-yellow-600" : "text-green-600"
               }`}>(Recibido - Esperado)</p>
             </div>
-            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 xs:col-span-2 sm:col-span-1">
               <p className="text-xs text-gray-700 font-medium">Efectivo Inicial</p>
-              <p className="text-lg font-bold text-gray-800">RD$ {parseFloat(initialCash || "0").toFixed(2)}</p>
+              <p className="text-base sm:text-lg font-bold text-gray-800">RD$ {parseFloat(initialCash || "0").toFixed(2)}</p>
               <p className="text-[10px] text-gray-600">Caja inicial del día</p>
             </div>
           </div>
