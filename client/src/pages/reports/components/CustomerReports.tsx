@@ -71,21 +71,21 @@ export default function CustomerReports() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={topCustomers}
+                layout="vertical"
                 margin={{
                   top: 5,
                   right: 30,
-                  left: 20,
+                  left: 120,
                   bottom: 5,
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
-                <Tooltip />
+                <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 12 }} />
+                <XAxis type="number" orientation="bottom" stroke="#8884d8" />
+                <Tooltip formatter={(value: any, name: string) => [name === "Total (RD$)" ? `RD$ ${Number(value).toFixed(2)}` : value, name]} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="orders" name="Pedidos" fill="#8884d8" />
-                <Bar yAxisId="right" dataKey="total" name="Total (RD$)" fill="#82ca9d" />
+                <Bar dataKey="orders" name="Pedidos" fill="#8884d8" />
+                <Bar dataKey="total" name="Total (RD$)" fill="#82ca9d" />
               </BarChart>
             </ResponsiveContainer>
           </div>
