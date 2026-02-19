@@ -208,7 +208,7 @@ export default function Dashboard() {
           : t(`Inventario bajo de ${product.name} (${product.stock} unidades, mínimo: ${product.minStock})`),
         action: {
           label: t("Ver"),
-          onClick: () => navigateTo("/productos")
+          onClick: () => navigateTo("/inventory")
         }
       });
     });
