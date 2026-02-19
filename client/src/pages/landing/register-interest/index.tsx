@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
@@ -48,7 +48,7 @@ export default function RegisterInterestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       country: "República Dominicana",
@@ -271,24 +271,34 @@ export default function RegisterInterestPage() {
                           Plan de Interés
                         </h3>
                         
-                        <RadioGroup defaultValue="" className="flex flex-wrap gap-6" {...register("interestedInPlan")}>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Básico" id="basic-plan" />
-                            <Label htmlFor="basic-plan" className="cursor-pointer">Plan Básico</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Estándar" id="standard-plan" />
-                            <Label htmlFor="standard-plan" className="cursor-pointer">Plan Estándar</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Premium" id="premium-plan" />
-                            <Label htmlFor="premium-plan" className="cursor-pointer">Plan Premium</Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Personalizado" id="custom-plan" />
-                            <Label htmlFor="custom-plan" className="cursor-pointer">Plan Personalizado</Label>
-                          </div>
-                        </RadioGroup>
+                        <Controller
+                          name="interestedInPlan"
+                          control={control}
+                          render={({ field }) => (
+                            <RadioGroup
+                              value={field.value || ""}
+                              onValueChange={field.onChange}
+                              className="flex flex-wrap gap-6"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Básico" id="basic-plan" />
+                                <Label htmlFor="basic-plan" className="cursor-pointer">Plan Básico</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Estándar" id="standard-plan" />
+                                <Label htmlFor="standard-plan" className="cursor-pointer">Plan Estándar</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Premium" id="premium-plan" />
+                                <Label htmlFor="premium-plan" className="cursor-pointer">Plan Premium</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="Personalizado" id="custom-plan" />
+                                <Label htmlFor="custom-plan" className="cursor-pointer">Plan Personalizado</Label>
+                              </div>
+                            </RadioGroup>
+                          )}
+                        />
                       </div>
 
                       {/* Comentarios adicionales */}
