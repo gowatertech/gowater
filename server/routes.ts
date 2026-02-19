@@ -24,6 +24,7 @@ import { registerTestSessionRoutes } from "./test-session";
 import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, requireCompanyId } from './middleware/company-auth.middleware';
+import { requireRole, requireAdmin, requireAdminOrSupervisor, requireOperationsAccess } from './middleware/role-auth.middleware';
 import { safeParseInt, isPositiveInteger } from './utils/validation';
 import { recalculateInvoiceStatus } from './utils/invoice-status';
 
@@ -485,8 +486,7 @@ export async function registerRoutes(router: express.Router) {
 
   // Los endpoints para rutas y pedidos ya se registraron anteriormente
   
-  // Endpoint para crear un nuevo usuario (después del middleware de autenticación)
-  router.post("/users", async (req, res) => {
+  router.post("/users", requireAdmin, async (req, res) => {
     try {
       const userData = req.body;
       
@@ -691,8 +691,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  // Zonas
-  router.get("/zones", async (req, res) => {
+  router.get("/zones", requireAdminOrSupervisor, async (req, res) => {
     try {
       // Obtenemos el companyId del contexto de la solicitud
       const companyId = req.session.companyId;
@@ -941,7 +940,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.post("/zones", async (req, res) => {
+  router.post("/zones", requireAdminOrSupervisor, async (req, res) => {
     try {
       // Obtenemos el ID de la compañía desde la sesión
       const companyId = req.session.companyId;
@@ -1099,8 +1098,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  // Users
-  router.get("/users", async (req, res) => {
+  router.get("/users", requireAdmin, async (req, res) => {
     try {
       // Obtener companyId con fallback
       const companyId = getCurrentCompanyId() || req.session.companyId;
@@ -1211,8 +1209,7 @@ export async function registerRoutes(router: express.Router) {
   
   // Mover este endpoint después del middleware de autenticación
   
-  // Endpoint para actualizar un usuario
-  router.put("/users/:id", async (req, res) => {
+  router.put("/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       
@@ -1346,7 +1343,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Rutas
-  router.get("/routes", async (req, res) => {
+  router.get("/routes", requireAdminOrSupervisor, async (req, res) => {
     try {
       // Obtener companyId desde la sesión
       const companyId = req.session.companyId || req.session.user?.companyId;
@@ -1888,7 +1885,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.post("/routes", async (req, res) => {
+  router.post("/routes", requireAdminOrSupervisor, async (req, res) => {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       
@@ -2820,7 +2817,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.post("/settings", upload.single('logo'), async (req, res) => {
+  router.post("/settings", requireAdmin, upload.single('logo'), async (req, res) => {
     try {
       // Obtenemos el companyId del contexto de la solicitud
       const companyId = req.session.companyId;
@@ -4474,7 +4471,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Productos
-  router.get("/products", async (req, res) =>{
+  router.get("/products", requireAdminOrSupervisor, async (req, res) =>{
     try {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
@@ -4549,7 +4546,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.post("/products", async (req, res) => {
+  router.post("/products", requireAdminOrSupervisor, async (req, res) => {
     try {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();

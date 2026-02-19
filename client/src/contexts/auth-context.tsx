@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect } from
 import { useLocation } from 'wouter';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { getDefaultRedirect, type UserRole } from '@shared/permissions';
 
 // Definir la interfaz para los datos del usuario
 export interface User {
@@ -132,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Bienvenido/a, ${data.user.name}`,
       });
       
-      // Redireccionar al dashboard
-      setLocation('/dashboard');
+      const redirectPath = getDefaultRedirect((data.user.role || 'admin') as UserRole);
+      setLocation(redirectPath);
     } catch (err) {
       console.error('Error de autenticación:', err);
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');

@@ -8,7 +8,9 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
+import { useLocation, Redirect } from "wouter";
+import { useAuth } from "@/contexts/auth-context";
+import { hasRouteAccess, getDefaultRedirect, isMobileOnlyRole, type UserRole } from "@shared/permissions";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,10 +19,30 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [openMobile, setOpenMobile] = useState(false);
   const [location] = useLocation();
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    console.log("DashboardLayout - Current location:", location);
-  }, [location]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/auth/login" />;
+  }
+
+  const role = (user.role || "admin") as UserRole;
+
+  if (isMobileOnlyRole(role)) {
+    return <Redirect to="/mobile-app" />;
+  }
+
+  if (!hasRouteAccess(role, location)) {
+    const redirect = getDefaultRedirect(role);
+    return <Redirect to={redirect} />;
+  }
 
   return (
     <SidebarProvider defaultOpen={true}>

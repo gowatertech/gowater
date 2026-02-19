@@ -191,6 +191,8 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/auth-context";
+import { isSidebarItemVisible, type UserRole } from "@shared/permissions";
 
 interface SidebarProps {
   openMobile: boolean;
@@ -203,6 +205,10 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [activeItems, setActiveItems] = useState<string[]>([]);
   const { toast } = useToast();
   const { settings } = useCompanySettings();
+  const { user } = useAuth();
+  const userRole = (user?.role || "admin") as UserRole;
+
+  const filteredSidebarItems = sidebarItems.filter(item => isSidebarItemVisible(userRole, item.label));
   
   const handleLogout = async () => {
     try {
@@ -245,7 +251,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   };
 
   useEffect(() => {
-    const activeMainItem = sidebarItems.find(item => 
+    const activeMainItem = filteredSidebarItems.find(item => 
       location === item.href || (item.subItems?.some(sub => location === sub.href))
     );
     
@@ -285,7 +291,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
 
       <div className="px-3 mt-4 flex-1 flex flex-col overflow-y-auto">
         <div className="flex-1 space-y-0.5">
-          {sidebarItems.map((item) => {
+          {filteredSidebarItems.map((item) => {
             const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
             const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
             const isExpanded = isActive || activeItems.includes(item.label);

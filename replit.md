@@ -8,10 +8,22 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 ### Multi-Tenancy
-The system uses a **shared database, shared schema** multi-tenancy model, isolating data per company using `company_id` and `AsyncLocalStorage`.
+The system uses a **shared database, shared schema** multi-tenancy model, isolating data per company using `company_id` and session-based `companyId`. All mobile/driver API endpoints use `req.session.companyId` (NOT `getCurrentCompanyId()` from AsyncLocalStorage) to prevent cross-tenant data leakage.
 
 ### Authentication & Authorization
 **Passport.js Local Strategy** with bcrypt handles authentication, supporting distinct user types (Platform and Company users) and implementing **Role-Based Access Control (RBAC)**.
+
+### Role-Based Access Control (RBAC) - Feb 2026
+Centralized permissions defined in `shared/permissions.ts`. Roles and access:
+- **admin**: Full access to all dashboard modules + settings + user management
+- **supervisor**: All modules except administration and settings
+- **cashier**: Orders, billing, payments, customers, manual only
+- **driver/assistant**: Mobile app only (redirected from dashboard)
+
+Implementation layers:
+- **Frontend**: `DashboardLayout` blocks unauthenticated/unauthorized users; Sidebar filters menu items by role; auto-redirect after login based on role
+- **Backend**: `server/middleware/role-auth.middleware.ts` provides `requireAdmin`, `requireAdminOrSupervisor`, `requireRole()` middleware applied to /users, /settings, /zones, /routes, /products endpoints
+- **Key files**: `shared/permissions.ts`, `client/src/components/layouts/DashboardLayout.tsx`, `client/src/components/layouts/Sidebar.tsx`, `server/middleware/role-auth.middleware.ts`
 
 ### Database Architecture
 **Drizzle ORM** with **PostgreSQL** provides type-safe queries, migrations, soft deletes, audit fields, composite keys, and denormalization.

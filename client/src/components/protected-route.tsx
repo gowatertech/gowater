@@ -1,7 +1,7 @@
-import React from 'react';
 import { Redirect, Route, useRoute } from 'wouter';
 import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
+import { hasRouteAccess, getDefaultRedirect, type UserRole } from '@shared/permissions';
 
 interface ProtectedRouteProps {
   path: string;
@@ -12,7 +12,6 @@ export const ProtectedRoute = ({ path, component: Component }: ProtectedRoutePro
   const { user, isLoading } = useAuth();
   const [isActive] = useRoute(path);
 
-  // Si está cargando, mostramos un spinner
   if (isLoading && isActive) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -21,11 +20,17 @@ export const ProtectedRoute = ({ path, component: Component }: ProtectedRoutePro
     );
   }
 
-  // Si no hay usuario (no autenticado), redirigimos a /auth
   if (!isLoading && !user && isActive) {
-    return <Redirect to="/auth" />;
+    return <Redirect to="/auth/login" />;
   }
 
-  // Si está autenticado, mostramos la ruta con el componente
-  return <Route path={path} component={Component} />;
+  if (!isLoading && user && isActive) {
+    const role = (user.role || "admin") as UserRole;
+    if (!hasRouteAccess(role, path)) {
+      const redirect = getDefaultRedirect(role);
+      return <Redirect to={redirect} />;
+    }
+  }
+
+  return <Route path={path} component={Component as any} />;
 };
