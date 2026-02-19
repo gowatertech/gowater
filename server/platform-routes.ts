@@ -7,6 +7,7 @@ import {
   insertCompanySettingsSchema,
   insertUserCompanySchema,
   companies,
+  plans,
   userCompanies,
   companySettings,
   membershipInvoices,
@@ -571,8 +572,32 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/membership-invoices", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : undefined;
-      const invoices = await platformStorage.listMembershipInvoices(companyId);
-      // Enviamos los datos en el formato que espera el frontend
+      
+      let query = platformDb
+        .select({
+          id: membershipInvoices.id,
+          companyId: membershipInvoices.companyId,
+          planId: membershipInvoices.planId,
+          amount: membershipInvoices.amount,
+          status: membershipInvoices.status,
+          invoiceDate: membershipInvoices.invoiceDate,
+          dueDate: membershipInvoices.dueDate,
+          paidDate: membershipInvoices.paidDate,
+          paymentMethod: membershipInvoices.paymentMethod,
+          notes: membershipInvoices.notes,
+          companyName: companies.name,
+          planName: plans.name,
+        })
+        .from(membershipInvoices)
+        .leftJoin(companies, eq(membershipInvoices.companyId, companies.id))
+        .leftJoin(plans, eq(membershipInvoices.planId, plans.id))
+        .orderBy(sql`${membershipInvoices.invoiceDate} DESC`);
+
+      if (companyId) {
+        query = query.where(eq(membershipInvoices.companyId, companyId)) as any;
+      }
+
+      const invoices = await query;
       res.json({ data: invoices });
     } catch (error) {
       console.error("Error al listar facturas:", error);
@@ -600,6 +625,180 @@ export function registerPlatformRoutes(router: Router) {
     } catch (error: any) {
       console.error("Error al actualizar factura:", error);
       res.status(400).json({ message: error.message || "Error al actualizar factura" });
+    }
+  });
+
+  router.post("/membership-invoices/generate-cycle", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const { year, month } = req.body;
+      if (!year || !month) {
+        return res.status(400).json({ message: "Año y mes son requeridos" });
+      }
+
+      const allCompanies = await platformDb
+        .select({
+          id: companies.id,
+          name: companies.name,
+          status: companies.status,
+          planId: companies.planId,
+        })
+        .from(companies)
+        .where(
+          inArray(companies.status, ["active", "suspended"])
+        );
+
+      const allPlans = await platformDb.select().from(plans);
+      const plansMap = new Map(allPlans.map(p => [p.id, p]));
+
+      const startOfMonth = new Date(year, month - 1, 1);
+      const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+
+      const existingInvoices = await platformDb
+        .select()
+        .from(membershipInvoices)
+        .where(
+          and(
+            sql`${membershipInvoices.invoiceDate} >= ${startOfMonth}`,
+            sql`${membershipInvoices.invoiceDate} <= ${endOfMonth}`
+          )
+        );
+
+      const invoicedCompanyIds = new Set(existingInvoices.map(i => i.companyId));
+
+      const toGenerate = allCompanies.filter(c => !invoicedCompanyIds.has(c.id));
+
+      if (toGenerate.length === 0) {
+        return res.json({
+          message: "Todas las empresas ya tienen factura para este período",
+          generated: 0,
+          skipped: allCompanies.length,
+          invoices: [],
+        });
+      }
+
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const monthName = monthNames[month - 1];
+
+      const dueDate = new Date(year, month, 0);
+
+      const createdInvoices = [];
+      for (const company of toGenerate) {
+        const plan = plansMap.get(company.planId);
+        if (!plan) continue;
+
+        const amount = parseFloat(plan.price?.toString() || "0");
+
+        const [invoice] = await platformDb
+          .insert(membershipInvoices)
+          .values({
+            companyId: company.id,
+            planId: company.planId,
+            amount: amount.toFixed(2),
+            status: "pending",
+            invoiceDate: startOfMonth,
+            dueDate: dueDate,
+            notes: `Membresía ${plan.name} - ${monthName} ${year}`,
+          })
+          .returning();
+
+        createdInvoices.push({
+          ...invoice,
+          companyName: company.name,
+          planName: plan.name,
+        });
+      }
+
+      res.json({
+        message: `Se generaron ${createdInvoices.length} facturas para ${monthName} ${year}`,
+        generated: createdInvoices.length,
+        skipped: invoicedCompanyIds.size,
+        invoices: createdInvoices,
+      });
+    } catch (error: any) {
+      console.error("Error al generar ciclo de facturación:", error);
+      res.status(500).json({ message: error.message || "Error al generar ciclo de facturación" });
+    }
+  });
+
+  router.get("/membership-invoices/stats", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const allInvoices = await platformDb.select().from(membershipInvoices);
+      const now = new Date();
+
+      let totalAmount = 0;
+      let pendingAmount = 0;
+      let paidAmount = 0;
+      let overdueCount = 0;
+      let pendingCount = 0;
+      let paidCount = 0;
+
+      for (const inv of allInvoices) {
+        const amount = parseFloat(inv.amount?.toString() || "0");
+        totalAmount += amount;
+
+        if (inv.status === "paid") {
+          paidAmount += amount;
+          paidCount++;
+        } else if (inv.status === "pending") {
+          if (new Date(inv.dueDate) < now) {
+            overdueCount++;
+            pendingAmount += amount;
+          } else {
+            pendingCount++;
+            pendingAmount += amount;
+          }
+        }
+      }
+
+      res.json({
+        totalInvoiced: totalAmount.toFixed(2),
+        pendingAmount: pendingAmount.toFixed(2),
+        paidAmount: paidAmount.toFixed(2),
+        pendingCount,
+        paidCount,
+        overdueCount,
+        totalCount: allInvoices.length,
+      });
+    } catch (error: any) {
+      console.error("Error al obtener estadísticas:", error);
+      res.status(500).json({ message: "Error al obtener estadísticas" });
+    }
+  });
+
+  router.get("/membership-invoices/:id/pdf-data", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await platformStorage.getMembershipInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Factura no encontrada" });
+      }
+
+      const [company] = await platformDb.select().from(companies).where(eq(companies.id, invoice.companyId));
+      const [plan] = await platformDb.select().from(plans).where(eq(plans.id, invoice.planId));
+
+      const settings = await platformDb.select().from(platformSettings);
+      const settingsMap: Record<string, string> = {};
+      for (const s of settings) {
+        settingsMap[s.key] = s.value || "";
+      }
+
+      res.json({
+        invoice,
+        company: company || { name: "Empresa desconocida" },
+        plan: plan || { name: "Plan desconocido", price: "0" },
+        platform: {
+          name: settingsMap["general.platformName"] || "GoWater",
+          email: settingsMap["general.supportEmail"] || "",
+          phone: settingsMap["general.supportPhone"] || "",
+          logo: settingsMap["general.logoUrl"] || "",
+          address: settingsMap["general.address"] || "",
+          rnc: settingsMap["general.rnc"] || "",
+        },
+      });
+    } catch (error: any) {
+      console.error("Error al obtener datos de factura:", error);
+      res.status(500).json({ message: "Error al obtener datos de factura" });
     }
   });
 
