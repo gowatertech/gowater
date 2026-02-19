@@ -177,99 +177,162 @@ export default function InvoicesPage() {
 
       const { invoice, company, plan, platform } = res;
       const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
+      const pw = doc.internal.pageSize.getWidth();
+      const invoiceNum = String(invoice.id).padStart(6, '0');
+      const billingName = platform.billingCompanyName || platform.name || "GoWater";
 
-      doc.setFillColor(37, 99, 235);
-      doc.rect(0, 0, pageWidth, 45, 'F');
+      let logoLoaded = false;
+      if (platform.logo) {
+        try {
+          const img = new window.Image();
+          img.crossOrigin = "anonymous";
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+            img.src = platform.logo;
+          });
+          doc.addImage(img, "PNG", 15, 12, 30, 30);
+          logoLoaded = true;
+        } catch { /* skip logo if can't load */ }
+      }
 
-      doc.setFontSize(22);
-      doc.setTextColor(255, 255, 255);
-      doc.text(platform.name || "GoWater", 20, 22);
-      doc.setFontSize(9);
-      if (platform.address) doc.text(platform.address, 20, 30);
-      if (platform.phone) doc.text(`Tel: ${platform.phone}`, 20, 36);
-      if (platform.rnc) doc.text(`RNC: ${platform.rnc}`, 20, 42);
+      const headerTextX = logoLoaded ? 50 : 15;
 
       doc.setFontSize(16);
-      doc.text("FACTURA", pageWidth - 20, 22, { align: "right" });
-      doc.setFontSize(10);
-      doc.text(`#${String(invoice.id).padStart(6, '0')}`, pageWidth - 20, 30, { align: "right" });
-
-      doc.setTextColor(60, 60, 60);
-      doc.setFontSize(11);
-      doc.text("Facturar a:", 20, 58);
-      doc.setFontSize(13);
+      doc.setTextColor(30, 30, 30);
       doc.setFont("helvetica", "bold");
-      doc.text(company.name || "---", 20, 66);
+      doc.text(billingName, headerTextX, 20);
+
       doc.setFont("helvetica", "normal");
-
-      doc.setFontSize(10);
-      doc.setTextColor(100, 100, 100);
-      const infoX = pageWidth - 70;
-      doc.text("Fecha emisión:", infoX, 58);
-      doc.text(formatDate(invoice.invoiceDate), infoX + 40, 58);
-      doc.text("Vencimiento:", infoX, 66);
-      doc.text(formatDate(invoice.dueDate), infoX + 40, 66);
-      doc.text("Estado:", infoX, 74);
-      const statusText = invoice.status === "paid" ? "PAGADA" : invoice.status === "pending" ? "PENDIENTE" : invoice.status.toUpperCase();
-      doc.text(statusText, infoX + 40, 74);
-
-      const tableTop = 90;
-      doc.setFillColor(243, 244, 246);
-      doc.rect(15, tableTop, pageWidth - 30, 10, 'F');
       doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
+      doc.setTextColor(100, 100, 100);
+      let headerY = 27;
+      if (platform.address) { doc.text(platform.address, headerTextX, headerY); headerY += 5; }
+      if (platform.phone) { doc.text(`Tel: ${platform.phone}`, headerTextX, headerY); headerY += 5; }
+      if (platform.email) { doc.text(platform.email, headerTextX, headerY); headerY += 5; }
+      if (platform.rnc) { doc.text(`RNC: ${platform.rnc}`, headerTextX, headerY); }
+
+      doc.setFontSize(20);
+      doc.setTextColor(55, 65, 81);
       doc.setFont("helvetica", "bold");
-      doc.text("Descripción", 20, tableTop + 7);
-      doc.text("Cantidad", pageWidth - 100, tableTop + 7, { align: "center" });
-      doc.text("Precio Unit.", pageWidth - 60, tableTop + 7, { align: "right" });
-      doc.text("Total", pageWidth - 20, tableTop + 7, { align: "right" });
+      doc.text("FACTURA", pw - 15, 20, { align: "right" });
 
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(60, 60, 60);
-      const rowY = tableTop + 20;
-      const planDescription = `Membresía ${plan.name || "---"}`;
-      const notesLine = invoice.notes || "";
-      doc.setFontSize(10);
-      doc.text(planDescription, 20, rowY);
-      if (notesLine) {
-        doc.setFontSize(8);
-        doc.setTextColor(120, 120, 120);
-        doc.text(notesLine, 20, rowY + 6);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`No. ${invoiceNum}`, pw - 15, 28, { align: "right" });
+
+      const statusText = invoice.status === "paid" ? "PAGADA" : invoice.status === "pending" ? "PENDIENTE" : invoice.status === "cancelled" ? "CANCELADA" : "VENCIDA";
+      const isPaid = invoice.status === "paid";
+      if (isPaid) {
+        doc.setFillColor(220, 252, 231);
+        doc.setTextColor(22, 101, 52);
+      } else {
+        doc.setFillColor(254, 243, 199);
+        doc.setTextColor(146, 64, 14);
       }
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
-      doc.text("1", pageWidth - 100, rowY, { align: "center" });
-      doc.text(formatPrice(invoice.amount), pageWidth - 60, rowY, { align: "right" });
-      doc.text(formatPrice(invoice.amount), pageWidth - 20, rowY, { align: "right" });
+      const badgeW = doc.getTextWidth(statusText) + 12;
+      doc.roundedRect(pw - 15 - badgeW, 32, badgeW, 8, 2, 2, 'F');
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(statusText, pw - 15 - badgeW / 2, 37.5, { align: "center" });
 
-      doc.setDrawColor(220, 220, 220);
-      doc.line(15, rowY + 12, pageWidth - 15, rowY + 12);
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, 48, pw - 15, 48);
 
-      const totalsY = rowY + 25;
-      doc.setFontSize(10);
-      doc.text("Subtotal:", pageWidth - 70, totalsY);
-      doc.text(formatPrice(invoice.amount), pageWidth - 20, totalsY, { align: "right" });
-      doc.text("Impuestos (0%):", pageWidth - 70, totalsY + 8);
-      doc.text("$0.00", pageWidth - 20, totalsY + 8, { align: "right" });
+      doc.setTextColor(107, 114, 128);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("FACTURAR A", 15, 57);
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text("Total:", pageWidth - 70, totalsY + 20);
-      doc.text(formatPrice(invoice.amount), pageWidth - 20, totalsY + 20, { align: "right" });
+      doc.setTextColor(30, 30, 30);
+      doc.text(company.name || "---", 15, 64);
 
-      if (invoice.paidDate) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(22, 163, 74);
-        doc.text(`Pagado el: ${formatDate(invoice.paidDate)}`, 20, totalsY + 20);
-      }
+      doc.setTextColor(107, 114, 128);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("DETALLES", pw - 80, 57);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text("Generado por " + (platform.name || "GoWater"), pageWidth / 2, 280, { align: "center" });
+      doc.setFontSize(9);
+      doc.setTextColor(75, 85, 99);
+      doc.text("Fecha emisión:", pw - 80, 64);
+      doc.text(formatDate(invoice.invoiceDate), pw - 15, 64, { align: "right" });
+      doc.text("Vencimiento:", pw - 80, 71);
+      doc.text(formatDate(invoice.dueDate), pw - 15, 71, { align: "right" });
+      if (invoice.paidDate) {
+        doc.text("Fecha de pago:", pw - 80, 78);
+        doc.text(formatDate(invoice.paidDate), pw - 15, 78, { align: "right" });
+      }
 
-      doc.save(`Factura-${String(invoice.id).padStart(6, '0')}.pdf`);
+      const tableTop = 90;
+      doc.setFillColor(249, 250, 251);
+      doc.rect(15, tableTop, pw - 30, 10, 'F');
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, tableTop, pw - 15, tableTop);
+      doc.line(15, tableTop + 10, pw - 15, tableTop + 10);
+
+      doc.setFontSize(8);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont("helvetica", "bold");
+      doc.text("DESCRIPCIÓN", 20, tableTop + 7);
+      doc.text("CANT.", pw - 85, tableTop + 7, { align: "center" });
+      doc.text("PRECIO", pw - 55, tableTop + 7, { align: "right" });
+      doc.text("TOTAL", pw - 20, tableTop + 7, { align: "right" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(55, 65, 81);
+      const rowY = tableTop + 20;
+      doc.setFontSize(10);
+      doc.text(`Membresía ${plan.name || "---"}`, 20, rowY);
+      if (invoice.notes) {
+        doc.setFontSize(8);
+        doc.setTextColor(156, 163, 175);
+        doc.text(invoice.notes, 20, rowY + 5);
+      }
+      doc.setFontSize(10);
+      doc.setTextColor(55, 65, 81);
+      doc.text("1", pw - 85, rowY, { align: "center" });
+      doc.text(formatPrice(invoice.amount), pw - 55, rowY, { align: "right" });
+      doc.text(formatPrice(invoice.amount), pw - 20, rowY, { align: "right" });
+
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, rowY + 10, pw - 15, rowY + 10);
+
+      const totY = rowY + 22;
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text("Subtotal", pw - 65, totY);
+      doc.setTextColor(55, 65, 81);
+      doc.text(formatPrice(invoice.amount), pw - 20, totY, { align: "right" });
+
+      doc.setTextColor(107, 114, 128);
+      doc.text("Impuestos (0%)", pw - 65, totY + 8);
+      doc.setTextColor(55, 65, 81);
+      doc.text("$0.00", pw - 20, totY + 8, { align: "right" });
+
+      doc.setDrawColor(229, 231, 235);
+      doc.line(pw - 80, totY + 13, pw - 15, totY + 13);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(30, 30, 30);
+      doc.text("Total", pw - 65, totY + 22);
+      doc.text(formatPrice(invoice.amount), pw - 20, totY + 22, { align: "right" });
+
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, 260, pw - 15, 260);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(156, 163, 175);
+      doc.text(`Factura generada por ${platform.name || "GoWater"}`, pw / 2, 268, { align: "center" });
+      if (platform.email) {
+        doc.text(platform.email, pw / 2, 274, { align: "center" });
+      }
+
+      doc.save(`Factura-${invoiceNum}.pdf`);
       toast({ title: "PDF generado", description: "La factura se ha descargado correctamente" });
     } catch (error: any) {
       toast({ title: "Error", description: "No se pudo generar el PDF", variant: "destructive" });

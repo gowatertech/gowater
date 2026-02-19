@@ -27,6 +27,34 @@ import { sql } from "drizzle-orm";
 import * as companyDbHelper from "./company-db";
 import { users, insertUserSchema } from "../shared/schema";
 import { PlatformUser } from "../shared/platform-schema";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(process.cwd(), "uploads", "platform");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const logoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `logo-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".png", ".jpg", ".jpeg", ".webp"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Formato de imagen no soportado"));
+    }
+  },
+});
 
 /**
  * Crea un usuario de compañía a partir de un usuario de plataforma
@@ -789,6 +817,7 @@ export function registerPlatformRoutes(router: Router) {
         plan: plan || { name: "Plan desconocido", price: "0" },
         platform: {
           name: settingsMap["general.platformName"] || "GoWater",
+          billingCompanyName: settingsMap["general.billingCompanyName"] || "",
           email: settingsMap["general.supportEmail"] || "",
           phone: settingsMap["general.supportPhone"] || "",
           logo: settingsMap["general.logoUrl"] || "",
@@ -1459,6 +1488,9 @@ export function registerPlatformRoutes(router: Router) {
       // Transformar la lista de configuraciones a un objeto estructurado
       const generalSettings: any = {
         platformName: "GoWater",
+        billingCompanyName: "",
+        address: "",
+        rnc: "",
         supportEmail: "soporte@gowater.com",
         supportPhone: "",
         logoUrl: "",
@@ -1547,6 +1579,42 @@ export function registerPlatformRoutes(router: Router) {
     } catch (error: any) {
       console.error("Error al actualizar configuración general:", error);
       res.status(400).json({ message: error.message || "Error al actualizar configuración general" });
+    }
+  });
+
+  router.post("/settings/upload-logo", requirePlatformAdmin, logoUpload.single("logo"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No se recibió ningún archivo" });
+      }
+
+      const logoUrl = `/uploads/platform/${req.file.filename}`;
+
+      const existingConfig = await platformDb
+        .select()
+        .from(platformSettings)
+        .where(eq(platformSettings.key, "general.logoUrl"));
+
+      if (existingConfig.length > 0) {
+        const oldValue = existingConfig[0].value;
+        if (oldValue && oldValue.startsWith("/uploads/platform/")) {
+          const oldPath = path.join(process.cwd(), oldValue);
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        }
+        await platformDb
+          .update(platformSettings)
+          .set({ value: logoUrl, updatedAt: new Date() })
+          .where(eq(platformSettings.key, "general.logoUrl"));
+      } else {
+        await platformDb
+          .insert(platformSettings)
+          .values({ key: "general.logoUrl", value: logoUrl });
+      }
+
+      res.json({ success: true, logoUrl });
+    } catch (error: any) {
+      console.error("Error al subir logo:", error);
+      res.status(500).json({ message: error.message || "Error al subir logo" });
     }
   });
   

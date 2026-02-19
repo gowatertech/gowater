@@ -275,6 +275,9 @@ export const platformSettings = pgTable("platform_settings", {
 // Esquema para validación de configuración general
 export const platformGeneralSettingsSchema = z.object({
   platformName: z.string().min(2, "El nombre de la plataforma debe tener al menos 2 caracteres"),
+  billingCompanyName: z.string().optional(),
+  address: z.string().optional(),
+  rnc: z.string().optional(),
   supportEmail: z.string().email("Email inválido"),
   supportPhone: z.string().optional(),
   logoUrl: z.string().optional(),

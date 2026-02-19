@@ -396,6 +396,8 @@ app.use((req, res, next) => {
       log(`Static files will be served from: ${distPath}`);
     }
     
+    app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
     // Montamos los routers en sus respectivas rutas DESPUÉS de registrar las rutas
     app.use("/api/platform", platformApiRouter);
     app.use("/api/geo", geoDataApiRouter);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +7,7 @@ import { PlatformLayout } from "../_components/PlatformLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Upload } from "lucide-react";
+import { Loader2, Save, Upload, Settings, Mail, Image, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -19,13 +19,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { apiRequest } from "@/lib/queryClient";
 
-// Esquema de validación para la configuración general
 const generalSettingsSchema = z.object({
   platformName: z.string().min(2, "El nombre de la plataforma debe tener al menos 2 caracteres"),
+  billingCompanyName: z.string().optional(),
+  address: z.string().optional(),
+  rnc: z.string().optional(),
   supportEmail: z.string().email("Email inválido"),
   supportPhone: z.string().optional(),
   logoUrl: z.string().optional(),
@@ -33,7 +34,6 @@ const generalSettingsSchema = z.object({
   maintenanceMode: z.boolean().default(false),
 });
 
-// Esquema de validación para la configuración de correo
 const emailSettingsSchema = z.object({
   smtpServer: z.string().min(1, "El servidor SMTP es requerido"),
   smtpPort: z.string().min(1, "El puerto SMTP es requerido"),
@@ -43,7 +43,6 @@ const emailSettingsSchema = z.object({
   senderName: z.string().min(1, "El nombre del remitente es requerido"),
 });
 
-// Tipos derivados de los esquemas
 type GeneralSettingsFormData = z.infer<typeof generalSettingsSchema>;
 type EmailSettingsFormData = z.infer<typeof emailSettingsSchema>;
 
@@ -51,12 +50,17 @@ export default function PlatformSettings() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Formulario para configuración general
   const generalForm = useForm<GeneralSettingsFormData>({
     resolver: zodResolver(generalSettingsSchema),
     defaultValues: {
       platformName: "GoWater",
+      billingCompanyName: "",
+      address: "",
+      rnc: "",
       supportEmail: "soporte@gowater.com",
       supportPhone: "",
       logoUrl: "",
@@ -65,7 +69,6 @@ export default function PlatformSettings() {
     },
   });
 
-  // Formulario para configuración de correo
   const emailForm = useForm<EmailSettingsFormData>({
     resolver: zodResolver(emailSettingsSchema),
     defaultValues: {
@@ -78,49 +81,44 @@ export default function PlatformSettings() {
     },
   });
 
-  // Consulta para obtener la configuración actual
   const { isLoading: isLoadingSettings } = useQuery({
     queryKey: ["/api/platform/settings"],
-    queryFn: () => 
+    queryFn: () =>
       apiRequest({
         url: "/api/platform/settings",
-        method: "GET"
-      })
+        method: "GET",
+      }),
   });
-  
-  // Manejar cambios cuando se cargan los datos
+
   useEffect(() => {
     if (isLoadingSettings) return;
-    
-    // Intentar obtener datos del caché
     const data = queryClient.getQueryData(["/api/platform/settings"]) as any;
-    
     if (data) {
-      // Actualizar formulario general con los datos recibidos
       if (data?.generalSettings) {
         generalForm.reset(data.generalSettings);
+        if (data.generalSettings.logoUrl) {
+          setLogoPreview(data.generalSettings.logoUrl);
+        }
       }
-      
-      // Actualizar formulario de correo con los datos recibidos
       if (data?.emailSettings) {
         emailForm.reset(data.emailSettings);
       }
     }
   }, [isLoadingSettings, generalForm, emailForm]);
 
-  // Mutación para guardar la configuración general
   const saveGeneralSettingsMutation = useMutation({
-    mutationFn: (data: GeneralSettingsFormData) => 
+    mutationFn: (data: GeneralSettingsFormData) =>
       apiRequest({
         url: "/api/platform/settings/general",
         method: "PUT",
-        data
+        data,
       }),
     onSuccess: () => {
       toast({
         title: "Configuración guardada",
         description: "La configuración general ha sido actualizada correctamente.",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform/settings"] });
     },
     onError: () => {
       toast({
@@ -131,13 +129,12 @@ export default function PlatformSettings() {
     },
   });
 
-  // Mutación para guardar la configuración de correo
   const saveEmailSettingsMutation = useMutation({
-    mutationFn: (data: EmailSettingsFormData) => 
+    mutationFn: (data: EmailSettingsFormData) =>
       apiRequest({
         url: "/api/platform/settings/email",
         method: "PUT",
-        data
+        data,
       }),
     onSuccess: () => {
       toast({
@@ -154,44 +151,64 @@ export default function PlatformSettings() {
     },
   });
 
-  // Función para manejar el envío del formulario general
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const response = await fetch("/api/platform/settings/upload-logo", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Error al subir logo");
+      }
+
+      const result = await response.json();
+      setLogoPreview(result.logoUrl);
+      generalForm.setValue("logoUrl", result.logoUrl);
+      toast({
+        title: "Logo actualizado",
+        description: "El logo se ha subido correctamente.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/platform/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo subir el logo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const onSubmitGeneralSettings = (data: GeneralSettingsFormData) => {
     saveGeneralSettingsMutation.mutate(data);
   };
 
-  // Función para manejar el envío del formulario de correo
   const onSubmitEmailSettings = (data: EmailSettingsFormData) => {
     saveEmailSettingsMutation.mutate(data);
   };
 
-  // Mutación para enviar correo de prueba
   const sendTestEmailMutation = useMutation({
-    mutationFn: () => 
+    mutationFn: () =>
       apiRequest({
         url: "/api/platform/settings/test-email",
-        method: "POST"
+        method: "POST",
       }),
     onSuccess: () => {
-      toast({
-        title: "Correo enviado",
-        description: "El correo de prueba ha sido enviado correctamente.",
-      });
+      toast({ title: "Correo enviado", description: "El correo de prueba ha sido enviado." });
     },
     onError: () => {
-      toast({
-        title: "Error al enviar correo",
-        description: "No se pudo enviar el correo de prueba.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No se pudo enviar el correo de prueba.", variant: "destructive" });
     },
   });
 
-  // Función para enviar correo de prueba
-  const handleSendTestEmail = () => {
-    sendTestEmailMutation.mutate();
-  };
-
-  // Verificar si hay alguna mutación en progreso
   const isSubmittingGeneral = saveGeneralSettingsMutation.isPending;
   const isSubmittingEmail = saveEmailSettingsMutation.isPending;
   const isSendingTestEmail = sendTestEmailMutation.isPending;
@@ -199,11 +216,14 @@ export default function PlatformSettings() {
   return (
     <PlatformLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Configuración de la Plataforma</h1>
-          <p className="text-muted-foreground">
-            Configura los ajustes globales de la plataforma GoWater
-          </p>
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-6 text-white">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <Settings className="w-5 h-5" />
+            </div>
+            Configuración de la Plataforma
+          </h1>
+          <p className="text-blue-100 mt-1">Ajustes globales del sistema GoWater</p>
         </div>
 
         {isLoadingSettings ? (
@@ -215,92 +235,29 @@ export default function PlatformSettings() {
           <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="billing">Facturación</TabsTrigger>
               <TabsTrigger value="email">Correo Electrónico</TabsTrigger>
-              <TabsTrigger value="backup" disabled>
-                Respaldos
-              </TabsTrigger>
-              <TabsTrigger value="appearance" disabled>
-                Apariencia
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="general">
-              <Card>
+              <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
                   <CardTitle>Configuración General</CardTitle>
-                  <CardDescription>
-                    Configura los ajustes básicos de la plataforma GoWater
-                  </CardDescription>
+                  <CardDescription>Nombre del sistema, contacto y opciones generales</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...generalForm}>
-                    <form
-                      onSubmit={generalForm.handleSubmit(onSubmitGeneralSettings)}
-                      className="space-y-6"
-                    >
+                    <form onSubmit={generalForm.handleSubmit(onSubmitGeneralSettings)} className="space-y-6">
                       <FormField
                         control={generalForm.control}
                         name="platformName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nombre de la plataforma</FormLabel>
+                            <FormLabel>Nombre del sistema</FormLabel>
                             <FormControl>
                               <Input {...field} />
                             </FormControl>
-                            <FormDescription>
-                              Nombre que se mostrará en toda la plataforma y correos electrónicos
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={generalForm.control}
-                        name="supportEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email de soporte</FormLabel>
-                            <FormControl>
-                              <Input type="email" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Correo electrónico para recibir consultas de soporte
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={generalForm.control}
-                        name="supportPhone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teléfono de soporte</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Número telefónico para soporte (opcional)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={generalForm.control}
-                        name="logoUrl"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>URL del logo</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              URL pública de la imagen del logo (formato recomendado: SVG o PNG)
-                            </FormDescription>
+                            <FormDescription>Nombre que se mostrará en la plataforma (ej: GoWater)</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -309,22 +266,48 @@ export default function PlatformSettings() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={generalForm.control}
+                          name="supportEmail"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email de soporte</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} />
+                              </FormControl>
+                              <FormDescription>Correo para recibir consultas de soporte</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={generalForm.control}
+                          name="supportPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Teléfono de soporte</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormDescription>Número telefónico (opcional)</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={generalForm.control}
                           name="enableRegistration"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between p-4 border rounded-md">
+                            <FormItem className="flex flex-row items-center justify-between p-4 border rounded-xl">
                               <div className="space-y-0.5">
                                 <FormLabel>Habilitar registro público</FormLabel>
-                                <FormDescription>
-                                  Permitir que las empresas se registren directamente
-                                </FormDescription>
+                                <FormDescription>Permitir que empresas se registren</FormDescription>
                               </div>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
-                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -333,29 +316,21 @@ export default function PlatformSettings() {
                           control={generalForm.control}
                           name="maintenanceMode"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between p-4 border rounded-md">
+                            <FormItem className="flex flex-row items-center justify-between p-4 border rounded-xl">
                               <div className="space-y-0.5">
                                 <FormLabel>Modo de mantenimiento</FormLabel>
-                                <FormDescription>
-                                  Mostrar página de mantenimiento a todos los usuarios
-                                </FormDescription>
+                                <FormDescription>Mostrar página de mantenimiento</FormDescription>
                               </div>
                               <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
-                              <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
 
-                      <Button type="submit" disabled={isSubmittingGeneral}>
-                        {isSubmittingGeneral && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
+                      <Button type="submit" disabled={isSubmittingGeneral} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600">
+                        {isSubmittingGeneral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Guardar configuración
                       </Button>
                     </form>
@@ -364,20 +339,148 @@ export default function PlatformSettings() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="billing">
+              <div className="space-y-6">
+                <Card className="rounded-2xl shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Logo de la Empresa</CardTitle>
+                    <CardDescription>Imagen que aparecerá en las facturas y documentos</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-start gap-6">
+                      <div className="flex-shrink-0">
+                        {logoPreview ? (
+                          <div className="relative group">
+                            <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden bg-white flex items-center justify-center p-2">
+                              <img
+                                src={logoPreview}
+                                alt="Logo"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLogoPreview("");
+                                generalForm.setValue("logoUrl", "");
+                              }}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                            <Image className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLogoUpload(file);
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingLogo}
+                          className="rounded-xl"
+                        >
+                          {uploadingLogo ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                          )}
+                          {logoPreview ? "Cambiar logo" : "Subir logo"}
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          PNG, JPG o WebP. Máximo 5MB.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl shadow-sm">
+                  <CardHeader>
+                    <CardTitle>Datos de Facturación</CardTitle>
+                    <CardDescription>Información que aparecerá en las facturas generadas</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Form {...generalForm}>
+                      <form onSubmit={generalForm.handleSubmit(onSubmitGeneralSettings)} className="space-y-6">
+                        <FormField
+                          control={generalForm.control}
+                          name="billingCompanyName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nombre de empresa (facturación)</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Ej: GoWater Technologies SRL" />
+                              </FormControl>
+                              <FormDescription>Razón social que aparecerá en las facturas</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={generalForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Dirección</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Ej: Calle Principal #123, Santo Domingo, RD" />
+                              </FormControl>
+                              <FormDescription>Dirección fiscal que aparecerá en las facturas</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={generalForm.control}
+                          name="rnc"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>RNC</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Ej: 131-12345-6" />
+                              </FormControl>
+                              <FormDescription>Registro Nacional de Contribuyente</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Button type="submit" disabled={isSubmittingGeneral} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600">
+                          {isSubmittingGeneral ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                          Guardar datos de facturación
+                        </Button>
+                      </form>
+                    </Form>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
             <TabsContent value="email">
-              <Card>
+              <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
                   <CardTitle>Configuración de Correo Electrónico</CardTitle>
-                  <CardDescription>
-                    Configura el servidor SMTP para envío de correos desde la plataforma
-                  </CardDescription>
+                  <CardDescription>Servidor SMTP para envío de correos desde la plataforma</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...emailForm}>
-                    <form
-                      onSubmit={emailForm.handleSubmit(onSubmitEmailSettings)}
-                      className="space-y-6"
-                    >
+                    <form onSubmit={emailForm.handleSubmit(onSubmitEmailSettings)} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={emailForm.control}
@@ -388,14 +491,10 @@ export default function PlatformSettings() {
                               <FormControl>
                                 <Input {...field} placeholder="smtp.example.com" />
                               </FormControl>
-                              <FormDescription>
-                                Dirección del servidor SMTP
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
                         <FormField
                           control={emailForm.control}
                           name="smtpPort"
@@ -405,9 +504,6 @@ export default function PlatformSettings() {
                               <FormControl>
                                 <Input {...field} placeholder="587" />
                               </FormControl>
-                              <FormDescription>
-                                Puerto para la conexión SMTP (normalmente 587 o 465)
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -424,14 +520,10 @@ export default function PlatformSettings() {
                               <FormControl>
                                 <Input {...field} placeholder="usuario@example.com" />
                               </FormControl>
-                              <FormDescription>
-                                Nombre de usuario para autenticación SMTP
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
                         <FormField
                           control={emailForm.control}
                           name="smtpPassword"
@@ -439,15 +531,8 @@ export default function PlatformSettings() {
                             <FormItem>
                               <FormLabel>Contraseña SMTP</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="password"
-                                  {...field}
-                                  placeholder="••••••••"
-                                />
+                                <Input type="password" {...field} placeholder="••••••••" />
                               </FormControl>
-                              <FormDescription>
-                                Contraseña para autenticación SMTP (dejar en blanco para no cambiar)
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -462,20 +547,12 @@ export default function PlatformSettings() {
                             <FormItem>
                               <FormLabel>Email del remitente</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="email"
-                                  {...field}
-                                  placeholder="no-reply@example.com"
-                                />
+                                <Input type="email" {...field} placeholder="no-reply@example.com" />
                               </FormControl>
-                              <FormDescription>
-                                Dirección de correo que aparecerá como remitente
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-
                         <FormField
                           control={emailForm.control}
                           name="senderName"
@@ -485,9 +562,6 @@ export default function PlatformSettings() {
                               <FormControl>
                                 <Input {...field} placeholder="GoWater" />
                               </FormControl>
-                              <FormDescription>
-                                Nombre que aparecerá como remitente de los correos
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -495,60 +569,27 @@ export default function PlatformSettings() {
                       </div>
 
                       <div className="flex space-x-2">
-                        <Button type="submit" disabled={isSubmittingEmail}>
-                          {isSubmittingEmail && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
+                        <Button type="submit" disabled={isSubmittingEmail} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600">
+                          {isSubmittingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                           Guardar configuración
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={handleSendTestEmail}
+                          onClick={() => sendTestEmailMutation.mutate()}
                           disabled={isSendingTestEmail}
+                          className="rounded-xl"
                         >
                           {isSendingTestEmail ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
-                            <Upload className="mr-2 h-4 w-4" />
+                            <Mail className="mr-2 h-4 w-4" />
                           )}
                           Enviar correo de prueba
                         </Button>
                       </div>
                     </form>
                   </Form>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="backup">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Respaldos</CardTitle>
-                  <CardDescription>
-                    Configura y administra los respaldos de la plataforma
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-center py-12">
-                    Funcionalidad en desarrollo
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="appearance">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Apariencia</CardTitle>
-                  <CardDescription>
-                    Personaliza la apariencia de la plataforma
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-center py-12">
-                    Funcionalidad en desarrollo
-                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
