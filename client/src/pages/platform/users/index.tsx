@@ -36,6 +36,7 @@ import {
   RefreshCw, 
   Search,
   User,
+  Users,
   ShieldCheck,
   Building2,
   Loader2,
@@ -267,20 +268,26 @@ export default function UsersPage() {
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Gestión de Usuarios</h1>
-            <p className="text-sm text-muted-foreground">
-              Administra los usuarios de la plataforma y sus permisos
-            </p>
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Users className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                Gestión de Usuarios
+              </h1>
+              <p className="text-blue-100 mt-1 text-sm">Administra los usuarios de la plataforma y sus permisos</p>
+            </div>
+            <Button 
+              size="sm"
+              onClick={() => setLocation("/platform/users/new")}
+              className="bg-white text-blue-700 hover:bg-blue-50 border-0"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" /> 
+              {isMobile ? "Nuevo" : "Nuevo Usuario"}
+            </Button>
           </div>
-          <Button 
-            size={isMobile ? "sm" : "default"}
-            onClick={() => setLocation("/platform/users/new")}
-          >
-            <PlusIcon className="mr-2 h-4 w-4" /> 
-            {isMobile ? "Nuevo" : "Nuevo Usuario"}
-          </Button>
         </div>
 
         <Card>

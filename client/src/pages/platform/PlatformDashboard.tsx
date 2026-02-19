@@ -119,23 +119,27 @@ export default function PlatformDashboard() {
   return (
     <PlatformLayout>
       <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight" data-testid="text-dashboard-title">Panel de Administración</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Métricas en tiempo real de la plataforma GoWater
-            </p>
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 rounded-2xl p-4 sm:p-6 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2" data-testid="text-dashboard-title">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                Panel de Administración
+              </h1>
+              <p className="text-blue-100 mt-1 text-sm">Métricas en tiempo real de la plataforma GoWater</p>
+            </div>
+            <Button 
+              size="sm" 
+              onClick={() => dashboardQuery.refetch()}
+              className="bg-white text-blue-700 hover:bg-blue-50 border-0"
+              data-testid="button-refresh-dashboard"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => dashboardQuery.refetch()}
-            className="mt-2 md:mt-0"
-            data-testid="button-refresh-dashboard"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
         </div>
 
         <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
