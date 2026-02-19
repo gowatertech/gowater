@@ -680,16 +680,16 @@ export function registerPlatformRoutes(router: Router) {
       const allPlans = await platformDb.select().from(plans);
       const plansMap = new Map(allPlans.map(p => [p.id, p]));
 
-      const startOfMonth = new Date(year, month - 1, 1);
-      const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+      const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
 
       const existingInvoices = await platformDb
         .select()
         .from(membershipInvoices)
         .where(
           and(
-            sql`${membershipInvoices.invoiceDate} >= ${startOfMonth}`,
-            sql`${membershipInvoices.invoiceDate} <= ${endOfMonth}`
+            sql`${membershipInvoices.invoiceDate} >= ${startOfMonth}::date`,
+            sql`${membershipInvoices.invoiceDate} <= ${endOfMonth}::date`
           )
         );
 
@@ -711,7 +711,7 @@ export function registerPlatformRoutes(router: Router) {
         });
       }
 
-      const dueDate = new Date(year, month - 1, 6);
+      const dueDateStr = `${year}-${String(month).padStart(2, '0')}-06`;
 
       const createdInvoices = [];
       for (const company of toGenerate) {
@@ -728,7 +728,7 @@ export function registerPlatformRoutes(router: Router) {
             amount: amount.toFixed(2),
             status: "pending",
             invoiceDate: startOfMonth,
-            dueDate: dueDate,
+            dueDate: dueDateStr,
             notes: `Membresía ${plan.name} - ${monthName} ${year}`,
           })
           .returning();
