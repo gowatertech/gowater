@@ -697,20 +697,21 @@ export function registerPlatformRoutes(router: Router) {
 
       const toGenerate = allCompanies.filter(c => !invoicedCompanyIds.has(c.id));
 
+      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      const monthName = monthNames[month - 1];
+
       if (toGenerate.length === 0) {
         return res.json({
-          message: "Todas las empresas ya tienen factura para este período",
+          message: `El ciclo de facturación de ${monthName} ${year} ya fue generado`,
           generated: 0,
+          alreadyGenerated: true,
           skipped: allCompanies.length,
           invoices: [],
         });
       }
 
-      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-      const monthName = monthNames[month - 1];
-
-      const dueDate = new Date(year, month, 0);
+      const dueDate = new Date(year, month - 1, 6);
 
       const createdInvoices = [];
       for (const company of toGenerate) {
@@ -739,11 +740,15 @@ export function registerPlatformRoutes(router: Router) {
         });
       }
 
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const nextYear = month === 12 ? year + 1 : year;
+
       res.json({
         message: `Se generaron ${createdInvoices.length} facturas para ${monthName} ${year}`,
         generated: createdInvoices.length,
         skipped: invoicedCompanyIds.size,
         invoices: createdInvoices,
+        nextBillingPeriod: { month: nextMonth, year: nextYear },
       });
     } catch (error: any) {
       console.error("Error al generar ciclo de facturación:", error);

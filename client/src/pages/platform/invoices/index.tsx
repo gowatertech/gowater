@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -64,8 +64,8 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [invoiceToDelete, setInvoiceToDelete] = useState<MembershipInvoice | null>(null);
   const [showGenerateDialog, setShowGenerateDialog] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
   const [generatingPdf, setGeneratingPdf] = useState<number | null>(null);
 
   const { data: invoicesRes, isLoading, refetch } = useQuery({
@@ -79,6 +79,43 @@ export default function InvoicesPage() {
   });
 
   const stats: InvoiceStats | null = statsRes as InvoiceStats | null;
+
+  const nextBillingPeriod = useMemo(() => {
+    const invoices = invoicesRes?.data || [];
+    if (invoices.length === 0) {
+      const now = new Date();
+      return { month: now.getMonth() + 1, year: now.getFullYear() };
+    }
+    let latestMonth = 0;
+    let latestYear = 0;
+    for (const inv of invoices) {
+      const d = new Date(inv.invoiceDate);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      if (y > latestYear || (y === latestYear && m > latestMonth)) {
+        latestMonth = m;
+        latestYear = y;
+      }
+    }
+    if (latestMonth === 12) {
+      return { month: 1, year: latestYear + 1 };
+    }
+    return { month: latestMonth + 1, year: latestYear };
+  }, [invoicesRes]);
+
+  useEffect(() => {
+    if (selectedMonth === "" || selectedYear === "") {
+      setSelectedMonth(nextBillingPeriod.month.toString());
+      setSelectedYear(nextBillingPeriod.year.toString());
+    }
+  }, [nextBillingPeriod]);
+
+  useEffect(() => {
+    if (showGenerateDialog) {
+      setSelectedMonth(nextBillingPeriod.month.toString());
+      setSelectedYear(nextBillingPeriod.year.toString());
+    }
+  }, [showGenerateDialog, nextBillingPeriod]);
 
   const deleteInvoiceMutation = useMutation({
     mutationFn: (id: number) => apiRequest({ url: `/api/platform/membership-invoices/${id}`, method: "DELETE" }),
@@ -114,11 +151,23 @@ export default function InvoicesPage() {
     mutationFn: (data: { year: number; month: number }) =>
       apiRequest({ url: "/api/platform/membership-invoices/generate-cycle", method: "POST", data }),
     onSuccess: (data: any) => {
-      toast({
-        title: "Ciclo generado",
-        description: data.message || `Se generaron ${data.generated} facturas`,
-      });
       setShowGenerateDialog(false);
+      if (data.alreadyGenerated) {
+        toast({
+          title: "Ciclo ya generado",
+          description: data.message,
+          duration: 5000,
+        });
+      } else {
+        toast({
+          title: "Ciclo generado",
+          description: data.message || `Se generaron ${data.generated} facturas`,
+        });
+        if (data.nextBillingPeriod) {
+          setSelectedMonth(data.nextBillingPeriod.month.toString());
+          setSelectedYear(data.nextBillingPeriod.year.toString());
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/platform/membership-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/platform/membership-invoices/stats"] });
     },
@@ -685,7 +734,7 @@ export default function InvoicesPage() {
             </div>
           </div>
           <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
-            Se facturará el período de <strong>{monthNames[parseInt(selectedMonth) - 1]} {selectedYear}</strong> con vencimiento al final del mes.
+            Se facturará el período de <strong>{monthNames[parseInt(selectedMonth || "1") - 1]} {selectedYear}</strong> con fecha 01 y vencimiento el 06 del mismo mes.
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowGenerateDialog(false)} className="rounded-xl">
