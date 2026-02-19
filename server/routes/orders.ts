@@ -1042,37 +1042,92 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
       });
     }
     
-    // Verificar que la orden existe y pertenece a la compañía
-    const orderCheckQuery = `
-      SELECT id, status FROM orders 
-      WHERE id = $1 AND company_id = $2
-    `;
+    // Usar transacción para garantizar atomicidad de status + stock + factura
+    const client = await pool.connect();
+    let updatedOrder: any;
+    let currentStatus: string;
     
-    const orderCheck = await pool.query(orderCheckQuery, [orderId, companyId]);
-    
-    if (orderCheck.rows.length === 0) {
-      return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
-    }
-    
-    const currentStatus = orderCheck.rows[0].status;
-    console.log(`📝 Estado actual: ${currentStatus}, Nuevo estado: ${status}`);
-    
-    // Actualizar el estado
-    const updateQuery = `
-      UPDATE orders 
-      SET status = $1 
-      WHERE id = $2 AND company_id = $3
-      RETURNING *
-    `;
-    
-    const result = await pool.query(updateQuery, [status, orderId, companyId]);
-    
-    if (result.rows.length === 0) {
-      return res.status(500).json({ error: "Error al actualizar el estado" });
-    }
-    
-    const updatedOrder = result.rows[0];
-    console.log(`✅ Estado actualizado exitosamente para orden ${orderId}`);
+    try {
+      await client.query('BEGIN');
+      
+      // Bloquear y leer el pedido para obtener estado actual
+      const orderCheckQuery = `
+        SELECT * FROM orders 
+        WHERE id = $1 AND company_id = $2
+        FOR UPDATE
+      `;
+      const orderCheck = await client.query(orderCheckQuery, [orderId, companyId]);
+      
+      if (orderCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        client.release();
+        return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
+      }
+      
+      currentStatus = orderCheck.rows[0].status;
+      console.log(`📝 Estado actual: ${currentStatus}, Nuevo estado: ${status}`);
+      
+      // Si ya está en el mismo estado, no hacer nada
+      if (currentStatus === status) {
+        await client.query('COMMIT');
+        client.release();
+        const order = orderCheck.rows[0];
+        return res.json({
+          id: order.id,
+          customerId: order.customer_id,
+          total: order.total,
+          status: order.status,
+          paymentMethod: order.payment_method,
+          date: order.date,
+          routeId: order.route_id,
+          notes: order.notes,
+          companyId: order.company_id
+        });
+      }
+      
+      // Actualizar el estado
+      const updateQuery = `
+        UPDATE orders 
+        SET status = $1 
+        WHERE id = $2 AND company_id = $3
+        RETURNING *
+      `;
+      const result = await client.query(updateQuery, [status, orderId, companyId]);
+      updatedOrder = result.rows[0];
+      console.log(`✅ Estado actualizado exitosamente para orden ${orderId}`);
+      
+      // ====== GESTIÓN DE STOCK ======
+      if (status === "delivered" && currentStatus !== "delivered") {
+        const stockItemsQuery = `
+          SELECT oi.product_id, oi.quantity 
+          FROM order_items oi 
+          WHERE oi.order_id = $1 AND oi.company_id = $2
+        `;
+        const stockItems = await client.query(stockItemsQuery, [orderId, companyId]);
+        
+        for (const item of stockItems.rows) {
+          await client.query(
+            `UPDATE products SET stock = GREATEST(stock - $1, 0) WHERE id = $2 AND company_id = $3`,
+            [item.quantity, item.product_id, companyId]
+          );
+        }
+        console.log(`📦 Stock descontado para ${stockItems.rows.length} productos del pedido #${orderId}`);
+      } else if (currentStatus === "delivered" && status !== "delivered") {
+        const stockItemsQuery = `
+          SELECT oi.product_id, oi.quantity 
+          FROM order_items oi 
+          WHERE oi.order_id = $1 AND oi.company_id = $2
+        `;
+        const stockItems = await client.query(stockItemsQuery, [orderId, companyId]);
+        
+        for (const item of stockItems.rows) {
+          await client.query(
+            `UPDATE products SET stock = stock + $1 WHERE id = $2 AND company_id = $3`,
+            [item.quantity, item.product_id, companyId]
+          );
+        }
+        console.log(`📦 Stock restaurado para ${stockItems.rows.length} productos del pedido #${orderId} (revertido de delivered a ${status})`);
+      }
     
     // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
     // EXCEPTO si es una donación O si ya tiene factura prepagada
@@ -1091,7 +1146,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           SELECT tax FROM company_settings 
           WHERE company_id = $1
         `;
-        const settingsResult = await pool.query(settingsQuery, [companyId]);
+        const settingsResult = await client.query(settingsQuery, [companyId]);
         const taxRate = settingsResult.rows[0]?.tax ? parseFloat(settingsResult.rows[0].tax) / 100 : 0;
         
         console.log(`📊 Tasa de impuesto de la compañía: ${taxRate * 100}%`);
@@ -1101,7 +1156,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           SELECT * FROM order_items 
           WHERE order_id = $1 AND company_id = $2
         `;
-        const orderItemsResult = await pool.query(orderItemsQuery, [orderId, companyId]);
+        const orderItemsResult = await client.query(orderItemsQuery, [orderId, companyId]);
         
         // Calcular subtotal (suma de todos los items)
         const subtotal = orderItemsResult.rows.reduce((sum, item) => {
@@ -1122,7 +1177,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           FROM invoices 
           WHERE company_id = $1
         `;
-        const maxInvoiceResult = await pool.query(maxInvoiceQuery, [companyId]);
+        const maxInvoiceResult = await client.query(maxInvoiceQuery, [companyId]);
         const nextInvoiceNumber = maxInvoiceResult.rows[0].max_invoice_number + 1;
         
         // Determinar el status inicial basado en el método de pago
@@ -1141,7 +1196,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
           RETURNING *
         `;
         
-        const invoiceResult = await pool.query(createInvoiceQuery, [
+        const invoiceResult = await client.query(createInvoiceQuery, [
           companyId,
           updatedOrder.customer_id,
           subtotal.toFixed(2),
@@ -1166,7 +1221,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
             VALUES ($1, $2, $3, $4, $5, $6)
           `;
           
-          await pool.query(createInvoiceItemQuery, [
+          await client.query(createInvoiceItemQuery, [
             companyId,
             invoice.id,
             item.product_id,
@@ -1217,7 +1272,7 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
               paymentNotes
             ]);
             
-            const paymentResult = await pool.query(createPaymentQuery, [
+            const paymentResult = await client.query(createPaymentQuery, [
               companyId,
               invoice.id,
               updatedOrder.customer_id,
@@ -1243,6 +1298,17 @@ ordersRouter.patch("/api/orders/:orderId/status", authMiddleware, async (req: Re
         // Solo registrar el error
       }
       }
+    }
+    
+      await client.query('COMMIT');
+      console.log('✅ Transacción completada exitosamente');
+      
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      console.error('❌ Error en transacción, ejecutando ROLLBACK:', txError);
+      throw txError;
+    } finally {
+      client.release();
     }
     
     // Convertir nombres de propiedades de snake_case a camelCase

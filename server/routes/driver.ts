@@ -473,6 +473,22 @@ export async function registerDriverRoutes(app: Express) {
         
         console.log(`✅ Pedido actualizado a delivered`);
         
+        // ====== DESCONTAR STOCK ======
+        const stockItemsQuery = `
+          SELECT oi.product_id, oi.quantity 
+          FROM order_items oi 
+          WHERE oi.order_id = $1 AND oi.company_id = $2
+        `;
+        const stockItems = await client.query(stockItemsQuery, [orderId, companyId]);
+        
+        for (const item of stockItems.rows) {
+          await client.query(
+            `UPDATE products SET stock = GREATEST(stock - $1, 0) WHERE id = $2 AND company_id = $3`,
+            [item.quantity, item.product_id, companyId]
+          );
+        }
+        console.log(`📦 Stock descontado para ${stockItems.rows.length} productos del pedido #${orderId}`);
+        
         // Actualizar devolución de envases si se proporciona
         const returnedContainers = req.body.returnedContainers;
         if (returnedContainers !== undefined) {

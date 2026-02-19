@@ -146,6 +146,46 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         
         console.log(`✅ Pedido actualizado - Status anterior: ${previousStatus}, Nuevo: ${updatedOrder.status}`);
         
+        // ====== GESTIÓN DE STOCK ======
+        // Descontar stock al entregar, restaurar al cancelar un entregado
+        if (status === "delivered" && previousStatus !== "delivered") {
+          // Obtener items del pedido para descontar stock
+          const stockItemsQuery = `
+            SELECT oi.product_id, oi.quantity 
+            FROM order_items oi 
+            WHERE oi.order_id = $1 AND oi.company_id = $2
+          `;
+          const stockItems = await client.query(stockItemsQuery, [orderIdNum, companyId]);
+          
+          for (const item of stockItems.rows) {
+            const updateStockQuery = `
+              UPDATE products 
+              SET stock = GREATEST(stock - $1, 0)
+              WHERE id = $2 AND company_id = $3
+            `;
+            await client.query(updateStockQuery, [item.quantity, item.product_id, companyId]);
+          }
+          console.log(`📦 Stock descontado para ${stockItems.rows.length} productos del pedido #${orderIdNum}`);
+        } else if (previousStatus === "delivered" && status !== "delivered") {
+          // Restaurar stock si se revierte un pedido entregado
+          const stockItemsQuery = `
+            SELECT oi.product_id, oi.quantity 
+            FROM order_items oi 
+            WHERE oi.order_id = $1 AND oi.company_id = $2
+          `;
+          const stockItems = await client.query(stockItemsQuery, [orderIdNum, companyId]);
+          
+          for (const item of stockItems.rows) {
+            const restoreStockQuery = `
+              UPDATE products 
+              SET stock = stock + $1
+              WHERE id = $2 AND company_id = $3
+            `;
+            await client.query(restoreStockQuery, [item.quantity, item.product_id, companyId]);
+          }
+          console.log(`📦 Stock restaurado para ${stockItems.rows.length} productos del pedido #${orderIdNum} (revertido de delivered a ${status})`);
+        }
+        
         // Si el pedido cambió a "delivered" y antes no lo estaba, crear factura automáticamente
         // EXCEPTO si es una donación (payment_method = 'donation') O si ya tiene factura prepagada (invoice_id)
         if (status === "delivered" && previousStatus !== "delivered") {
