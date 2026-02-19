@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,11 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Droplets, KeyRound, Loader2, Mail, MapPin, Package, Smartphone, TrendingUp, Users } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/auth-context";
 
-// Esquema de validación para el formulario
 const loginSchema = z.object({
   email: z.string().email("Correo electrónico inválido").min(1, "El correo electrónico es requerido"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres")
@@ -29,9 +26,9 @@ type LoginData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [_, navigate] = useLocation();
-  const { toast } = useToast();
-  
-  // Inicializar el formulario con react-hook-form
+  const { login, isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -40,70 +37,31 @@ export default function LoginPage() {
     }
   });
 
-  // Manejar la autenticación
-  const loginMutation = useMutation({
-    mutationFn: (data: LoginData) =>
-      apiRequest({
-        url: "/api/login",
-        method: "POST",
-        data,
-      }),
-    onSuccess: async (data: any) => {
-      const userRole = data?.user?.role;
-      if (userRole === "driver" || userRole === "assistant") {
-        try {
-          await fetch("/api/logout", { method: "POST", credentials: "include" });
-        } catch (e) {}
-        toast({
-          title: "Acceso no autorizado",
-          description: "Tu cuenta de conductor no tiene acceso al panel de control. Usa la aplicación móvil para acceder.",
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: "Bienvenido al panel de control"
-      });
-      navigate("/dashboard", { replace: true });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error al iniciar sesión",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Función que se ejecuta al enviar el formulario
-  const onSubmit = (data: LoginData) => {
-    loginMutation.mutate(data);
-  };
-  
-  // Efecto para verificar autenticación solamente
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/user');
-        if (response.ok) {
-          const userData = await response.json();
-          const role = userData?.user?.role;
-          if (role === "driver" || role === "assistant") {
-            try {
-              await fetch("/api/logout", { method: "POST", credentials: "include" });
-            } catch (e) {}
-            return;
-          }
-          navigate('/dashboard', { replace: true });
-        }
-      } catch (error) {
-        console.error('Error verificando autenticación:', error);
+    if (!authLoading && isAuthenticated && user) {
+      const role = user.role;
+      if (role !== "driver" && role !== "assistant") {
+        navigate("/dashboard", { replace: true });
       }
-    };
-    
-    checkAuth();
-  }, [navigate]);
+    }
+  }, [authLoading, isAuthenticated, user, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      </div>
+    );
+  }
+
+  const onSubmit = async (data: LoginData) => {
+    setIsSubmitting(true);
+    try {
+      await login(data.email, data.password);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row relative">
@@ -181,9 +139,9 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   className="w-full h-12 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all duration-200" 
-                  disabled={loginMutation.isPending}
+                  disabled={isSubmitting}
                 >
-                  {loginMutation.isPending ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Iniciando sesión...

@@ -109,14 +109,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || 'Error al iniciar sesión');
       }
       
-      // Actualizar estado con los datos del usuario
+      const userRole = (data.user.role || 'admin') as UserRole;
+      
+      if (userRole === "driver" || userRole === "assistant") {
+        try {
+          await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+        } catch (e) {}
+        toast({
+          title: "Acceso no autorizado",
+          description: "Tu cuenta de conductor no tiene acceso al panel de control. Usa la aplicación móvil para acceder.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       setUser(data.user);
       setCompanyId(data.user.companyId);
       
-      // Verificar estado de la empresa
       const status = await checkCompanyStatus();
       
-      // Si la empresa está suspendida, mostrar mensaje
       if (status?.suspended) {
         toast({
           title: "Cuenta Suspendida",
@@ -127,13 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       
-      // Mostrar notificación de éxito
       toast({
         title: "Sesión iniciada",
         description: `Bienvenido/a, ${data.user.name}`,
       });
       
-      const redirectPath = getDefaultRedirect((data.user.role || 'admin') as UserRole);
+      const redirectPath = getDefaultRedirect(userRole);
       setLocation(redirectPath);
     } catch (err) {
       console.error('Error de autenticación:', err);
