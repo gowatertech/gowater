@@ -32,11 +32,11 @@ export default function OperationsReports() {
   const { data: orderStatusData = [], isLoading: isLoadingOrderStatus } = useQuery({
     queryKey: ["/api/stats/order-status"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/stats/order-status");
-      if (!response.ok) {
-        throw new Error("Error al cargar estado de pedidos");
-      }
-      return response.json();
+      const response = await apiRequest({
+        url: "/api/stats/order-status",
+        method: "GET",
+      });
+      return response;
     },
   });
 

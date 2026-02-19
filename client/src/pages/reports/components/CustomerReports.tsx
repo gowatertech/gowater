@@ -29,11 +29,11 @@ export default function CustomerReports() {
   const { data: topCustomers = [], isLoading: isLoadingTopCustomers } = useQuery({
     queryKey: ["/api/stats/top-customers"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/stats/top-customers");
-      if (!response.ok) {
-        throw new Error("Error al cargar top clientes");
-      }
-      return response.json();
+      const response = await apiRequest({
+        url: "/api/stats/top-customers",
+        method: "GET",
+      });
+      return response;
     },
   });
 

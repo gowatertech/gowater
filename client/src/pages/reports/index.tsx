@@ -9,7 +9,7 @@ import CustomerReports from "./components/CustomerReports";
 
 export default function Reports() {
   const { t } = useTranslation();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const currentPath = location.split("/").pop() || "sales";
 
   const reportCategories = [
@@ -67,7 +67,7 @@ export default function Reports() {
                   ? "border-primary/50 shadow-md"
                   : "hover:border-primary/30"
               }`}
-              onClick={() => window.location.href = `/reports/${category.id}`}
+              onClick={() => setLocation(`/reports/${category.id}`)}
             >
               <div className="flex items-start gap-1">
                 <div

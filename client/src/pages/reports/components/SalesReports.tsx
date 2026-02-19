@@ -32,16 +32,11 @@ export default function SalesReports() {
   const { data: salesData = [], isLoading: isLoadingSales } = useQuery({
     queryKey: ["/api/reports/sales", timeRange],
     queryFn: async () => {
-      const response = await apiRequest(
-        "GET",
-        `/api/reports/sales?range=${timeRange}`
-      );
-      if (!response.ok) {
-        throw new Error("Error al cargar datos de ventas");
-      }
-      const data = await response.json();
-      console.log("Datos de ventas recibidos:", data);
-      return data;
+      const response = await apiRequest({
+        url: `/api/reports/sales?range=${timeRange}`,
+        method: "GET",
+      });
+      return response;
     },
   });
 
@@ -49,16 +44,11 @@ export default function SalesReports() {
   const { data: paymentsData = [], isLoading: isLoadingPayments } = useQuery({
     queryKey: ["/api/reports/payments", timeRange],
     queryFn: async () => {
-      const response = await apiRequest(
-        "GET",
-        `/api/reports/payments?range=${timeRange}`
-      );
-      if (!response.ok) {
-        throw new Error("Error al cargar datos de pagos");
-      }
-      const data = await response.json();
-      console.log("Datos de pagos recibidos:", data);
-      return data;
+      const response = await apiRequest({
+        url: `/api/reports/payments?range=${timeRange}`,
+        method: "GET",
+      });
+      return response;
     },
   });
 
