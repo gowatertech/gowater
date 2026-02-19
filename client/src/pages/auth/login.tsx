@@ -48,12 +48,23 @@ export default function LoginPage() {
         method: "POST",
         data,
       }),
-    onSuccess: () => {
+    onSuccess: async (data: any) => {
+      const userRole = data?.user?.role;
+      if (userRole === "driver" || userRole === "assistant") {
+        try {
+          await fetch("/api/logout", { method: "POST", credentials: "include" });
+        } catch (e) {}
+        toast({
+          title: "Acceso no autorizado",
+          description: "Tu cuenta de conductor no tiene acceso al panel de control. Usa la aplicación móvil para acceder.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Inicio de sesión exitoso",
         description: "Bienvenido al panel de control"
       });
-      // Usar replace: true para que no se pueda volver atrás al login
       navigate("/dashboard", { replace: true });
     },
     onError: (error: Error) => {
@@ -72,12 +83,18 @@ export default function LoginPage() {
   
   // Efecto para verificar autenticación solamente
   useEffect(() => {
-    // Verificar si hay un usuario ya autenticado
     const checkAuth = async () => {
       try {
         const response = await fetch('/api/user');
         if (response.ok) {
-          // Usuario ya autenticado, redirigir al dashboard
+          const userData = await response.json();
+          const role = userData?.user?.role;
+          if (role === "driver" || role === "assistant") {
+            try {
+              await fetch("/api/logout", { method: "POST", credentials: "include" });
+            } catch (e) {}
+            return;
+          }
           navigate('/dashboard', { replace: true });
         }
       } catch (error) {

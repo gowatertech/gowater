@@ -62,7 +62,7 @@ export function setupAuth(app: Express) {
       
       // Establecer en el contexto para las consultas a la base de datos
       setCurrentCompanyId((req.user as any).companyId);
-      console.log(`Sesión activa - CompanyId: ${(req.user as any).companyId}`);
+      // Session active with companyId
     } else if (req.session && req.session.companyId) {
       // Si no hay usuario pero sí hay companyId en sesión, usarlo (durante transición de página por ejemplo)
       setCurrentCompanyId(req.session.companyId);
