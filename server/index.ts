@@ -402,6 +402,14 @@ app.use((req, res, next) => {
     app.use("/api/platform", platformApiRouter);
     app.use("/api/geo", geoDataApiRouter);
     
+    // Montar las rutas públicas para registro de empresas interesadas (ANTES de companyApiRouter)
+    app.use("/api/leads", leadsRoutes);
+    log("Lead registration routes registered successfully");
+    
+    // Montar las rutas para gestionar empresas interesadas (ANTES de companyApiRouter para evitar 401)
+    app.use("/api", interestedCompaniesRoutes);
+    log("Interested companies routes registered successfully");
+    
     // IMPORTANTE: Montar ordersRouter ANTES de companyApiRouter para que tenga prioridad
     // en rutas como /api/orders/... ya que ambos responden a paths que comienzan con /api
     app.use(consolidatedCompanyMiddleware, ordersRouter);
@@ -409,14 +417,6 @@ app.use((req, res, next) => {
     
     app.use("/api", companyApiRouter);
     log("All routers mounted successfully");
-    
-    // Montar las rutas públicas para registro de empresas interesadas
-    app.use("/api/leads", leadsRoutes);
-    log("Lead registration routes registered successfully");
-    
-    // Montar las rutas para gestionar empresas interesadas
-    app.use("/api", interestedCompaniesRoutes);
-    log("Interested companies routes registered successfully");
     
     // Registrar rutas de prueba (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
