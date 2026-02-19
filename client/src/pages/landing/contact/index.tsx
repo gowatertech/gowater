@@ -130,8 +130,7 @@ export default function ContactPage() {
                         />
                         <h3 className="font-medium">Estados Unidos</h3>
                       </div>
-                      <p className="text-xl font-medium text-primary">+1919-343-6706</p>
-                      <p className="text-xl font-medium text-primary mt-1">+1984-260-7447</p>
+                      <p className="text-xl font-medium text-primary">+1984-260-7447</p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         Horario: Lunes a Viernes 9am - 5pm
                       </p>
