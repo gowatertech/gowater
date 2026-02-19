@@ -784,14 +784,21 @@ export class PlatformStorage implements IPlatformStorage {
       FROM companies
     `, [startOfMonth]);
     
-    // Calcular ingresos
+    // Calcular ingresos desde facturas y pagos reales
     const revenueCounts = await platformPool.query(`
       SELECT 
-        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as total_revenue,
-        COUNT(*) FILTER (WHERE status = 'pending') as pending_invoices,
-        COUNT(*) FILTER (WHERE status = 'overdue') as overdue_invoices,
-        COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) as overdue_amount
+        COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as paid_invoices_amount,
+        COUNT(*) FILTER (WHERE status IN ('pending', 'partial') AND due_date >= NOW()) as pending_invoices,
+        COUNT(*) FILTER (WHERE status IN ('pending', 'partial') AND due_date < NOW()) as overdue_invoices,
+        COALESCE(SUM(CASE WHEN status IN ('pending', 'partial') AND due_date < NOW() THEN amount ELSE 0 END), 0) as overdue_amount
       FROM membership_invoices
+    `);
+
+    // Ingresos totales reales desde pagos confirmados
+    const paymentsResult = await platformPool.query(`
+      SELECT COALESCE(SUM(amount), 0) as total_payments
+      FROM platform_payments
+      WHERE status = 'confirmed'
     `);
     
     // Calcular MRR basado en empresas activas y sus planes
@@ -804,7 +811,12 @@ export class PlatformStorage implements IPlatformStorage {
     
     const counts = companyCounts.rows[0];
     const revenue = revenueCounts.rows[0];
+    const payments = paymentsResult.rows[0];
     const mrr = mrrResult.rows[0];
+
+    const paymentsTotal = parseFloat(payments.total_payments || "0");
+    const paidInvoicesTotal = parseFloat(revenue.paid_invoices_amount || "0");
+    const totalRevenue = paymentsTotal > 0 ? paymentsTotal : paidInvoicesTotal;
     
     // Crear y guardar las métricas
     return await this.createMetrics({
@@ -815,12 +827,12 @@ export class PlatformStorage implements IPlatformStorage {
       trialCompanies: parseInt(counts.trial || "0"),
       suspendedCompanies: parseInt(counts.suspended || "0"),
       cancelledCompanies: parseInt(counts.cancelled || "0"),
-      totalRevenue: parseFloat(revenue.total_revenue || "0"),
+      totalRevenue: totalRevenue,
       pendingInvoices: parseInt(revenue.pending_invoices || "0"),
       overdueInvoices: parseInt(revenue.overdue_invoices || "0"),
       overdueAmount: parseFloat(revenue.overdue_amount || "0"),
       newCompaniesThisMonth: parseInt(counts.new_this_month || "0"),
-      churnedCompaniesThisMonth: 0, // Se calculará basado en historial
+      churnedCompaniesThisMonth: 0,
     });
   }
 
