@@ -67,7 +67,7 @@ export const membershipInvoices = pgTable("membership_invoices", {
   planId: integer("plan_id").notNull().references(() => plans.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   status: text("status", {
-    enum: ["pending", "paid", "cancelled", "overdue"]
+    enum: ["pending", "paid", "partial", "cancelled", "overdue"]
   }).notNull().default("pending"),
   invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
   dueDate: timestamp("due_date").notNull(),
@@ -417,3 +417,50 @@ export const insertPlatformMetricsSchema = z.object({
 
 export type InsertPlatformMetrics = z.infer<typeof insertPlatformMetricsSchema>;
 export type PlatformMetrics = typeof platformMetrics.$inferSelect;
+
+// =============================================
+// COBROS DE PLATAFORMA
+// =============================================
+
+export const platformPayments = pgTable("platform_payments", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  invoiceId: integer("invoice_id").references(() => membershipInvoices.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentDate: timestamp("payment_date").notNull().defaultNow(),
+  paymentMethod: text("payment_method", {
+    enum: ["transfer", "cash", "card", "check", "other"]
+  }).notNull().default("transfer"),
+  concept: text("concept").notNull(),
+  reference: text("reference"),
+  notes: text("notes"),
+  status: text("status", {
+    enum: ["completed", "pending", "cancelled"]
+  }).notNull().default("completed"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPlatformPaymentSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  invoiceId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val)),
+    z.null()
+  ]).optional().nullable(),
+  amount: z.union([
+    z.number().positive("El monto debe ser positivo"),
+    z.string().transform(val => parseFloat(val))
+  ]),
+  paymentDate: z.string().optional(),
+  paymentMethod: z.enum(["transfer", "cash", "card", "check", "other"]).default("transfer"),
+  concept: z.string().min(1, "El concepto es requerido"),
+  reference: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  status: z.enum(["completed", "pending", "cancelled"]).default("completed"),
+});
+
+export type InsertPlatformPayment = z.infer<typeof insertPlatformPaymentSchema>;
+export type PlatformPayment = typeof platformPayments.$inferSelect;

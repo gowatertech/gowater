@@ -17,7 +17,8 @@ import {
   Briefcase,
   Menu,
   X,
-  Video
+  Video,
+  Banknote
 } from "lucide-react";
 
 interface PlatformLayoutProps {
@@ -181,6 +182,21 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
           >
             <CreditCard size={18} />
             <span>Facturas</span>
+          </a>
+        </Link>
+      </li>
+      <li>
+        <Link href="/platform/cobros">
+          <a 
+            className={`flex items-center gap-2 p-2 rounded-md ${
+              isActive('/platform/cobros') 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-primary/10'
+            }`}
+            onClick={onLinkClick}
+          >
+            <Banknote size={18} />
+            <span>Cobros</span>
           </a>
         </Link>
       </li>

@@ -6,12 +6,14 @@ import {
   insertMembershipInvoiceSchema,
   insertCompanySettingsSchema,
   insertUserCompanySchema,
+  insertPlatformPaymentSchema,
   companies,
   plans,
   userCompanies,
   companySettings,
   membershipInvoices,
   platformSettings,
+  platformPayments,
   platformGeneralSettingsSchema,
   platformEmailSettingsSchema
 } from "../shared/platform-schema";
@@ -2060,6 +2062,244 @@ export function registerPlatformRoutes(router: Router) {
     } catch (error) {
       console.error("Error al marcar notificaciones:", error);
       res.status(500).json({ message: "Error al marcar notificaciones como enviadas" });
+    }
+  });
+
+  // =============================================
+  // COBROS DE PLATAFORMA
+  // =============================================
+
+  router.get("/platform-payments", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const results = await platformDb
+        .select({
+          id: platformPayments.id,
+          companyId: platformPayments.companyId,
+          invoiceId: platformPayments.invoiceId,
+          amount: platformPayments.amount,
+          paymentDate: platformPayments.paymentDate,
+          paymentMethod: platformPayments.paymentMethod,
+          concept: platformPayments.concept,
+          reference: platformPayments.reference,
+          notes: platformPayments.notes,
+          status: platformPayments.status,
+          createdAt: platformPayments.createdAt,
+          companyName: companies.name,
+        })
+        .from(platformPayments)
+        .leftJoin(companies, eq(platformPayments.companyId, companies.id))
+        .orderBy(sql`${platformPayments.paymentDate} DESC`);
+
+      res.json({ data: results });
+    } catch (error) {
+      console.error("Error al obtener cobros:", error);
+      res.status(500).json({ message: "Error al obtener cobros" });
+    }
+  });
+
+  router.get("/platform-payments/stats", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const allPayments = await platformDb.select().from(platformPayments);
+      
+      let totalCollected = 0;
+      let totalPending = 0;
+      let completedCount = 0;
+      let pendingCount = 0;
+      let cancelledCount = 0;
+      let monthlyCollected = 0;
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      for (const payment of allPayments) {
+        const amount = parseFloat(payment.amount);
+        if (payment.status === "completed") {
+          totalCollected += amount;
+          completedCount++;
+          if (new Date(payment.paymentDate) >= startOfMonth) {
+            monthlyCollected += amount;
+          }
+        } else if (payment.status === "pending") {
+          totalPending += amount;
+          pendingCount++;
+        } else {
+          cancelledCount++;
+        }
+      }
+
+      res.json({
+        totalCollected: totalCollected.toFixed(2),
+        totalPending: totalPending.toFixed(2),
+        monthlyCollected: monthlyCollected.toFixed(2),
+        completedCount,
+        pendingCount,
+        cancelledCount,
+        totalCount: allPayments.length,
+      });
+    } catch (error) {
+      console.error("Error al obtener estadísticas de cobros:", error);
+      res.status(500).json({ message: "Error al obtener estadísticas de cobros" });
+    }
+  });
+
+  router.post("/platform-payments", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = insertPlatformPaymentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Datos inválidos", errors: parsed.error.errors });
+      }
+
+      const paymentData: any = {
+        companyId: parsed.data.companyId,
+        amount: String(parsed.data.amount),
+        paymentMethod: parsed.data.paymentMethod,
+        concept: parsed.data.concept,
+        reference: parsed.data.reference || null,
+        notes: parsed.data.notes || null,
+        status: parsed.data.status,
+        paymentDate: parsed.data.paymentDate ? new Date(parsed.data.paymentDate) : new Date(),
+      };
+
+      if (parsed.data.invoiceId) {
+        paymentData.invoiceId = parsed.data.invoiceId;
+      }
+
+      const [created] = await platformDb.insert(platformPayments).values(paymentData).returning();
+
+      if (parsed.data.invoiceId && parsed.data.status === "completed") {
+        const invoice = await platformDb.select().from(membershipInvoices).where(eq(membershipInvoices.id, parsed.data.invoiceId as number));
+        if (invoice.length > 0) {
+          const invoiceAmount = parseFloat(invoice[0].amount);
+          const existingPayments = await platformDb
+            .select()
+            .from(platformPayments)
+            .where(
+              and(
+                eq(platformPayments.invoiceId, parsed.data.invoiceId as number),
+                eq(platformPayments.status, "completed")
+              )
+            );
+          
+          const totalPaid = existingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+          
+          if (totalPaid >= invoiceAmount) {
+            await platformDb
+              .update(membershipInvoices)
+              .set({ 
+                status: "paid", 
+                paidDate: new Date(),
+                paymentMethod: parsed.data.paymentMethod
+              })
+              .where(eq(membershipInvoices.id, parsed.data.invoiceId as number));
+          } else if (totalPaid > 0) {
+            await platformDb
+              .update(membershipInvoices)
+              .set({ status: "partial" })
+              .where(eq(membershipInvoices.id, parsed.data.invoiceId as number));
+          }
+        }
+      }
+
+      res.json({ data: created, message: "Cobro registrado correctamente" });
+    } catch (error) {
+      console.error("Error al crear cobro:", error);
+      res.status(500).json({ message: "Error al crear cobro" });
+    }
+  });
+
+  router.put("/platform-payments/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, ...updates } = req.body;
+
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (updates.notes !== undefined) updateData.notes = updates.notes;
+      if (updates.reference !== undefined) updateData.reference = updates.reference;
+
+      const [updated] = await platformDb
+        .update(platformPayments)
+        .set(updateData)
+        .where(eq(platformPayments.id, id))
+        .returning();
+
+      res.json({ data: updated, message: "Cobro actualizado correctamente" });
+    } catch (error) {
+      console.error("Error al actualizar cobro:", error);
+      res.status(500).json({ message: "Error al actualizar cobro" });
+    }
+  });
+
+  router.delete("/platform-payments/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [payment] = await platformDb.select().from(platformPayments).where(eq(platformPayments.id, id));
+      
+      await platformDb.delete(platformPayments).where(eq(platformPayments.id, id));
+
+      if (payment?.invoiceId) {
+        const invoice = await platformDb.select().from(membershipInvoices).where(eq(membershipInvoices.id, payment.invoiceId));
+        if (invoice.length > 0) {
+          const remainingPayments = await platformDb
+            .select()
+            .from(platformPayments)
+            .where(
+              and(
+                eq(platformPayments.invoiceId, payment.invoiceId),
+                eq(platformPayments.status, "completed")
+              )
+            );
+          const totalPaid = remainingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+          const invoiceAmount = parseFloat(invoice[0].amount);
+
+          let newStatus = "pending";
+          if (totalPaid >= invoiceAmount) {
+            newStatus = "paid";
+          } else if (totalPaid > 0) {
+            newStatus = "partial";
+          }
+          await platformDb
+            .update(membershipInvoices)
+            .set({ status: newStatus, ...(newStatus !== "paid" ? { paidDate: null } : {}) })
+            .where(eq(membershipInvoices.id, payment.invoiceId));
+        }
+      }
+
+      res.json({ message: "Cobro eliminado correctamente" });
+    } catch (error) {
+      console.error("Error al eliminar cobro:", error);
+      res.status(500).json({ message: "Error al eliminar cobro" });
+    }
+  });
+
+  // Obtener facturas pendientes de una empresa (para vincular cobros)
+  router.get("/platform-payments/pending-invoices/:companyId", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.companyId);
+      const invoices = await platformDb
+        .select({
+          id: membershipInvoices.id,
+          amount: membershipInvoices.amount,
+          status: membershipInvoices.status,
+          invoiceDate: membershipInvoices.invoiceDate,
+          dueDate: membershipInvoices.dueDate,
+          notes: membershipInvoices.notes,
+          planName: plans.name,
+        })
+        .from(membershipInvoices)
+        .leftJoin(plans, eq(membershipInvoices.planId, plans.id))
+        .where(
+          and(
+            eq(membershipInvoices.companyId, companyId),
+            sql`${membershipInvoices.status} IN ('pending', 'overdue')`
+          )
+        )
+        .orderBy(sql`${membershipInvoices.invoiceDate} DESC`);
+
+      res.json({ data: invoices });
+    } catch (error) {
+      console.error("Error al obtener facturas pendientes:", error);
+      res.status(500).json({ message: "Error al obtener facturas pendientes" });
     }
   });
 

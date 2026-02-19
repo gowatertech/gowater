@@ -226,6 +226,24 @@ export async function setupPlatformTables() {
     `);
     console.log("Tabla 'platform_metrics' creada o ya existente");
 
+    // Crear tabla de cobros de plataforma
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS platform_payments (
+        id SERIAL PRIMARY KEY,
+        company_id INTEGER NOT NULL REFERENCES companies(id),
+        invoice_id INTEGER REFERENCES membership_invoices(id),
+        amount DECIMAL(10, 2) NOT NULL,
+        payment_date TIMESTAMP NOT NULL DEFAULT NOW(),
+        payment_method TEXT NOT NULL DEFAULT 'transfer',
+        concept TEXT NOT NULL,
+        reference TEXT,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'completed',
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    console.log("Tabla 'platform_payments' creada o ya existente");
+
     console.log("Configuración de tablas de plataforma completada con éxito");
     return true;
   } catch (error) {

@@ -202,6 +202,9 @@ function Router() {
   const PlatformInvoices = lazy(() => import("@/pages/platform/invoices"));
   const PlatformInvoiceForm = lazy(() => import("@/pages/platform/invoices/[id]"));
   
+  // Cobros
+  const PlatformCobros = lazy(() => import("@/pages/platform/cobros"));
+
   // Settings (Configuración)
   const PlatformSettings = lazy(() => import("@/pages/platform/settings"));
   
@@ -367,6 +370,13 @@ function Router() {
         <Route path="/platform/invoices">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformInvoices />
+          </Suspense>
+        </Route>
+
+        {/* Rutas de Cobros */}
+        <Route path="/platform/cobros">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformCobros />
           </Suspense>
         </Route>
         
