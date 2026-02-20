@@ -77,6 +77,9 @@ export function LandingHeader() {
               Contáctanos
             </Button>
           </Link>
+          <Link href="/privacy">
+            <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/privacy") ? "bg-white/15" : ""}`}>Privacidad</Button>
+          </Link>
         </div>
 
         <div className="md:hidden">
@@ -123,6 +126,9 @@ export function LandingHeader() {
                   </SheetClose>
                   <Link href="/contact">
                     <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/contact") && !location.includes("demo") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Contáctanos</div>
+                  </Link>
+                  <Link href="/privacy">
+                    <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/privacy") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Privacidad</div>
                   </Link>
                 </nav>
                 <div className="pt-6 border-t space-y-2">
