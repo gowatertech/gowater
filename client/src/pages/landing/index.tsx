@@ -338,7 +338,7 @@ export default function LandingPage() {
                 <li><span className="text-gray-400 hover:text-white transition-colors cursor-pointer">Acerca de nosotros</span></li>
                 <li><span className="text-gray-400 hover:text-white transition-colors cursor-pointer">Blog</span></li>
                 <li><span className="text-gray-400 hover:text-white transition-colors cursor-pointer">Trabaja con nosotros</span></li>
-                <li><span className="text-gray-400 hover:text-white transition-colors cursor-pointer">Política de privacidad</span></li>
+                <li><Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">Política de privacidad</Link></li>
               </ul>
             </div>
           </div>
@@ -346,7 +346,7 @@ export default function LandingPage() {
             <p className="text-sm text-gray-500">© {new Date().getFullYear()} GoWater. Todos los derechos reservados.</p>
             <div className="flex gap-6 text-sm text-gray-500">
               <span className="hover:text-gray-300 cursor-pointer transition-colors">Términos</span>
-              <span className="hover:text-gray-300 cursor-pointer transition-colors">Privacidad</span>
+              <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacidad</Link>
               <span className="hover:text-gray-300 cursor-pointer transition-colors">Cookies</span>
             </div>
           </div>

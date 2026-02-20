@@ -67,6 +67,7 @@ import DocumentationPage from "@/pages/documentation";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
+import PrivacyPage from "@/pages/landing/privacy";
 import RegisterInterestPage from "@/pages/landing/register-interest";
 import PublicLocationCapture from "@/pages/public/LocationCapture";
 import SuspendedPage from "@/pages/suspended";
@@ -262,7 +263,7 @@ function Router() {
   }
 
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/demo" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/demo" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/privacy" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes" || location.startsWith("/public/location")) && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
@@ -270,6 +271,7 @@ function Router() {
         <Route path="/planes" component={PlanesPage} />
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
+        <Route path="/privacy" component={PrivacyPage} />
         <Route path="/register-interest" component={RegisterInterestPage} />
         <Route path="/test-routes" component={TestRoutesPage} />
         <Route path="/public/location/:token" component={PublicLocationCapture} />
@@ -500,7 +502,7 @@ export default function App() {
   // No mostrar el logo en páginas de la plataforma, app móvil, landing page o páginas públicas
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register";
+  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/privacy" || location === "/register-interest" || location === "/register";
   const shouldShowLogo = false; // Logo centrado desactivado en todas las páginas
   
   return (
