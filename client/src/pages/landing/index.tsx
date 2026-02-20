@@ -72,8 +72,8 @@ export default function LandingPage() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-3xl mx-auto">
-                <StatBadge number="500+" label="Empresas activas" />
-                <StatBadge number="1M+" label="Entregas realizadas" />
+                <StatBadge number="100+" label="Empresas activas" />
+                <StatBadge number="100k+" label="Entregas realizadas" />
                 <StatBadge number="99.9%" label="Tiempo activo" />
                 <StatBadge number="4.8" label="Valoración" icon={<Star className="h-3.5 w-3.5 text-yellow-300 fill-yellow-300" />} />
               </div>
