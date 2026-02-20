@@ -149,6 +149,10 @@ export default function DriverRoute() {
   const [currentOrderIdForPayment, setCurrentOrderIdForPayment] = useState<number | null>(null);
   const [pendingOrdersInStop, setPendingOrdersInStop] = useState<Array<{id: number, customerName: string, totalValue: number | string, invoiceId?: number | null}>>([]);
   
+  // Estado para CXC del cliente en el diálogo de pago
+  const [customerBalance, setCustomerBalance] = useState<string>("0.00");
+  const [loadingBalance, setLoadingBalance] = useState(false);
+  
   // Función para navegar a una ubicación
   const handleNavigateToLocation = (latitude: number, longitude: number, address: string) => {
     // Usamos la API de Google Maps para navegación
@@ -578,6 +582,29 @@ export default function DriverRoute() {
     
     if (isDonation) {
       console.log("Este es un pedido de DONACIÓN para:", stop.customerName);
+    }
+    
+    // Cargar el balance CXC del cliente
+    const custId = stop.customerId;
+    if (custId && custId > 0) {
+      setLoadingBalance(true);
+      setCustomerBalance("0.00");
+      const fetchTimestamp = Date.now();
+      (window as any).__lastBalanceFetch = fetchTimestamp;
+      apiRequest(`/api/mobile/customers/${custId}/pending-invoices`)
+        .then((data: any) => {
+          if ((window as any).__lastBalanceFetch === fetchTimestamp && data && data.customerBalance) {
+            setCustomerBalance(data.customerBalance);
+          }
+        })
+        .catch((err: any) => {
+          console.error("Error al cargar balance del cliente:", err);
+        })
+        .finally(() => {
+          if ((window as any).__lastBalanceFetch === fetchTimestamp) {
+            setLoadingBalance(false);
+          }
+        });
     }
   };
   
@@ -1247,6 +1274,41 @@ export default function DriverRoute() {
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground">{currentStopForPayment.address}</p>
                   </div>
+                
+                {/* CXC del cliente */}
+                {currentStopForPayment.customerId > 0 && (
+                  <div className="rounded-lg border p-2 sm:p-3 mb-2 sm:mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <CircleDollarSign className="h-4 w-4 text-red-500" />
+                        <span className="text-xs sm:text-sm font-medium">CXC del Cliente</span>
+                      </div>
+                      {loadingBalance ? (
+                        <span className="text-xs text-muted-foreground">Cargando...</span>
+                      ) : (
+                        <span className={`text-sm sm:text-base font-bold ${parseFloat(customerBalance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          RD$ {parseFloat(customerBalance).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    {parseFloat(customerBalance) > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-8 text-xs border-green-300 text-green-700 hover:bg-green-50"
+                        onClick={() => {
+                          setShowPaymentDialog(false);
+                          const returnUrl = encodeURIComponent(`/mobile-app/ruta?routeId=${activeRouteId}`);
+                          setLocation(`/mobile-app/payments/abono-cuenta?customerId=${currentStopForPayment.customerId}&returnUrl=${returnUrl}`);
+                        }}
+                      >
+                        <BadgeDollarSign className="h-3.5 w-3.5 mr-1.5" />
+                        Hacer Abono a Cuenta
+                      </Button>
+                    )}
+                  </div>
+                )}
                 
                 {/* Mensaje informativo para pedidos prepagados */}
                 {currentStopForPayment.invoiceId ? (

@@ -2,7 +2,7 @@ import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
 import { 
   orders, invoices, invoiceItems, payments, orderItems,
-  routes, vehicleLoading, customers, settings, transactions,
+  routes, vehicleLoading, customers, settings, transactions, products,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
@@ -349,6 +349,41 @@ export function createMobileApiEndpoints(): Router {
     } catch (error) {
       console.error("Error al actualizar cliente:", error);
       res.status(500).json({ error: "Error al actualizar cliente", details: String(error) });
+    }
+  });
+
+  /**
+   * GET /api/mobile/products
+   * Obtiene todos los productos para la empresa actual (accesible para drivers)
+   */
+  router.get('/products', async (req, res) => {
+    try {
+      const companyId = getSessionCompanyId(req);
+      
+      if (!companyId) {
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      const allProducts = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          stock: products.stock,
+          icon: products.icon,
+          isReturnable: products.isReturnable,
+          depositAmount: products.depositAmount,
+          hasCommission: products.hasCommission,
+          companyId: products.companyId
+        })
+        .from(products)
+        .where(eq(products.companyId, companyId))
+        .orderBy(products.name);
+
+      res.json(allProducts);
+    } catch (error) {
+      console.error("Error al obtener productos (mobile):", error);
+      res.status(500).json({ error: "Error al obtener productos", details: String(error) });
     }
   });
 

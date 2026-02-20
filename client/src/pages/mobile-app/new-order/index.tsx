@@ -56,14 +56,12 @@ export default function NewOrder() {
 
   // Fetch customers
   const { data: customers = [], isLoading: loadingCustomers } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-    queryFn: async () => apiRequest({ method: "GET", url: "/api/customers" })
+    queryKey: ["/api/mobile/customers"],
   });
 
   // Fetch products
   const { data: products = [], isLoading: loadingProducts } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-    queryFn: async () => apiRequest({ method: "GET", url: "/api/products" })
+    queryKey: ["/api/mobile/products"],
   });
 
   const filteredCustomers = useMemo(() => {

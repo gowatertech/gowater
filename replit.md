@@ -72,6 +72,8 @@ Utilizes modern UI components from shadcn/ui with Tailwind CSS for a clean, resp
 ### Invoice & Payment Systems
 Automates invoice generation, handles dynamic tax calculation, concurrency control, automatic payment processing for cash invoices, partial cash payments via mobile app, and a prepaid invoice system. It includes a unified transaction ledger, a comprehensive advance payment (anticipos) system, and an automated "Abono a Cuenta" (Account Payment) system that allows applying payments across multiple pending invoices and creating advance payments even without pending invoices. A centralized `recalculateInvoiceStatus()` utility ensures accurate invoice status based on persisted payment data. The system also includes automatic synchronization of `customers.balance` with transactions and allows for advance payments without pending invoices.
 
+The **Procesar Pago** dialog in the route view (`ruta/index.tsx`) displays the customer's CXC (Cuentas por Cobrar) balance and includes a "Hacer Abono a Cuenta" button that navigates to the existing abono-cuenta page with a `returnUrl` parameter, so the driver returns to the route after payment. The `abono-cuenta.tsx` page supports `returnUrl` query parameter for flexible navigation back to any origin page.
+
 ### Timezone Configuration
 The system uses **América/Santo_Domingo timezone (UTC-4)** for all date and time operations.
 

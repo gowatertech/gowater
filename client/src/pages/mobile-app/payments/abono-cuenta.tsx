@@ -170,9 +170,10 @@ export default function MobileAbonoACuentaPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/mobile/customers/${selectedCustomerId}/pending-invoices`] });
       queryClient.invalidateQueries({ queryKey: ["/api/mobile/customers"] });
       
-      // Resetear el formulario y volver a clientes móvil
       handleReset();
-      navigate("/mobile-app/clientes");
+      const params = new URLSearchParams(searchString);
+      const returnUrl = params.get('returnUrl');
+      navigate(returnUrl ? decodeURIComponent(returnUrl) : "/mobile-app/clientes");
     },
     onError: (error: any) => {
       toast({
@@ -228,7 +229,11 @@ export default function MobileAbonoACuentaPage() {
         darkMode={false} 
         onToggleDarkMode={() => {}}
         showBackButton={true}
-        onBackButtonClick={() => navigate("/mobile-app/clientes")}
+        onBackButtonClick={() => {
+          const params = new URLSearchParams(searchString);
+          const returnUrl = params.get('returnUrl');
+          navigate(returnUrl ? decodeURIComponent(returnUrl) : "/mobile-app/clientes");
+        }}
       />
 
       <main className="flex-1 p-3 pt-2 pb-20 overflow-auto">
@@ -525,7 +530,11 @@ export default function MobileAbonoACuentaPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/mobile-app/clientes")}
+              onClick={() => {
+                const params = new URLSearchParams(searchString);
+                const returnUrl = params.get('returnUrl');
+                navigate(returnUrl ? decodeURIComponent(returnUrl) : "/mobile-app/clientes");
+              }}
               disabled={applyPaymentMutation.isPending}
               data-testid="button-cancel"
               className="w-full min-h-[48px]"
