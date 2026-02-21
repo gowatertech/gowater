@@ -1300,20 +1300,18 @@ export default function DeliveryDetails() {
                     </p>
                   </div>
                 </div>
-                {parseFloat(customerBalance) > 0 && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-10 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                    onClick={() => {
-                      const returnUrl = encodeURIComponent(`/mobile-app/entregas/${delivery.id}${routeId ? `?routeId=${routeId}` : ''}`);
-                      setLocation(`/mobile-app/payments/abono-cuenta?customerId=${delivery.customerId}&returnUrl=${returnUrl}`);
-                    }}
-                  >
-                    <CreditCard className="h-4 w-4 mr-1" />
-                    Abono a Cuenta
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-10 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                  onClick={() => {
+                    const returnUrl = encodeURIComponent(`/mobile-app/entregas/${delivery.id}${routeId ? `?routeId=${routeId}` : ''}`);
+                    setLocation(`/mobile-app/payments/abono-cuenta?customerId=${delivery.customerId}&returnUrl=${returnUrl}`);
+                  }}
+                >
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  Abono a Cuenta
+                </Button>
               </div>
             </CardContent>
           </Card>

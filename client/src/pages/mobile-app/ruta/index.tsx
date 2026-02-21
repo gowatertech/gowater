@@ -1291,22 +1291,20 @@ export default function DriverRoute() {
                         </span>
                       )}
                     </div>
-                    {parseFloat(customerBalance) > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full h-8 text-xs border-green-300 text-green-700 hover:bg-green-50"
-                        onClick={() => {
-                          setShowPaymentDialog(false);
-                          const returnUrl = encodeURIComponent(`/mobile-app/ruta?routeId=${activeRouteId}`);
-                          setLocation(`/mobile-app/payments/abono-cuenta?customerId=${currentStopForPayment.customerId}&returnUrl=${returnUrl}`);
-                        }}
-                      >
-                        <BadgeDollarSign className="h-3.5 w-3.5 mr-1.5" />
-                        Hacer Abono a Cuenta
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs border-green-300 text-green-700 hover:bg-green-50"
+                      onClick={() => {
+                        setShowPaymentDialog(false);
+                        const returnUrl = encodeURIComponent(`/mobile-app/ruta?routeId=${activeRouteId}`);
+                        setLocation(`/mobile-app/payments/abono-cuenta?customerId=${currentStopForPayment.customerId}&returnUrl=${returnUrl}`);
+                      }}
+                    >
+                      <BadgeDollarSign className="h-3.5 w-3.5 mr-1.5" />
+                      Hacer Abono a Cuenta
+                    </Button>
                   </div>
                 )}
                 
