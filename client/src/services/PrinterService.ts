@@ -1501,14 +1501,12 @@ export class PrinterService {
         notes: String(payment?.notes || '')
       };
 
-      // Sanitizar datos del cliente
       const customerCopy = customer ? {
+        ...customer,
         id: Number(customer?.id || 0),
         businessname: String(customer?.businessname || 'Cliente'),
         phone: String(customer?.phone || ''),
-        address: String(customer?.address || ''),
-        municipality: String(customer?.municipality || ''),
-        province: String(customer?.province || '')
+        address: String(customer?.address || '')
       } : null;
       
       // Sanitizar configuración
