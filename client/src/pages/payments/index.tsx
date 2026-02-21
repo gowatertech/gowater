@@ -315,7 +315,7 @@ export default function PaymentDashboard() {
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Total: ${formatCurrency(paymentsStats.totalMonth)} (este mes)`, 105, y, { align: 'center' });
+      doc.text(`Total: ${formatCurrency(paymentsStats.totalMonth || 0)} (este mes)`, 105, y, { align: 'center' });
       y += 10;
       
       const colX = [14, 50, 100, 130, 195];
@@ -359,14 +359,20 @@ export default function PaymentDashboard() {
           drawTableHeader();
         }
         
-        const dateStr = format(new Date(payment.date), 'dd/MM/yyyy hh:mm a');
-        const customerName = payment.customerName || '-';
-        const invoiceNum = payment.invoiceNumber || '-';
-        const method = (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
-          (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
-          (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
-          (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
-        const amount = formatCurrency(payment.amount);
+        let dateStr = '-';
+        try {
+          dateStr = format(new Date(payment.date), 'dd/MM/yyyy hh:mm a');
+        } catch (e) {
+          dateStr = String(payment.date || '-');
+        }
+        const customerName = String(payment.customerName || '-');
+        const invoiceNum = String(payment.invoiceNumber || '-');
+        const methodVal = payment.method || payment.paymentMethod || '';
+        const method = methodVal === 'cash' ? 'Efectivo' :
+          methodVal === 'card' ? 'Tarjeta' :
+          methodVal === 'credit' ? 'Crédito' :
+          methodVal === 'transfer' ? 'Transferencia' : 'Otro';
+        const amount = formatCurrency(payment.amount || 0);
         
         doc.text(dateStr, colX[0], y);
         doc.text(customerName, colX[1], y);
