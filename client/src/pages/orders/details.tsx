@@ -5,11 +5,8 @@ import { useLocation, useRoute } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import { formatDateRD } from "@/lib/date-utils";
-// Importamos nuestro servicio de impresión
-import { printOrderTicket, generateOrderPdf } from "./PrinterService";
+import { PrinterService } from "@/services/PrinterService";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 
 // Iconos
@@ -325,9 +322,8 @@ export default function OrderDetails() {
   };
 
   // Funciones para imprimir y generar PDF
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
-      // Verificar datos necesarios
       if (!order || !companySettings) {
         toast({
           variant: "destructive",
@@ -337,19 +333,10 @@ export default function OrderDetails() {
         return;
       }
       
-      // Encontrar el cliente correspondiente al pedido
       const currentCustomer = order.customerId ? 
         customers.find((c: any) => c && c.id === order.customerId) : null;
       
-      // Usar la función centralizada de impresión
-      printOrderTicket(
-        order,
-        orderItems,
-        currentCustomer,
-        companySettings,
-        products,
-        toast
-      );
+      await PrinterService.printOrder(order, orderItems, currentCustomer, companySettings, products);
     } catch (error: any) {
       console.error("Error en handlePrint:", error);
       toast({
@@ -360,9 +347,8 @@ export default function OrderDetails() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
-      // Verificar datos necesarios
       if (!order || !companySettings) {
         toast({
           variant: "destructive",
@@ -372,20 +358,10 @@ export default function OrderDetails() {
         return;
       }
 
-      // Encontrar el cliente correspondiente al pedido
       const currentCustomer = order.customerId ? 
         customers.find((c: any) => c && c.id === order.customerId) : null;
       
-      // Usar la función centralizada para generar PDF
-      generateOrderPdf(
-        order,
-        orderItems,
-        currentCustomer,
-        companySettings,
-        products,
-        toast,
-        jsPDF
-      );
+      await PrinterService.generateOrderPDF(order, orderItems, currentCustomer, companySettings, products);
     } catch (error: any) {
       console.error("Error en handleDownload:", error);
       toast({

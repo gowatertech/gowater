@@ -509,16 +509,19 @@ export class PrinterService {
     // Cliente - convertimos todos los valores a String para prevenir errores
     const customer = extraData.customer || {};
     const businessName = String(customer?.businessname || order.customerName || "Cliente");
-    const address = String(customer?.address || order.customerAddress || "");
-    const municipality = String(customer?.municipality || order.municipalityName || "Cotuí");
-    const province = String(customer?.province || order.provinceName || "Sánchez Ramírez");
+    const customerStreet = String(customer?.street || order.customerAddress || "");
+    const customerStreetNumber = String(customer?.streetnumber || order.customerAddressNumber || "");
+    const customerSector = String(customer?.sector || "");
+    const fullAddress = [customerStreet, customerStreetNumber, customerSector].filter(Boolean).join(" ");
+    const municipality = String(customer?.municipalityName || customer?.municipality || order.municipalityName || "");
+    const province = String(customer?.provinceName || customer?.province || order.provinceName || "");
     const phone = String(customer?.phone || order.customerPhone || "");
     
     // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
-    doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
+    doc.text(`Dirección: ${fullAddress}`, 10, yPos); yPos += 4;
+    doc.text(`${municipality}, ${province}`, 10, yPos); yPos += 4;
     doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     
     // Línea separadora
@@ -553,16 +556,18 @@ export class PrinterService {
     const products = extraData.products || [];
     
     if (Array.isArray(items) && items.length > 0) {
-      items.forEach((item) => {
-        if (!item) return; // Saltar items nulos
-        
+      const sortedItems = [...items].filter(Boolean).sort((a, b) => {
+        const nameA = products.find((p) => p?.id === a?.productId)?.name || "Producto";
+        const nameB = products.find((p) => p?.id === b?.productId)?.name || "Producto";
+        return nameA.localeCompare(nameB);
+      });
+      sortedItems.forEach((item) => {
         const product = products.find((p) => p?.id === item?.productId);
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
         const price = parseFloat(item?.unitPrice || item?.price || 0);
         const total = price * quantity;
         
-        // Acortar nombre si es muy largo
         let displayName = productName;
         if (displayName.length > 18) {
           displayName = displayName.substring(0, 16) + "...";
@@ -1296,24 +1301,23 @@ export class PrinterService {
         formattedDate = 'Fecha no disponible';
       }
       
-      const businessname = customer?.businessname || "Cliente";
-      const customerPhone = order?.customerPhone || "";
-      const customerAddress = order?.customerAddress || "";
-      const orderMunicipalityName = order?.municipalityName || "";
-      const orderProvinceName = order?.provinceName || "";
+      const businessname = customer?.businessname || order?.customerName || "Cliente";
+      const customerPhone = customer?.phone || order?.customerPhone || "";
+      const customerStreet = customer?.street || order?.customerAddress || "";
+      const customerStreetNumber = customer?.streetnumber || order?.customerAddressNumber || "";
+      const customerSector = customer?.sector || "";
+      const fullAddress = [customerStreet, customerStreetNumber, customerSector].filter(Boolean).join(" ");
+      const orderMunicipalityName = customer?.municipalityName || order?.municipalityName || "";
+      const orderProvinceName = customer?.provinceName || order?.provinceName || "";
       
       printContent.innerHTML += `
         <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order?.id || 'N/A'}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${customerAddress}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${fullAddress}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;">${orderMunicipalityName}, ${orderProvinceName}</div>
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-      `;
-      
-      // Tabla de productos
-      printContent.innerHTML += `
         <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
           <tr style="border-bottom: 1px solid #ddd;">
@@ -1324,11 +1328,14 @@ export class PrinterService {
           </tr>
       `;
       
-      // Productos
+      // Productos ordenados por nombre
       if (Array.isArray(items) && items.length > 0) {
-        items.forEach((item: any) => {
-          if (!item) return; // Saltar items nulos
-          
+        const sortedItems = [...items].filter(Boolean).sort((a: any, b: any) => {
+          const nameA = products?.find((p: any) => p?.id === a?.productId)?.name || "Producto";
+          const nameB = products?.find((p: any) => p?.id === b?.productId)?.name || "Producto";
+          return nameA.localeCompare(nameB);
+        });
+        sortedItems.forEach((item: any) => {
           const product = products?.find((p: any) => p?.id === item?.productId);
           const productName = product?.name || "Producto";
           const quantity = item?.quantity || 0;
