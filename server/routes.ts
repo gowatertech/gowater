@@ -7,7 +7,7 @@ import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
 import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from './company-db';
-import { eq, and, sql, inArray, desc, gte, lte, isNotNull } from 'drizzle-orm';
+import { eq, and, not, sql, inArray, desc, gte, lte, isNotNull } from 'drizzle-orm';
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { Resend } from 'resend';
@@ -518,6 +518,27 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
+      // Convertir email vacío a null
+      if (userData.email !== undefined && userData.email !== null && userData.email.trim() === '') {
+        userData.email = null;
+      }
+
+      // Verificar si el email ya existe (validación principal)
+      if (userData.email) {
+        console.log(`⚠️ /api/users POST - Verificando si email ${userData.email} ya existe`);
+        const existingByEmail = await db
+          .select()
+          .from(usersSimple)
+          .where(eq(usersSimple.email, userData.email));
+        
+        if (existingByEmail.length > 0) {
+          console.log("⚠️ /api/users POST - Error: Email ya existe");
+          return res.status(400).json({ 
+            error: `El email ${userData.email} ya está registrado por otro usuario` 
+          });
+        }
+      }
+
       // Verificar si el username ya existe para esta compañía
       console.log(`⚠️ /api/users POST - Verificando si username ${userData.username} ya existe para compañía ${companyId}`);
       const existingUser = await db
@@ -1254,6 +1275,28 @@ export async function registerRoutes(router: express.Router) {
       // IMPORTANTE: NO permitir actualizar companyId, id, o role para prevenir escalada de privilegios
       // Si se necesita cambiar el rol, debe hacerse en un endpoint separado con validación adicional
       
+      // Convertir email vacío a null
+      if (allowedFields.email !== undefined && allowedFields.email !== null && allowedFields.email.trim() === '') {
+        allowedFields.email = null;
+      }
+
+      // Verificar si el email ya existe en otro usuario
+      if (allowedFields.email) {
+        const existingByEmail = await db
+          .select()
+          .from(usersSimple)
+          .where(and(
+            eq(usersSimple.email, allowedFields.email),
+            not(eq(usersSimple.id, userId))
+          ));
+        
+        if (existingByEmail.length > 0) {
+          return res.status(400).json({ 
+            error: `El email ${allowedFields.email} ya está registrado por otro usuario` 
+          });
+        }
+      }
+
       // Preparar datos para actualización
       const updateData: any = {};
       
