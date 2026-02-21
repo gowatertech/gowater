@@ -5903,6 +5903,8 @@ export async function registerRoutes(router: express.Router) {
           o.assistant_commission as "assistantCommission",
           o.invoice_id as "invoiceId",
           o.salesperson_id as "salespersonId",
+          o.received_by as "receivedBy",
+          o.receiver_signature as "receiverSignature",
           sp.name as "salespersonName",
           c.businessname as "customerName", 
           c.email as "customerEmail", 

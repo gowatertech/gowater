@@ -650,6 +650,32 @@ export class PrinterService {
       yPos += splitNotes.length * 4;
     }
     
+    if (order.receivedBy || order.receiverSignature) {
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+      
+      if (order.receivedBy) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(`Recibido por: ${order.receivedBy}`, 5, yPos);
+        yPos += 5;
+      }
+      
+      if (order.receiverSignature) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text("Firma:", 5, yPos);
+        yPos += 3;
+        try {
+          doc.addImage(order.receiverSignature, 'PNG', 10, yPos, 40, 15);
+          yPos += 18;
+        } catch (e) {
+          console.error("Error agregando firma al PDF:", e);
+        }
+      }
+    }
+    
     return yPos;
   }
 
@@ -1212,6 +1238,17 @@ export class PrinterService {
         `;
       }
 
+      let signatureHtml = '';
+      if (order.receivedBy || order.receiverSignature) {
+        signatureHtml = `
+          <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+          <div style="font-size: 10px;">
+            ${order.receivedBy ? `<div style="margin-bottom: 5px;"><strong>Recibido por:</strong> ${order.receivedBy}</div>` : ''}
+            ${order.receiverSignature ? `<div style="text-align: center;"><div style="font-weight: bold; margin-bottom: 3px; font-size: 9px;">Firma:</div><img src="${order.receiverSignature}" style="max-width: 60mm; max-height: 25mm;" /></div>` : ''}
+          </div>
+        `;
+      }
+
       printContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 10px;">
           <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
@@ -1255,6 +1292,7 @@ export class PrinterService {
           </div>
         </div>
         ${notesHtml}
+        ${signatureHtml}
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
         <div style="text-align: center; margin-top: 10px; font-size: 11px;">
           ¡Gracias por su compra!

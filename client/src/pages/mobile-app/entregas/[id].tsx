@@ -98,6 +98,8 @@ interface Delivery {
   }[];
   total: number;
   bottleReturns: BottleReturn[];
+  receivedBy?: string | null;
+  receiverSignature?: string | null;
 }
 
 export default function DeliveryDetails() {
@@ -303,7 +305,9 @@ export default function DeliveryDetails() {
           bottleDeposit: item.product?.bottleDeposit || '0.00'
         })),
         total: parseFloat(orderData.total),
-        bottleReturns: bottleReturnsData
+        bottleReturns: bottleReturnsData,
+        receivedBy: orderData.receivedBy || null,
+        receiverSignature: orderData.receiverSignature || null,
       };
       
       setDelivery(deliveryData);
@@ -749,7 +753,7 @@ export default function DeliveryDetails() {
       });
       
       const productsRes = await apiRequest({
-        url: '/api/products',
+        url: '/api/mobile/products',
         method: 'GET'
       });
       
@@ -796,7 +800,7 @@ export default function DeliveryDetails() {
     });
     
     const productsRes = await apiRequest({
-      url: '/api/products',
+      url: '/api/mobile/products',
       method: 'GET'
     });
     
@@ -831,7 +835,7 @@ export default function DeliveryDetails() {
     });
     
     const productsRes = await apiRequest({
-      url: '/api/products',
+      url: '/api/mobile/products',
       method: 'GET'
     });
     
@@ -1227,6 +1231,35 @@ export default function DeliveryDetails() {
             </Button>
           </div>
           
+          {delivery.status === "delivered" && (delivery.receivedBy || delivery.receiverSignature) && (
+            <Card className="mt-4 border-blue-200 bg-blue-50/50">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                  <PenLine className="h-4 w-4" />
+                  <span>Confirmación de recepción</span>
+                </div>
+                {delivery.receivedBy && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Recibido por: </span>
+                    <span className="font-medium">{delivery.receivedBy}</span>
+                  </div>
+                )}
+                {delivery.receiverSignature && (
+                  <div>
+                    <span className="text-sm text-muted-foreground block mb-1">Firma:</span>
+                    <div className="bg-white border rounded-lg p-2 inline-block">
+                      <img 
+                        src={delivery.receiverSignature} 
+                        alt="Firma del receptor" 
+                        className="max-h-24"
+                      />
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Botones de acción */}
           <div className="flex space-x-2 mt-4">
             <Button 
