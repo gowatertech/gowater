@@ -349,6 +349,8 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       assistantCommission: order.assistant_commission || '0.00',
       invoiceId: order.invoiceId ?? order.invoice_id,
       bottlesNotReturned: order.bottles_not_returned || false,
+      receivedBy: order.received_by || null,
+      receiverSignature: order.receiver_signature || null,
       items: items
     };
     
