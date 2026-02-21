@@ -88,7 +88,6 @@ import {
   MoreVertical,
   MessageSquare,
   Map,
-  Grid3x3,
   List,
   Sparkles,
   Shield,
@@ -111,7 +110,6 @@ export default function Customers() {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [locationCaptureCustomer, setLocationCaptureCustomer] = useState<CustomerWithDetails | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const queryClient = useQueryClient();
 
   // Obtener provincias
@@ -660,26 +658,6 @@ export default function Customers() {
                       {filteredCustomers.length} {filteredCustomers.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
                     </CardDescription>
                   </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="gap-2"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    {!isMobile && 'Grid'}
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="gap-2"
-                  >
-                    <List className="h-4 w-4" />
-                    {!isMobile && 'Lista'}
-                  </Button>
-                </div>
               </div>
               
               {/* Buscador */}
@@ -725,130 +703,7 @@ export default function Customers() {
                     </Button>
                   )}
                 </div>
-              ) : viewMode === 'grid' ? (
-                // Vista Grid
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCustomers.map((customer) => (
-                    <Card 
-                      key={customer.id}
-                      className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-l-4 overflow-hidden"
-                      style={{ borderLeftColor: getZoneColor(customer.zoneid).replace('bg-', '#') }}
-                      onClick={() => handleViewCustomer(customer)}
-                      data-testid={`card-customer-${customer.id}`}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="relative flex-shrink-0">
-                              {customer.logo ? (
-                                <div className="w-14 h-14 rounded-xl border-2 border-muted overflow-hidden bg-white shadow-sm">
-                                  <img
-                                    src={`data:image/jpeg;base64,${customer.logo}`}
-                                    alt="Logo"
-                                    className="w-full h-full object-contain p-1"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-14 h-14 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl flex items-center justify-center border-2 border-muted">
-                                  <Building2 className="h-7 w-7 text-primary" />
-                                </div>
-                              )}
-                              {customer.isCharity && (
-                                <div className="absolute -top-1 -right-1 bg-pink-500 rounded-full p-1 shadow-lg">
-                                  <Shield className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">
-                                {customer.businessname}
-                              </h3>
-                              <p className="text-sm text-muted-foreground truncate">
-                                {customer.managername}
-                              </p>
-                            </div>
-                          </div>
-                          <DropdownMenu 
-                            open={openDropdownId === customer.id}
-                            onOpenChange={(open) => setOpenDropdownId(open ? customer.id : null)}
-                          >
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenuItem onClick={() => handleViewCustomer(customer)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver Detalles
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCaptureOnMap(customer)}>
-                                <Map className="h-4 w-4 mr-2" />
-                                Capturar en Mapa
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleSendWhatsApp(customer)}>
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Enviar WhatsApp
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{customer.phone}</span>
-                        </div>
-                        {customer.email && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="truncate">{customer.email}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">
-                            {provinces.find(p => p.id === customer.provinceid)?.name || 'N/A'}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between pt-2 border-t">
-                            <Badge variant="secondary" className="gap-1">
-                              <CreditCard className="h-3 w-3" />
-                              Límite: RD$ {parseFloat(customer.creditlimit.toString()).toLocaleString('es-DO')}
-                            </Badge>
-                            <Badge className={`${getZoneColor(customer.zoneid)} text-white`}>
-                              {getZoneName(customer.zoneid)}
-                            </Badge>
-                          </div>
-                          <div className={`flex items-center gap-2 px-2 py-1.5 border rounded-md ${
-                            customer.balance && parseFloat(customer.balance.toString()) > 0 
-                              ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800' 
-                              : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
-                          }`}>
-                            <DollarSign className={`h-4 w-4 ${
-                              customer.balance && parseFloat(customer.balance.toString()) > 0 
-                                ? 'text-red-600 dark:text-red-400' 
-                                : 'text-green-600 dark:text-green-400'
-                            }`} />
-                            <div className="flex-1">
-                              <p className={`text-xs font-medium ${
-                                customer.balance && parseFloat(customer.balance.toString()) > 0 
-                                  ? 'text-red-600 dark:text-red-400' 
-                                  : 'text-green-600 dark:text-green-400'
-                              }`}>
-                                CXC: RD$ {customer.balance ? parseFloat(customer.balance.toString()).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
               ) : (
-                // Vista Lista Simplificada
                 <div className="space-y-2">
                   {filteredCustomers.map((customer) => (
                     <Card 
