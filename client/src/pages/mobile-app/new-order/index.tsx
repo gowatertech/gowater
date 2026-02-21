@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getTodayStringRD } from "@/lib/date-utils";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 
 interface Customer {
   id: number;
@@ -79,6 +80,7 @@ const getInitials = (name: string) => {
 export default function NewOrder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -125,7 +127,8 @@ export default function NewOrder() {
     return orderItems.reduce((sum, item) => sum + item.total, 0);
   }, [orderItems]);
 
-  const itbis = subtotal * 0.18;
+  const taxRate = settings?.tax ? parseFloat(settings.tax) / 100 : 0.18;
+  const itbis = subtotal * taxRate;
   const total = subtotal + itbis;
 
   const totalItems = useMemo(() => {
@@ -556,7 +559,7 @@ export default function NewOrder() {
                   <span className="text-gray-700" data-testid="text-subtotal">RD$ {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">ITBIS (18%)</span>
+                  <span className="text-gray-500">ITBIS ({settings?.tax ? parseFloat(settings.tax) : 18}%)</span>
                   <span className="text-gray-700" data-testid="text-itbis">RD$ {itbis.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-dashed border-gray-200">
