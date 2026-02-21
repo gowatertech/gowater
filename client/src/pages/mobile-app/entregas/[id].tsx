@@ -606,7 +606,9 @@ export default function DeliveryDetails() {
       // Actualizar datos locales
       setDelivery({
         ...delivery,
-        status: "delivered"
+        status: "delivered",
+        receivedBy: receivedBy?.trim() || null,
+        receiverSignature: receiverSignature || null,
       });
       
       // Invalidar el caché de la lista de entregas para que se actualice el estado
@@ -683,7 +685,9 @@ export default function DeliveryDetails() {
       // Actualizar datos locales
       setDelivery({
         ...delivery,
-        status: "delivered"
+        status: "delivered",
+        receivedBy: receivedBy?.trim() || null,
+        receiverSignature: receiverSignature || null,
       });
       
       // Invalidar el caché de la lista de entregas para que se actualice el estado

@@ -1007,6 +1007,8 @@ export function createMobileApiEndpoints(): Router {
           o.total,
           o.payment_method as "paymentMethod",
           o.invoice_id as "invoiceId",
+          o.received_by as "receivedBy",
+          o.receiver_signature as "receiverSignature",
           COALESCE(op.products, '[]'::json) as products,
           COALESCE(obr.bottle_returns, '[]'::json) as "bottleReturns"
         FROM orders o
