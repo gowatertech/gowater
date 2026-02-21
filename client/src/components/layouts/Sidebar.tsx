@@ -266,7 +266,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     }
   }, [location]);
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex h-full flex-col bg-white shadow-[2px_0_8px_-2px_rgba(0,0,0,0.06)]">
       <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-700 px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -330,7 +330,8 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 ) : (
                   <>
                     <button
-                      onClick={() => handleItemClick(item.label)}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleItemClick(item.label); }}
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative",
                         isActive
@@ -418,27 +419,19 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     </div>
   );
 
-  const MobileSidebar = () => (
-    <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-      <SheetContent side="left" className="p-0 w-[280px]">
-        <SidebarContent />
-      </SheetContent>
-    </Sheet>
-  );
-
-  const DesktopSidebar = () => (
-    <UISidebar>
-      <SidebarContent />
-    </UISidebar>
-  );
-
   return (
     <>
       <div className="hidden md:block">
-        <DesktopSidebar />
+        <UISidebar>
+          {sidebarContent}
+        </UISidebar>
       </div>
       <div className="md:hidden">
-        <MobileSidebar />
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+          <SheetContent side="left" className="p-0 w-[280px]">
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
       </div>
     </>
   );
