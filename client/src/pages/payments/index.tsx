@@ -348,144 +348,23 @@ export default function PaymentDashboard() {
         return;
       }
       
-      // Crear contenido para impresión de recibo
-      const printContent = document.createElement('div');
-      printContent.innerHTML = `
-        <div style="width: 80mm; padding: 5mm; font-family: Arial, sans-serif;">
-          <div style="text-align: center; margin-bottom: 10px;">
-            <h2 style="font-size: 14px; margin: 0;">AGUA HARRIS</h2>
-            <p style="font-size: 10px; margin: 5px 0;">Calle Duarte #112, Villa Altagracia</p>
-            <p style="font-size: 10px; margin: 5px 0;">RNC: 999999999</p>
-          </div>
-          
-          <div style="margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
-            <h3 style="font-size: 12px; margin: 0; text-align: center;">RECIBO DE PAGO</h3>
-          </div>
-          
-          <div style="font-size: 10px; margin-bottom: 10px;">
-            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}</p>
-            <p style="margin: 4px 0;"><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
-            <p style="margin: 4px 0;"><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
-            <p style="margin: 4px 0;"><strong>Método:</strong> ${
-              (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
-              (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
-              (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
-              (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro'
-            }</p>
-          </div>
-          
-          <div style="margin-bottom: 10px; border-top: 1px dashed #000; padding-top: 5px;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="font-size: 12px;"><strong>TOTAL PAGADO:</strong></td>
-                <td style="font-size: 12px; text-align: right;"><strong>${formatCurrency(payment.amount)}</strong></td>
-              </tr>
-            </table>
-          </div>
-          
-          ${payment.notes ? `
-          <div style="margin-bottom: 10px; font-size: 9px;">
-            <p><strong>Notas:</strong> ${payment.notes}</p>
-          </div>` : ''}
-          
-          <div style="text-align: center; margin-top: 15px; font-size: 9px;">
-            <p style="margin: 0;">Gracias por su pago</p>
-            <p style="margin: 5px 0;">www.aguaharris.com</p>
-            <p style="margin: 5px 0;">Tel: 809-873-8333</p>
-          </div>
-        </div>
-      `;
+      const settingsResponse = await fetch('/api/settings');
+      if (!settingsResponse.ok) throw new Error('Error al cargar configuración');
+      const settings = await settingsResponse.json();
       
-      // Obtener los datos de factura desde la API
-      // (Por ahora solo usamos el objeto payment directamente)
-      const printOptions = {
-        title: `Recibo Pago #${payment.id}`,
-        fileName: `recibo_pago_${payment.id}.pdf`
-      };
-      
-      // Imprimir usando el método para recibos de 80mm
-      if (PrinterService.isMobileDevice()) {
-        // En móviles usamos un método más directo
-        const doc = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: [80, 150], // Papel térmico estándar: 80mm de ancho
-          hotfixes: ['px_scaling']
-        });
-        
-        // Añadir contenido
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('AGUA HARRIS', 40, 10, { align: 'center' });
-        
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Calle Duarte #112, Villa Altagracia', 40, 15, { align: 'center' });
-        doc.text('RNC: 999999999', 40, 19, { align: 'center' });
-        
-        // Línea separadora
-        doc.setDrawColor(150);
-        doc.line(5, 22, 75, 22);
-        
-        // Título
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RECIBO DE PAGO', 40, 27, { align: 'center' });
-        
-        // Datos del pago
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy hh:mm a')}`, 5, 35);
-        doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
-        doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
-        
-        // Método de pago
-        const metodoPago = 
-          (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
-          (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
-          (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
-          (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
-        
-        doc.text(`Método: ${metodoPago}`, 5, 50);
-        
-        // Segunda línea separadora
-        doc.line(5, 55, 75, 55);
-        
-        // Total
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('TOTAL PAGADO:', 5, 62);
-        doc.text(`${formatCurrency(payment.amount)}`, 75, 62, { align: 'right' });
-        
-        // Notas (si hay)
-        if (payment.notes) {
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.text('Notas:', 5, 70);
-          
-          // Dividir notas largas
-          const splitNotes = doc.splitTextToSize(payment.notes, 70);
-          doc.text(splitNotes, 5, 75);
+      let customer = null;
+      if (payment.customerId) {
+        try {
+          const customerResponse = await fetch(`/api/customers/${payment.customerId}`);
+          if (customerResponse.ok) {
+            customer = await customerResponse.json();
+          }
+        } catch (e) {
+          // Continue without customer details
         }
-        
-        // Pie de página
-        doc.setFontSize(8);
-        doc.text('Gracias por su pago', 40, 100, { align: 'center' });
-        doc.text('www.aguaharris.com', 40, 105, { align: 'center' });
-        doc.text('Tel: 809-873-8333', 40, 110, { align: 'center' });
-        
-        // Imprimir
-        doc.autoPrint();
-        window.open(doc.output('bloburl'), '_blank');
-      } else {
-        // En escritorio usamos el método normal con soporte para estilos CSS
-        await PrinterService.printDocument(printContent, {
-          title: printOptions.title,
-          size: [80, 0], // 80mm de ancho, altura automática
-          margins: [5, 5, 5, 5] // márgenes reducidos
-        });
       }
       
+      await PrinterService.printPayment(payment, customer, settings);
     } catch (error: any) {
       console.error('Error al imprimir pago individual:', error);
       toast({
