@@ -510,10 +510,8 @@ export default function PaymentsHistory() {
     }
   };
   
-  // Función para generar PDF del historial de pagos
   const handleGeneratePDF = async () => {
     try {
-      // Verificar que tenemos los datos necesarios
       if (!filteredPayments || filteredPayments.length === 0) {
         toast({
           variant: "destructive",
@@ -523,29 +521,90 @@ export default function PaymentsHistory() {
         return;
       }
       
-      // Usar el servicio para generar PDF
-      const paymentData = {
-        title: "Historial de Pagos",
-        date: new Date().toISOString(),
-        totalAmount: paymentsStats.totalAmount,
-        totalCount: paymentsStats.totalCount
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      let y = 20;
+      
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Historial de Pagos', 105, y, { align: 'center' });
+      y += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total: ${formatCurrency(paymentsStats.totalAmount || 0)} - ${paymentsStats.totalCount || 0} transacciones`, 105, y, { align: 'center' });
+      y += 10;
+      
+      const colX = [14, 44, 90, 120, 148, 195];
+      const headers = ['Fecha', 'Cliente', 'Documento', 'Tipo', 'Método', 'Monto'];
+      
+      const drawTableHeader = () => {
+        doc.setFillColor(243, 244, 246);
+        doc.rect(10, y - 4, 190, 8, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        headers.forEach((header, i) => {
+          const align = i === 5 ? 'right' : 'left';
+          doc.text(header, colX[i], y, { align } as any);
+        });
+        y += 2;
+        doc.setDrawColor(200);
+        doc.line(10, y, 200, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
       };
       
-      const fileName = `pagos_${getTodayStringRD()}.pdf`;
+      drawTableHeader();
       
-      // Generar PDF usando el servicio centralizado
-      await PrinterService.generatePDFDirect(
-        paymentData,
-        DocumentType.PAYMENT,
-        {
-          title: "Historial de Pagos",
-          fileName,
-          size: [210, 297] // A4
-        },
-        {
-          items: filteredPayments
+      filteredPayments.forEach((payment) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+          drawTableHeader();
         }
-      );
+        
+        let dateStr = '-';
+        try {
+          dateStr = format(toRD(payment.date), 'dd/MM/yyyy hh:mm a');
+        } catch (e) {
+          dateStr = String(payment.date || '-');
+        }
+        const customerName = String(payment.customerName || '-');
+        const documento = payment.isAdvance 
+          ? String(payment.documentNumber || '-')
+          : `#${String(payment.invoiceNumber || '-')}`;
+        const tipo = payment.isAdvance ? 'Anticipo' : 'Pago Regular';
+        const methodVal = payment.method || '';
+        const method = methodVal === 'cash' ? 'Efectivo' :
+          methodVal === 'card' ? 'Tarjeta' :
+          methodVal === 'credit' ? 'Crédito' :
+          methodVal === 'transfer' ? 'Transferencia' : 'Otro';
+        const amount = formatCurrency(payment.amount || 0);
+        
+        doc.text(dateStr, colX[0], y);
+        doc.text(customerName, colX[1], y);
+        doc.text(documento, colX[2], y);
+        doc.text(tipo, colX[3], y);
+        doc.text(method, colX[4], y);
+        doc.text(amount, colX[5], y, { align: 'right' } as any);
+        
+        y += 5;
+        doc.setDrawColor(238);
+        doc.line(10, y - 2, 200, y - 2);
+      });
+      
+      const fileName = `historial_pagos_${getTodayStringRD()}.pdf`;
+      doc.save(fileName);
+      
+      toast({
+        title: "PDF generado",
+        description: `El archivo "${fileName}" se ha descargado correctamente.`,
+      });
       
     } catch (error: any) {
       console.error('Error en handleGeneratePDF:', error);
