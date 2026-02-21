@@ -289,10 +289,8 @@ export default function PaymentDashboard() {
     }
   };
   
-  // Función para generar PDF de pagos
   const handleGeneratePDF = async () => {
     try {
-      // Verificar que tenemos los datos necesarios
       if (!filteredPayments || filteredPayments.length === 0) {
         toast({
           variant: "destructive",
@@ -302,29 +300,92 @@ export default function PaymentDashboard() {
         return;
       }
       
-      // Usar el servicio para generar PDF
-      const paymentData = {
-        title: "Pagos Recientes",
-        date: new Date().toISOString(),
-        totalAmount: paymentsStats.totalMonth,
-        totalCount: filteredPayments.length
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      
+      let y = 20;
+      
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Pagos Recientes', 105, y, { align: 'center' });
+      y += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total: ${formatCurrency(paymentsStats.totalMonth)} (este mes)`, 105, y, { align: 'center' });
+      y += 10;
+      
+      const colX = [14, 50, 100, 130, 195];
+      const headers = ['Fecha', 'Cliente', 'Factura', 'Método', 'Monto'];
+      
+      doc.setFillColor(243, 244, 246);
+      doc.rect(10, y - 4, 190, 8, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      headers.forEach((header, i) => {
+        const align = i === 4 ? 'right' : 'left';
+        doc.text(header, colX[i], y, { align } as any);
+      });
+      y += 2;
+      doc.setDrawColor(200);
+      doc.line(10, y, 200, y);
+      y += 6;
+      
+      const drawTableHeader = () => {
+        doc.setFillColor(243, 244, 246);
+        doc.rect(10, y - 4, 190, 8, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        headers.forEach((header, i) => {
+          const align = i === 4 ? 'right' : 'left';
+          doc.text(header, colX[i], y, { align } as any);
+        });
+        y += 2;
+        doc.setDrawColor(200);
+        doc.line(10, y, 200, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
       };
       
-      const fileName = `pagos_${getTodayStringRD()}.pdf`;
-      
-      // Generar PDF usando el servicio centralizado
-      await PrinterService.generatePDFDirect(
-        paymentData,
-        DocumentType.PAYMENT,
-        {
-          title: "Pagos Recientes",
-          fileName,
-          size: [210, 297] // A4
-        },
-        {
-          items: filteredPayments.slice(0, 15) // Limitamos a 15 elementos para no sobrecargar el PDF
+      const payments = filteredPayments.slice(0, 15);
+      payments.forEach((payment) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+          drawTableHeader();
         }
-      );
+        
+        const dateStr = format(new Date(payment.date), 'dd/MM/yyyy hh:mm a');
+        const customerName = payment.customerName || '-';
+        const invoiceNum = payment.invoiceNumber || '-';
+        const method = (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+          (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+          (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+          (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
+        const amount = formatCurrency(payment.amount);
+        
+        doc.text(dateStr, colX[0], y);
+        doc.text(customerName, colX[1], y);
+        doc.text(invoiceNum, colX[2], y);
+        doc.text(method, colX[3], y);
+        doc.text(amount, colX[4], y, { align: 'right' } as any);
+        
+        y += 5;
+        doc.setDrawColor(238);
+        doc.line(10, y - 2, 200, y - 2);
+      });
+      
+      const fileName = `pagos_${getTodayStringRD()}.pdf`;
+      doc.save(fileName);
+      
+      toast({
+        title: "PDF generado",
+        description: `El archivo "${fileName}" se ha descargado correctamente.`,
+      });
       
     } catch (error: any) {
       console.error('Error en handleGeneratePDF:', error);
