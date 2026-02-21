@@ -748,8 +748,7 @@ export class PrinterService {
       yPos += 4;
     }
     
-    // Monto y método
-    doc.text(`Método de pago: ${paymentMethod}`, 10, yPos);
+    doc.text(`Método: ${paymentMethod}`, 10, yPos);
     yPos += 4;
     
     if (safePayment.reference) {
@@ -763,13 +762,13 @@ export class PrinterService {
     doc.line(5, yPos, 75, yPos);
     yPos += 5;
     
-    // Monto total
+    // Monto total (centrado, con espacio después de RD$)
     const amount = parseFloat(safePayment.amount || "0");
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`MONTO PAGADO: RD$${amount.toFixed(2)}`, 75, yPos, { align: 'right' });
-    yPos += 10;
+    doc.text(`MONTO PAGADO: RD$ ${amount.toFixed(2)}`, 40, yPos, { align: 'center' });
+    yPos += 8;
     
     // Notas (si hay)
     if (safePayment.notes) {
@@ -787,9 +786,16 @@ export class PrinterService {
     
     // Línea para firma
     yPos += 10;
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text("Firma: _______________________", 40, yPos, { align: 'center' });
+    doc.text("____________________________", 40, yPos, { align: 'center' });
+    yPos += 4;
+    doc.text("Firma", 40, yPos, { align: 'center' });
+    yPos += 5;
+    
+    // Separador final
+    doc.setDrawColor(200);
+    doc.line(5, yPos, 75, yPos);
     
     return yPos;
   }
