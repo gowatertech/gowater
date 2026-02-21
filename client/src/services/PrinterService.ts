@@ -366,9 +366,9 @@ export class PrinterService {
     
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
+    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     if (custAddr) { doc.text(`Dirección: ${custAddr}`, 10, yPos); yPos += 4; }
     if (custLocation) { doc.text(custLocation, 10, yPos); yPos += 4; }
-    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     doc.text(`Método de pago: ${paymentMethod}`, 10, yPos); yPos += 4;
     
     // Línea separadora
@@ -380,7 +380,7 @@ export class PrinterService {
     // Encabezado de productos
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text("DETALLE DE PRODUCTOS", 40, yPos, { align: 'center' });
+    doc.text("DETALLE DE LA FACTURA", 40, yPos, { align: 'center' });
     yPos += 5;
     
     // Columnas de la tabla
@@ -404,24 +404,17 @@ export class PrinterService {
     
     if (Array.isArray(items) && items.length > 0) {
       const sortedItems = [...items].filter(Boolean).sort((a, b) => {
-        const nameA = products.find((p) => p?.id === a?.productId)?.name || "Producto";
-        const nameB = products.find((p) => p?.id === b?.productId)?.name || "Producto";
+        const nameA = a?.product?.name || products.find((p) => p?.id === a?.productId)?.name || "Producto";
+        const nameB = b?.product?.name || products.find((p) => p?.id === b?.productId)?.name || "Producto";
         return nameA.localeCompare(nameB);
       });
       sortedItems.forEach((item) => {
-        const product = products.find((p) => p?.id === item?.productId);
-        const productName = product?.name || "Producto";
+        const productName = item?.product?.name || products.find((p: any) => p?.id === item?.productId)?.name || "Producto";
         const quantity = item?.quantity || 0;
         const price = parseFloat(item?.price || 0);
         const total = price * quantity;
         
-        // Acortar nombre si es muy largo
-        let displayName = productName;
-        if (displayName.length > 18) {
-          displayName = displayName.substring(0, 16) + "...";
-        }
-        
-        doc.text(displayName, 5, yPos);
+        doc.text(productName, 5, yPos);
         doc.text(`${quantity}`, 35, yPos, { align: 'center' });
         doc.text(`RD$${price.toFixed(2)}`, 55, yPos, { align: 'right' });
         doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
@@ -474,11 +467,10 @@ export class PrinterService {
     if (invoice.notes) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text("Nota:", 5, yPos);
+      doc.text("Nota de la Factura:", 5, yPos);
       yPos += 4;
       
-      // Dividir notas en líneas si son muy largas
-      const maxWidth = 70; // Ancho máximo en mm para notas
+      const maxWidth = 70;
       const splitNotes = doc.splitTextToSize(invoice.notes, maxWidth);
       
       doc.text(splitNotes, 5, yPos);
@@ -942,68 +934,49 @@ export class PrinterService {
    */
   static async printInvoice(invoice: any, settings: any, customers: any = [], items: any = []): Promise<void> {
     try {
-      // Buscar el cliente correspondiente
       const customer = customers.find((c: any) => c.id === invoice.customerId);
-      
-      // Crear contenido HTML para impresión
+
       const printContent = document.createElement('div');
       printContent.className = 'invoice-print-content';
       printContent.style.width = '80mm';
-      printContent.style.padding = '10px';
+      printContent.style.boxSizing = 'border-box';
+      printContent.style.padding = '5mm';
       printContent.style.fontFamily = 'Arial, sans-serif';
-      
-      // Encabezado con datos de la empresa
-      printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${settings?.rnc || ''}</div>
-          ${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '')}</div>` : ''}
-          ${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '')}</div>` : ''}
-          <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
-        </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 10px;">FACTURA #${invoice.id}</div>
-      `;
-      
+      printContent.style.fontSize = '10px';
+
+      const companyName = settings?.name || 'Empresa';
+      const rnc = settings?.rnc || '';
+      const companyAddr = PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '');
+      const companyLocation = PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '');
+      const contactPhone = settings?.contactPhone || '';
+      const email = settings?.email || '';
+
+      let formattedDate = '';
+      try {
+        formattedDate = formatDateRD(invoice.date, {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      } catch (e) {
+        formattedDate = 'Fecha no disponible';
+      }
+
+      const businessname = customer?.businessname || 'Cliente';
+      const customerPhone = customer?.phone || '';
       const invoiceCustomerAddr = PrinterService.buildCustomerAddress(customer);
-      const invoiceCustomerLocation = PrinterService.buildLocationLine(customer?.municipalityName || customer?.municipality || '', customer?.provinceName || customer?.province || '');
-      printContent.innerHTML += `
-        <div style="margin-bottom: 10px; font-size: 12px;">
-          <div><strong>Fecha:</strong> ${formatDateRD(invoice.date, {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          })}</div>
-          <div><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
-          <div><strong>Dirección:</strong> ${invoiceCustomerAddr}</div>
-          ${invoiceCustomerLocation ? `<div>${invoiceCustomerLocation}</div>` : ''}
-          <div><strong>Teléfono:</strong> ${customer?.phone || ''}</div>
-          <div><strong>Método de pago:</strong> ${
-            invoice.paymentMethod === 'cash' ? 'Efectivo' : 
-            invoice.paymentMethod === 'credit' ? 'Crédito' : 
-            invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado'
-          }</div>
-        </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-      `;
-      
-      // Tabla de productos
-      printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DE PRODUCTOS</div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-          <tr style="border-bottom: 1px solid #ddd;">
-            <th style="text-align: left; padding: 3px;">Producto</th>
-            <th style="text-align: center; padding: 3px;">Cant.</th>
-            <th style="text-align: right; padding: 3px;">Precio</th>
-            <th style="text-align: right; padding: 3px;">Total</th>
-          </tr>
-      `;
-      
-      // Calcular totales
+      const invoiceCustomerLocation = PrinterService.buildLocationLine(
+        customer?.municipalityName || customer?.municipality || '',
+        customer?.provinceName || customer?.province || ''
+      );
+      const paymentMethod =
+        invoice.paymentMethod === 'cash' ? 'Efectivo' :
+        invoice.paymentMethod === 'credit' ? 'Crédito' :
+        invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
+
+      let productRows = '';
       let subtotal = 0;
-      
-      // Agregar filas de productos ordenados alfabéticamente
+
       if (Array.isArray(items) && items.length > 0) {
         const sortedPrintItems = [...items].filter(Boolean).sort((a: any, b: any) => {
           const nameA = a?.product?.name || "Producto";
@@ -1016,35 +989,63 @@ export class PrinterService {
           const price = parseFloat(item?.price || 0);
           const total = price * quantity;
           subtotal += total;
-          
-          printContent.innerHTML += `
+
+          productRows += `
             <tr style="border-bottom: 1px solid #eee;">
               <td style="text-align: left; padding: 3px;">${product}</td>
               <td style="text-align: center; padding: 3px;">${quantity}</td>
-              <td style="text-align: right; padding: 3px;">${price.toFixed(2)}</td>
-              <td style="text-align: right; padding: 3px;">${total.toFixed(2)}</td>
+              <td style="text-align: right; padding: 3px;">RD$${price.toFixed(2)}</td>
+              <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
             </tr>
           `;
         });
       } else {
-        printContent.innerHTML += `
-          <tr><td colspan="4" style="text-align: center; padding: 5px;">No hay productos</td></tr>
-        `;
+        productRows = `<tr><td colspan="4" style="text-align: center; padding: 5px;">No hay productos</td></tr>`;
       }
-      
-      // Cerrar tabla
-      printContent.innerHTML += `</table>`;
-      
-      // Separador
-      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 10px 0;"></div>`;
-      
-      // Calcular impuestos
+
       const itbis = subtotal * 0.18;
       const total = subtotal + itbis;
-      
-      // Totales
-      printContent.innerHTML += `
-        <div style="margin-top: 5px; font-size: 12px;">
+
+      let notesHtml = '';
+      if (invoice.notes) {
+        notesHtml = `
+          <div style="margin-top: 10px; font-size: 10px;">
+            <div style="font-weight: bold; margin-bottom: 3px;">Nota de la Factura:</div>
+            <div>${invoice.notes}</div>
+          </div>
+        `;
+      }
+
+      printContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
+          <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
+          ${companyAddr ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyAddr}</div>` : ''}
+          ${companyLocation ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyLocation}</div>` : ''}
+          <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
+          <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">FACTURA #${invoice.id || 'N/A'}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
+        ${invoiceCustomerAddr ? `<div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${invoiceCustomerAddr}</div>` : ''}
+        ${invoiceCustomerLocation ? `<div style="margin-bottom: 3px; padding-left: 15px;">${invoiceCustomerLocation}</div>` : ''}
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Método de pago:</strong> ${paymentMethod}</div>
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DE LA FACTURA</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <tr style="border-bottom: 1px solid #ddd;">
+            <th style="text-align: left; padding: 3px;">Producto</th>
+            <th style="text-align: center; padding: 3px;">Cant.</th>
+            <th style="text-align: right; padding: 3px;">Precio</th>
+            <th style="text-align: right; padding: 3px;">Total</th>
+          </tr>
+          ${productRows}
+        </table>
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="margin-top: 10px; font-size: 11px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
             <span style="flex: 1; text-align: right;">RD$ ${subtotal.toFixed(2)}</span>
@@ -1058,29 +1059,15 @@ export class PrinterService {
             <span style="flex: 1; text-align: right;">RD$ ${total.toFixed(2)}</span>
           </div>
         </div>
-      `;
-      
-      // Notas (si hay)
-      if (invoice.notes) {
-        printContent.innerHTML += `
-          <div style="margin-top: 10px; font-size: 11px;">
-            <div style="font-weight: bold; margin-bottom: 3px;">Nota de la Factura:</div>
-            <div>${invoice.notes}</div>
-          </div>
-        `;
-      }
-      
-      // Mensaje final y pie de página
-      printContent.innerHTML += `
+        ${notesHtml}
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
         <div style="text-align: center; margin-top: 10px; font-size: 11px;">
           ¡Gracias por su compra!
         </div>
       `;
-      
-      // Imprimir usando el método genérico
+
       await this.printDocument(printContent, {
-        title: `Factura #${invoice.id}`,
+        title: `Factura #${invoice.id || 'N/A'}`,
         size: [80, 200],
       });
     } catch (error: any) {
@@ -1099,175 +1086,21 @@ export class PrinterService {
   static async generateInvoicePDF(invoice: any, settings: any, customers: any = [], items: any = []): Promise<void> {
     try {
       const customer = customers.find((c: any) => c.id === invoice.customerId);
-      
-      // Elegir el método según el dispositivo
-      if (this.isMobileDevice()) {
-        // En móviles, usar generación directa (mejor rendimiento)
-        await this.generatePDFDirect(
-          invoice,
-          DocumentType.INVOICE,
-          {
-            title: `Factura #${invoice.id}`,
-            size: [80, 200],
-            fileName: `Factura-${invoice.id}.pdf`
-          },
-          {
-            settings,
-            customer,
-            items
-          }
-        );
-      } else {
-        // En escritorio, usar HTML2Canvas (más visual)
-        const pdfContent = document.createElement('div');
-        pdfContent.id = 'invoice-pdf-content';
-        pdfContent.style.width = '80mm';
-        pdfContent.style.padding = '10px';
-        pdfContent.style.fontFamily = 'Arial, sans-serif';
-        pdfContent.style.position = 'absolute';
-        pdfContent.style.left = '-9999px';
-        document.body.appendChild(pdfContent);
-        
-        // Encabezado con datos de la empresa
-        pdfContent.innerHTML = `
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-            <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${settings?.rnc || ''}</div>
-            ${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '')}</div>` : ''}
-            ${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '')}</div>` : ''}
-            <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
-            <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
-          </div>
-          <div style="border-bottom: 1px solid #000; margin: 10px 0 20px;"></div>
-          <div style="text-align: center; font-weight: bold; font-size: 18px; margin: 20px 0;">FACTURA</div>
-        `;
-        
-        const pdfInvCustAddr = PrinterService.buildCustomerAddress(customer);
-        const pdfInvCustLocation = PrinterService.buildLocationLine(customer?.municipalityName || customer?.municipality || '', customer?.provinceName || customer?.province || '');
-        pdfContent.innerHTML += `
-          <div style="margin-bottom: 20px; font-size: 14px;">
-            <div style="margin-bottom: 8px;"><strong>Factura #:</strong> ${invoice.id}</div>
-            <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${formatDateRD(invoice.date, {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })}</div>
-            <div style="margin-bottom: 8px;"><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
-            <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${pdfInvCustAddr}</div>
-            ${pdfInvCustLocation ? `<div style="margin-bottom: 8px;">${pdfInvCustLocation}</div>` : ''}
-            <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${customer?.phone || ''}</div>
-            <div style="margin-bottom: 8px;"><strong>Método de pago:</strong> ${
-              invoice.paymentMethod === 'cash' ? 'Efectivo' : 
-              invoice.paymentMethod === 'credit' ? 'Crédito' : 
-              invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado'
-            }</div>
-          </div>
-          <div style="border-bottom: 1px solid #000; margin: 10px 0 20px;"></div>
-        `;
-        
-        // Tabla de productos
-        const productTable = document.createElement('table');
-        productTable.style.width = '100%';
-        productTable.style.borderCollapse = 'collapse';
-        productTable.style.marginBottom = '20px';
-        productTable.style.fontSize = '14px';
-        
-        // Cabecera de la tabla
-        productTable.innerHTML = `
-          <thead>
-            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
-              <th style="padding: 8px; text-align: left;">Producto</th>
-              <th style="padding: 8px; text-align: right;">Cant.</th>
-              <th style="padding: 8px; text-align: right;">Precio</th>
-              <th style="padding: 8px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-        `;
-        
-        // Filas de productos ordenados alfabéticamente
-        let subtotal = 0;
-        
-        if (Array.isArray(items) && items.length > 0) {
-          const sortedPdfItems = [...items].filter(Boolean).sort((a: any, b: any) => {
-            const nameA = a?.product?.name || "Producto";
-            const nameB = b?.product?.name || "Producto";
-            return nameA.localeCompare(nameB);
-          });
-          sortedPdfItems.forEach((item: any) => {
-            const product = item?.product?.name || "Producto";
-            const quantity = item?.quantity || 0;
-            const price = parseFloat(item?.price || 0);
-            const total = price * quantity;
-            subtotal += total;
-            
-            productTable.innerHTML += `
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px; text-align: left;">${product}</td>
-                <td style="padding: 8px; text-align: right;">${quantity}</td>
-                <td style="padding: 8px; text-align: right;">${price.toFixed(2)}</td>
-                <td style="padding: 8px; text-align: right;">${total.toFixed(2)}</td>
-              </tr>
-            `;
-          });
-        } else {
-          productTable.innerHTML += `
-            <tr><td colspan="4" style="text-align: center; padding: 15px;">No hay productos</td></tr>
-          `;
-        }
-        
-        productTable.innerHTML += `</tbody>`;
-        pdfContent.appendChild(productTable);
-        
-        // Cálculo de totales
-        const itbis = subtotal * 0.18;
-        const total = subtotal + itbis;
-        
-        // Resumen de totales
-        pdfContent.innerHTML += `
-          <div style="margin-top: 20px; font-size: 14px; text-align: right;">
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
-              <div style="width: 150px; text-align: left; padding-right: 20px;">Subtotal:</div>
-              <div style="width: 100px; text-align: right;">RD$ ${subtotal.toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 5px;">
-              <div style="width: 150px; text-align: left; padding-right: 20px;">ITBIS (18%):</div>
-              <div style="width: 100px; text-align: right;">RD$ ${itbis.toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 5px; font-weight: bold;">
-              <div style="width: 150px; text-align: left; padding-right: 20px;">Total:</div>
-              <div style="width: 100px; text-align: right;">RD$ ${total.toFixed(2)}</div>
-            </div>
-          </div>
-        `;
-        
-        // Notas (si hay)
-        if (invoice.notes) {
-          pdfContent.innerHTML += `
-            <div style="margin-top: 30px; font-size: 14px;">
-              <div style="font-weight: bold; margin-bottom: 8px;">Nota de la Factura:</div>
-              <div style="font-style: italic;">${invoice.notes}</div>
-            </div>
-          `;
-        }
-        
-        // Mensaje de agradecimiento
-        pdfContent.innerHTML += `
-          <div style="text-align: center; margin-top: 40px; font-size: 14px;">
-            Gracias por su compra
-          </div>
-        `;
-        
-        // Generar PDF
-        await this.generatePDFFromHTML(pdfContent, {
+
+      await this.generatePDFDirect(
+        invoice,
+        DocumentType.INVOICE,
+        {
           title: `Factura #${invoice.id}`,
           size: [80, 200],
           fileName: `Factura-${invoice.id}.pdf`
-        });
-        
-        // Eliminar el div temporal
-        document.body.removeChild(pdfContent);
-      }
+        },
+        {
+          settings,
+          customer,
+          items
+        }
+      );
     } catch (error: any) {
       console.error('Error en generateInvoicePDF:', error);
       toast({
