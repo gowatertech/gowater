@@ -54,8 +54,9 @@ import { getTimestampRD, formatTimeRD, formatDateRD } from "@/lib/date-utils";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { getDB } from "@/lib/offline-db";
 import { WhatsAppDialog } from "@/components/WhatsAppDialog";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, PenLine } from "lucide-react";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import SignaturePad from "@/components/SignaturePad";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -116,6 +117,8 @@ export default function DeliveryDetails() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit" | "donation">("cash");
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
+  const [receivedBy, setReceivedBy] = useState("");
+  const [receiverSignature, setReceiverSignature] = useState<string | null>(null);
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [autoEnterEditMode, setAutoEnterEditMode] = useState(false);
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
@@ -525,6 +528,8 @@ export default function DeliveryDetails() {
       setPaymentMethod(initialPaymentMethod as "cash" | "credit" | "donation");
       setPaymentReceived(delivery.total);
       setUpdateCustomerBalance(true);
+      setReceivedBy("");
+      setReceiverSignature(null);
       setShowDeliveryConfirm(true);
       
       // Log para depuración
@@ -557,7 +562,15 @@ export default function DeliveryDetails() {
       return;
     }
 
-    // Detectar pago parcial en efectivo (incluye $0)
+    if (paymentMethod === "credit" && !receiverSignature) {
+      toast({
+        title: "Firma requerida",
+        description: "Para entregas a crédito, debe capturar la firma de quien recibe.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const isPartialPayment = paymentMethod === "cash" && paymentReceived < delivery.total;
     
     if (isPartialPayment) {
@@ -639,11 +652,16 @@ export default function DeliveryDetails() {
       const isPartialPayment = paymentMethod === "cash" && paymentReceived < delivery.total;
       
       // Preparar datos para la actualización
-      const requestBody = {
-        paymentMethod: isPartialPayment ? "credit" : paymentMethod, // Si es pago parcial, crear factura a crédito
+      const requestBody: any = {
+        paymentMethod: isPartialPayment ? "credit" : paymentMethod,
         amountPaid: paymentReceived,
-        userId: user?.id // Usuario que procesa la entrega
+        userId: user?.id
       };
+
+      if (paymentMethod === "credit" || isPartialPayment) {
+        if (receivedBy.trim()) requestBody.receivedBy = receivedBy.trim();
+        if (receiverSignature) requestBody.receiverSignature = receiverSignature;
+      }
 
       console.log("Procesando entrega con datos:", JSON.stringify(requestBody));
       console.log("Método de pago seleccionado:", paymentMethod);
@@ -1405,7 +1423,7 @@ export default function DeliveryDetails() {
 
             {/* Sección de crédito */}
             {!delivery.invoiceId && paymentMethod === "credit" && !(delivery?.customerIsCharity && delivery?.paymentMethod === 'donation') && (
-              <div className="border rounded-lg p-3">
+              <div className="border rounded-lg p-3 space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Monto a crédito:</span>
                   <span className="font-bold">${delivery.total.toFixed(2)}</span>
@@ -1413,6 +1431,32 @@ export default function DeliveryDetails() {
                 <p className="text-sm text-muted-foreground">
                   Este monto será añadido a la cuenta de crédito del cliente.
                 </p>
+                <Separator />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                    <PenLine className="h-4 w-4" />
+                    <span>Confirmación de recepción</span>
+                  </div>
+                  <div>
+                    <Label htmlFor="received-by" className="text-sm font-medium block mb-1">
+                      Nombre de quien recibe:
+                    </Label>
+                    <Input
+                      id="received-by"
+                      placeholder="Ej: Juan Pérez"
+                      value={receivedBy}
+                      onChange={(e) => setReceivedBy(e.target.value)}
+                      className={darkMode ? 'bg-gray-700 border-gray-600' : ''}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium block mb-1">Firma del receptor:</Label>
+                    <SignaturePad
+                      onSignatureChange={setReceiverSignature}
+                      height={120}
+                    />
+                  </div>
+                </div>
               </div>
             )}
             

@@ -548,7 +548,7 @@ export function createMobileApiEndpoints(): Router {
       setCurrentCompanyId(companyId);
       
       // Obtener datos necesarios del body
-      let { paymentMethod, amountPaid, userId: userIdFromBody } = req.body;
+      let { paymentMethod, amountPaid, userId: userIdFromBody, receivedBy, receiverSignature } = req.body;
       
       // Obtener userId: primero del body (app móvil lo envía), luego de la sesión como fallback
       const userId = userIdFromBody || req.session?.user?.id || null;
@@ -607,7 +607,9 @@ export function createMobileApiEndpoints(): Router {
           status: "delivered",
           cashCollected: amountPaid.toString(),
           actualDeliveryTime: deliveryTime,
-          deliveredBy: userId || null // Guardar quién procesó la entrega
+          deliveredBy: userId || null,
+          receivedBy: receivedBy || null,
+          receiverSignature: receiverSignature || null,
         })
         .where(and(
           eq(orders.id, orderId),
