@@ -768,7 +768,7 @@ export default function DeliveryDetails() {
         })}</div>
         <div style="margin-bottom: 5px;">Cliente: ${orderData.customerName || "Cliente"}</div>
         <div style="margin-bottom: 5px;">Teléfono: ${orderData.customerPhone || ""}</div>
-        <div style="margin-bottom: 5px;">Dirección: ${orderData.customerAddress}</div>
+        <div style="margin-bottom: 5px;">Dirección: ${[orderData.customerAddress, orderData.customerAddressNumber].filter(Boolean).join(" ")}</div>
         <div style="margin-bottom: 10px;">${orderData.municipalityName || ""}, ${orderData.provinceName || ""}</div>
         <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
       `;

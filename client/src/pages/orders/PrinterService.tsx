@@ -90,18 +90,21 @@ export const printOrderTicket = (
       formattedDate = 'Fecha no disponible';
     }
     
-    const businessname = customer?.businessname || "Cliente";
-    const customerPhone = order.customerPhone || "";
-    const customerAddress = order.customerAddress || "";
-    const orderMunicipalityName = order.municipalityName || "";
-    const orderProvinceName = order.provinceName || "";
+    const businessname = customer?.businessname || order.customerName || "Cliente";
+    const customerPhone = customer?.phone || order.customerPhone || "";
+    const customerStreet = customer?.street || order.customerAddress || "";
+    const customerStreetNumber = customer?.streetnumber || order.customerAddressNumber || "";
+    const customerSector = customer?.sector || "";
+    const fullAddress = [customerStreet, customerStreetNumber, customerSector].filter(Boolean).join(" ");
+    const orderMunicipalityName = customer?.municipalityName || order.municipalityName || "";
+    const orderProvinceName = customer?.provinceName || order.provinceName || "";
     
     orderInfo.innerHTML = `
       <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id || 'N/A'}</div>
       <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
       <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
       <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${customerAddress}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${fullAddress}</div>
       <div style="margin-bottom: 3px; padding-left: 15px;">${orderMunicipalityName}, ${orderProvinceName}</div>
     `;
     printContent.appendChild(orderInfo);
@@ -112,10 +115,13 @@ export const printOrderTicket = (
     separator2.style.margin = '10px 0';
     printContent.appendChild(separator2);
     
-    // Tabla de productos
-    printContent.innerHTML += `
-      <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
-    `;
+    // Título de productos
+    const productTitle = document.createElement('div');
+    productTitle.style.textAlign = 'center';
+    productTitle.style.fontWeight = 'bold';
+    productTitle.style.marginBottom = '5px';
+    productTitle.textContent = 'DETALLE DEL PEDIDO';
+    printContent.appendChild(productTitle);
     
     const table = document.createElement('table');
     table.style.width = '100%';
@@ -397,11 +403,14 @@ export const generateOrderPdf = (
     
     // Datos seguros del pedido
     const orderId = order.id || 'N/A';
-    const businessname = customer?.businessname || "Cliente";
-    const customerPhone = order.customerPhone || "";
-    const customerAddress = order.customerAddress || "";
-    const orderMunicipalityName = order.municipalityName || "";
-    const orderProvinceName = order.provinceName || "";
+    const businessname = customer?.businessname || order.customerName || "Cliente";
+    const customerPhone = customer?.phone || order.customerPhone || "";
+    const customerStreet = customer?.street || order.customerAddress || "";
+    const customerStreetNumber = customer?.streetnumber || order.customerAddressNumber || "";
+    const customerSector = customer?.sector || "";
+    const fullAddress = [customerStreet, customerStreetNumber, customerSector].filter(Boolean).join(" ");
+    const orderMunicipalityName = customer?.municipalityName || order.municipalityName || "";
+    const orderProvinceName = customer?.provinceName || order.provinceName || "";
     
     // Detalles del pedido
     doc.setFontSize(10);
@@ -426,7 +435,7 @@ export const generateOrderPdf = (
     doc.text(`Fecha: ${formattedDate}`, 15, 43);
     doc.text(`Cliente: ${businessname}`, 15, 47);
     doc.text(`Teléfono: ${customerPhone}`, 15, 51);
-    doc.text(`Dirección: ${customerAddress}`, 15, 55);
+    doc.text(`Dirección: ${fullAddress}`, 15, 55);
     doc.text(`${orderMunicipalityName}, ${orderProvinceName}`, 15, 59);
     
     // Notas del pedido si existen
