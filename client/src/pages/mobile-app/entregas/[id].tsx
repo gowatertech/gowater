@@ -110,6 +110,7 @@ export default function DeliveryDetails() {
   const [isLoading, setIsLoading] = useState(true);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [routeId, setRouteId] = useState<number | null>(null);
+  const [fromDashboard, setFromDashboard] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProducts, setEditedProducts] = useState<{id: number; name: string; quantity: number; price: number}[]>([]);
   const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
@@ -131,6 +132,11 @@ export default function DeliveryDetails() {
     const urlParams = new URLSearchParams(window.location.search);
     const routeIdFromUrl = urlParams.get('routeId');
     const editMode = urlParams.get('edit');
+    const fromParam = urlParams.get('from');
+    
+    if (fromParam === 'dashboard') {
+      setFromDashboard(true);
+    }
     
     if (routeIdFromUrl) {
       setRouteId(parseInt(routeIdFromUrl));
@@ -1227,7 +1233,7 @@ export default function DeliveryDetails() {
               variant="ghost" 
               size="sm" 
               className="mr-2 p-1" 
-              onClick={() => routeId ? setLocation(`/mobile-app/ruta?routeId=${routeId}`) : setLocation('/mobile-app/entregas')}
+              onClick={() => routeId ? setLocation(`/mobile-app/ruta?routeId=${routeId}`) : fromDashboard ? setLocation('/mobile-app') : setLocation('/mobile-app/entregas')}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
