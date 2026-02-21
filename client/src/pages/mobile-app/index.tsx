@@ -363,7 +363,11 @@ export default function GoWaterDriverApp() {
                   const customer = customers.find((c: any) => c.id === order.customerId);
                   
                   return (
-                    <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div 
+                      key={order.id} 
+                      className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 active:scale-[0.98] transition-transform cursor-pointer"
+                      onClick={() => setLocation(`/mobile-app/entregas/${order.id}`)}
+                    >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -377,9 +381,12 @@ export default function GoWaterDriverApp() {
                             </div>
                           </div>
                         </div>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          ${Number(order.total).toLocaleString('es-ES', {minimumFractionDigits: 2})}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">
+                            ${Number(order.total).toLocaleString('es-ES', {minimumFractionDigits: 2})}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-1 ml-12">
                         {order.products && order.products.map((product: any, idx: number) => (
