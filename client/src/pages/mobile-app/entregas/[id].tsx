@@ -1514,37 +1514,36 @@ export default function DeliveryDetails() {
           )}
           
           {/* Botones de impresión, PDF y WhatsApp */}
-          <div className="flex space-x-2 mt-4">
+          <div className="grid grid-cols-3 gap-2 mt-4">
             <Button 
-              className="flex-1" 
+              className="h-11 px-2 text-xs" 
               variant="outline"
               onClick={handlePrint}
               disabled={isEditing}
             >
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir
+              <Printer className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">Imprimir</span>
             </Button>
             
             <Button 
-              className="flex-1" 
+              className="h-11 px-2 text-xs" 
               variant="outline"
               onClick={handleDownload}
               disabled={isEditing}
             >
-              <FileDown className="h-4 w-4 mr-2" />
-              PDF
+              <FileDown className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">PDF</span>
             </Button>
             
             <Button 
-              className="flex-1" 
+              className="h-11 px-2 text-xs text-green-600" 
               variant="outline"
               onClick={() => setWhatsappDialogOpen(true)}
               disabled={isEditing}
               data-testid="button-whatsapp-delivery"
-              style={{ color: '#16a34a' }}
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              WhatsApp
+              <MessageCircle className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">WhatsApp</span>
             </Button>
           </div>
           
