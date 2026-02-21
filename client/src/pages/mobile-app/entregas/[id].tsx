@@ -1254,12 +1254,12 @@ export default function DeliveryDetails() {
       
       {/* Diálogo de confirmación de entrega */}
       <Dialog open={showDeliveryConfirm} onOpenChange={setShowDeliveryConfirm}>
-        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-800 text-white border-gray-700' : ''}`}>
-          <DialogHeader>
+        <DialogContent className={`sm:max-w-md max-h-[90vh] flex flex-col ${darkMode ? 'dark bg-gray-800 text-white border-gray-700' : ''}`}>
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-xl">Confirmar Entrega</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-5 py-4">
+          <div className="space-y-5 py-4 overflow-y-auto flex-1 min-h-0">
             {/* Sección de total */}
             <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 mb-4">
               <div className="flex justify-between items-center">
@@ -1474,7 +1474,7 @@ export default function DeliveryDetails() {
             </div>
           </div>
           
-          <DialogFooter className="flex space-x-3 border-t pt-3">
+          <DialogFooter className="flex space-x-3 border-t pt-3 flex-shrink-0">
             <Button 
               variant="outline" 
               onClick={() => setShowDeliveryConfirm(false)}
