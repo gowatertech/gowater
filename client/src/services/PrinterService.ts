@@ -403,9 +403,12 @@ export class PrinterService {
     const products = extraData.products || [];
     
     if (Array.isArray(items) && items.length > 0) {
-      items.forEach((item) => {
-        if (!item) return; // Saltar items nulos
-        
+      const sortedItems = [...items].filter(Boolean).sort((a, b) => {
+        const nameA = products.find((p) => p?.id === a?.productId)?.name || "Producto";
+        const nameB = products.find((p) => p?.id === b?.productId)?.name || "Producto";
+        return nameA.localeCompare(nameB);
+      });
+      sortedItems.forEach((item) => {
         const product = products.find((p) => p?.id === item?.productId);
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
@@ -1006,9 +1009,14 @@ export class PrinterService {
       // Calcular totales
       let subtotal = 0;
       
-      // Agregar filas de productos
+      // Agregar filas de productos ordenados alfabéticamente
       if (Array.isArray(items) && items.length > 0) {
-        items.forEach((item: any) => {
+        const sortedPrintItems = [...items].filter(Boolean).sort((a: any, b: any) => {
+          const nameA = a?.product?.name || "Producto";
+          const nameB = b?.product?.name || "Producto";
+          return nameA.localeCompare(nameB);
+        });
+        sortedPrintItems.forEach((item: any) => {
           const product = item?.product?.name || "Producto";
           const quantity = item?.quantity || 0;
           const price = parseFloat(item?.price || 0);
@@ -1183,11 +1191,16 @@ export class PrinterService {
           <tbody>
         `;
         
-        // Filas de productos
+        // Filas de productos ordenados alfabéticamente
         let subtotal = 0;
         
         if (Array.isArray(items) && items.length > 0) {
-          items.forEach((item: any) => {
+          const sortedPdfItems = [...items].filter(Boolean).sort((a: any, b: any) => {
+            const nameA = a?.product?.name || "Producto";
+            const nameB = b?.product?.name || "Producto";
+            return nameA.localeCompare(nameB);
+          });
+          sortedPdfItems.forEach((item: any) => {
             const product = item?.product?.name || "Producto";
             const quantity = item?.quantity || 0;
             const price = parseFloat(item?.price || 0);
