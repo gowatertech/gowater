@@ -121,6 +121,7 @@ export default function DeliveryDetails() {
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
   const [showPartialPaymentConfirm, setShowPartialPaymentConfirm] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [customerBalance, setCustomerBalance] = useState<string>("0.00");
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -298,6 +299,18 @@ export default function DeliveryDetails() {
       };
       
       setDelivery(deliveryData);
+      
+      try {
+        const balanceData = await apiRequest({
+          url: `/api/mobile/customers/${deliveryData.customerId}/pending-invoices`,
+          method: 'GET'
+        });
+        if (balanceData && balanceData.customerBalance) {
+          setCustomerBalance(balanceData.customerBalance);
+        }
+      } catch (balanceError) {
+        console.log('[DeliveryDetails] No se pudo obtener balance CXC:', balanceError);
+      }
     } catch (error) {
       console.error('[DeliveryDetails] Error al cargar detalles de la entrega:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
@@ -1271,6 +1284,36 @@ export default function DeliveryDetails() {
                   <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span>Total: ${delivery.total.toFixed(2)}</span>
                 </div>
+              </div>
+              
+              <Separator className="my-3" />
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${parseFloat(customerBalance) > 0 ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                    <CreditCard className={`h-4 w-4 ${parseFloat(customerBalance) > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">CXC del Cliente</p>
+                    <p className={`text-sm font-bold ${parseFloat(customerBalance) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      RD$ {parseFloat(customerBalance).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+                {parseFloat(customerBalance) > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-10 px-3 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    onClick={() => {
+                      const returnUrl = encodeURIComponent(`/mobile-app/entregas/${delivery.id}${routeId ? `?routeId=${routeId}` : ''}`);
+                      setLocation(`/mobile-app/payments/abono-cuenta?customerId=${delivery.customerId}&returnUrl=${returnUrl}`);
+                    }}
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Abono a Cuenta
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
