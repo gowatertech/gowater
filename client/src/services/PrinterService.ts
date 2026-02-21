@@ -536,13 +536,13 @@ export class PrinterService {
     const province = String(customer?.provinceName || customer?.province || order.provinceName || "");
     const phone = String(customer?.phone || order.customerPhone || "");
     
-    // Añadir información del cliente - aseguramos que todo sea string
+    // Añadir información del cliente - mismo orden que la impresión
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
+    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     if (fullAddress) { doc.text(`Dirección: ${fullAddress}`, 10, yPos); yPos += 4; }
     const locationLine = PrinterService.buildLocationLine(municipality, province);
     if (locationLine) { doc.text(locationLine, 10, yPos); yPos += 4; }
-    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     
     // Línea separadora
     yPos += 2;
@@ -553,7 +553,7 @@ export class PrinterService {
     // Encabezado de productos
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text("DETALLE DE PRODUCTOS", 40, yPos, { align: 'center' });
+    doc.text("DETALLE DEL PEDIDO", 40, yPos, { align: 'center' });
     yPos += 5;
     
     // Columnas de la tabla
@@ -588,12 +588,7 @@ export class PrinterService {
         const price = parseFloat(item?.unitPrice || item?.price || 0);
         const total = price * quantity;
         
-        let displayName = productName;
-        if (displayName.length > 18) {
-          displayName = displayName.substring(0, 16) + "...";
-        }
-        
-        doc.text(displayName, 5, yPos);
+        doc.text(productName, 5, yPos);
         doc.text(`${quantity}`, 35, yPos, { align: 'center' });
         doc.text(`RD$${price.toFixed(2)}`, 55, yPos, { align: 'right' });
         doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
@@ -653,11 +648,10 @@ export class PrinterService {
     if (order.notes) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text("Nota:", 5, yPos);
+      doc.text("Nota del Pedido:", 5, yPos);
       yPos += 4;
       
-      // Dividir notas en líneas si son muy largas
-      const maxWidth = 70; // Ancho máximo en mm para notas
+      const maxWidth = 70;
       const splitNotes = doc.splitTextToSize(order.notes, maxWidth);
       
       doc.text(splitNotes, 5, yPos);
