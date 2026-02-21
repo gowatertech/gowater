@@ -1,32 +1,27 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { jsPDF } from "jspdf";
-import { 
-  Package, 
-  Search, 
-  Filter, 
-  XCircle, 
-  CheckCircle, 
-  Clock, 
+import {
+  Package,
+  Search,
+  XCircle,
+  CheckCircle,
+  Clock,
   AlertTriangle,
-  Printer,
-  FileDown,
-  Eye
+  Truck,
+  X,
+  MapPin,
+  Loader2,
+  ChevronRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useOfflineDeliveries } from "@/hooks/use-offline-data";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
-import { formatTodayRD, formatTimeRD } from "@/lib/date-utils";
+import { formatTimeRD } from "@/lib/date-utils";
 
-// Tipo para un retorno de envase
 interface BottleReturn {
   id: number;
   orderId: number;
@@ -43,7 +38,6 @@ interface BottleReturn {
   chargeMethod: "commission" | "cash" | null;
 }
 
-// Tipo para una entrega
 interface Delivery {
   id: number;
   orderId: number;
@@ -57,262 +51,241 @@ interface Delivery {
   bottleReturns: BottleReturn[];
 }
 
+const getInitials = (name: string) =>
+  name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+
+const STATUS_CONFIG = {
+  pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700", dot: "bg-amber-500", icon: Clock },
+  in_progress: { label: "En camino", color: "bg-blue-100 text-blue-700", dot: "bg-blue-500", icon: Truck },
+  delivered: { label: "Entregado", color: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500", icon: CheckCircle },
+  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-700", dot: "bg-red-500", icon: X },
+};
+
+const TABS = [
+  { key: "pendientes", label: "Pendientes" },
+  { key: "completadas", label: "Entregados" },
+  { key: "canceladas", label: "Cancelados" },
+  { key: "todas", label: "Todos" },
+];
+
 export default function DriverDeliveries() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useCurrentUser();
   const { companyName } = useCompanySettings();
-  const [darkMode, setDarkMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("pendientes");
-  
-  // Usar el hook offline para cargar entregas (funciona online y offline)
-  const { data: deliveriesData = [], isLoading, refetch } = useOfflineDeliveries();
-  
-  // Alternar modo oscuro
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
-  };
 
-  // Sincronizar datos
+  const { data: deliveriesData = [], isLoading, refetch } = useOfflineDeliveries();
+
   const syncData = async () => {
-    console.log('[Entregas] syncData llamado desde MobileHeader');
-    
-    toast({
-      title: "Sincronizando entregas",
-      description: "Actualizando información..."
-    });
-    
+    toast({ title: "Sincronizando entregas", description: "Actualizando información..." });
     try {
-      // Refetch usa el hook offline que intenta online primero, luego offline
       await refetch();
-      
-      toast({
-        title: "Entregas actualizadas",
-        description: "Los datos han sido actualizados",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error('[Entregas] Error en syncData:', error);
-      toast({
-        title: "Error al actualizar",
-        description: "No se pudieron actualizar las entregas",
-        variant: "destructive"
-      });
+      toast({ title: "Entregas actualizadas", description: "Los datos han sido actualizados" });
+    } catch {
+      toast({ title: "Error al actualizar", description: "No se pudieron actualizar las entregas", variant: "destructive" });
     }
   };
 
-  // Mapear los datos al formato esperado por la interfaz
   const deliveries: Delivery[] = deliveriesData.map((delivery: any) => ({
     id: delivery.id,
     orderId: delivery.id,
     customerId: delivery.customerId,
     customerName: delivery.customerName,
-    address: delivery.address || '',
-    status: delivery.status as "pending" | "in_progress" | "delivered" | "cancelled",
-    scheduledTime: formatTimeRD(delivery.date, {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
+    address: delivery.address || "",
+    status: delivery.status as Delivery["status"],
+    scheduledTime: formatTimeRD(delivery.date, { hour: "2-digit", minute: "2-digit" }),
     products: delivery.products || [],
     total: parseFloat(delivery.total),
-    bottleReturns: delivery.bottleReturns || []
+    bottleReturns: delivery.bottleReturns || [],
   }));
 
-  // Filtrar entregas por estado y término de búsqueda
-  const filteredDeliveries = deliveries.filter(delivery => {
-    // Filtrar por estado según la pestaña activa
-    const statusFilter = 
-      activeTab === "pendientes" ? 
-        (delivery.status === "pending" || delivery.status === "in_progress") :
-      activeTab === "completadas" ?
-        delivery.status === "delivered" :
-      activeTab === "canceladas" ?
-        delivery.status === "cancelled" :
-        true; // "todas"
-    
-    // Filtrar por término de búsqueda (nombre de cliente, dirección)
-    const searchFilter = 
-      searchTerm === "" ||
-      delivery.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delivery.address.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    return statusFilter && searchFilter;
+  const filteredDeliveries = deliveries.filter((d) => {
+    const statusMatch =
+      activeTab === "pendientes"
+        ? d.status === "pending" || d.status === "in_progress"
+        : activeTab === "completadas"
+        ? d.status === "delivered"
+        : activeTab === "canceladas"
+        ? d.status === "cancelled"
+        : true;
+    const searchMatch =
+      !searchTerm ||
+      d.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.address.toLowerCase().includes(searchTerm.toLowerCase());
+    return statusMatch && searchMatch;
   });
 
-  // Si está cargando, mostrar spinner
+  const counts = {
+    pendientes: deliveries.filter((d) => d.status === "pending" || d.status === "in_progress").length,
+    completadas: deliveries.filter((d) => d.status === "delivered").length,
+    canceladas: deliveries.filter((d) => d.status === "cancelled").length,
+    todas: deliveries.length,
+  };
+
   if (isLoading) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-        <MobileHeader 
-          title="Mis Entregas"
-          user={user} 
-          darkMode={darkMode} 
-          onToggleDarkMode={toggleDarkMode} 
-          onSyncData={syncData}
-          companyName={companyName}
-        />
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <MobileHeader title="Mis Entregas" user={user} onSyncData={syncData} companyName={companyName} />
         <div className="h-[calc(100vh-132px)] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h3 className="font-medium text-primary">Cargando entregas...</h3>
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Cargando entregas...</p>
           </div>
         </div>
-        <MobileFooter darkMode={darkMode} />
+        <MobileFooter />
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-      <MobileHeader 
-        title="Mis Entregas"
-        user={user} 
-        darkMode={darkMode} 
-        onToggleDarkMode={toggleDarkMode} 
-        onSyncData={syncData}
-        companyName={companyName}
-      />
-      
-      <main className="container max-w-md mx-auto px-4 pb-6">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <MobileHeader title="Mis Entregas" user={user} onSyncData={syncData} companyName={companyName} />
+
+      <main className="px-4 pb-6">
         <div className="py-4">
-          {/* Buscador */}
           <div className="relative mb-4">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <Input
-              className={`pl-9 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : ''}`}
+              className="pl-12 h-12 text-base rounded-2xl border-gray-200 bg-white shadow-sm"
               placeholder="Buscar por cliente o dirección"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {searchTerm && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute top-1 right-1 h-7 w-7 p-0"
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full flex items-center justify-center hover:bg-gray-100"
                 onClick={() => setSearchTerm("")}
               >
-                <XCircle className="h-4 w-4" />
-              </Button>
+                <XCircle className="h-5 w-5 text-gray-400" />
+              </button>
             )}
           </div>
-          
-          {/* Pestañas de estado */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-            <TabsList className={`grid w-full grid-cols-4 ${darkMode ? 'bg-gray-800' : ''}`}>
-              <TabsTrigger value="pendientes">Pendientes</TabsTrigger>
-              <TabsTrigger value="completadas">Completadas</TabsTrigger>
-              <TabsTrigger value="canceladas">Canceladas</TabsTrigger>
-              <TabsTrigger value="todas">Todas</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          {/* Lista de entregas */}
+
+          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all active:scale-95 ${
+                  activeTab === tab.key
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                    : "bg-white text-gray-600 border border-gray-200"
+                }`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+                {counts[tab.key as keyof typeof counts] > 0 && (
+                  <span
+                    className={`min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center ${
+                      activeTab === tab.key ? "bg-white/30 text-white" : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {counts[tab.key as keyof typeof counts]}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3">
             {filteredDeliveries.length === 0 ? (
-              <div className="text-center py-6">
-                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
-                <p className="text-muted-foreground">No hay entregas para mostrar</p>
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+                  <Package className="h-8 w-8 text-gray-300" />
+                </div>
+                <p className="text-sm text-gray-500 mb-2">No hay entregas para mostrar</p>
                 {searchTerm && (
-                  <Button
-                    variant="link"
-                    className="mt-2"
-                    onClick={() => setSearchTerm("")}
-                  >
+                  <button className="text-sm text-blue-600 font-medium" onClick={() => setSearchTerm("")}>
                     Limpiar búsqueda
-                  </Button>
+                  </button>
                 )}
               </div>
             ) : (
-              filteredDeliveries.map((delivery) => (
-                <Card 
-                  key={delivery.id}
-                  className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}
-                  onClick={() => setLocation(`/mobile-app/entregas/${delivery.id}`)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-medium">{delivery.customerName}</h3>
-                        <p className="text-xs text-muted-foreground">{delivery.address}</p>
-                      </div>
-                      
-                      <Badge 
-                        variant={
-                          delivery.status === "delivered" ? "secondary" :
-                          delivery.status === "in_progress" ? "outline" :
-                          delivery.status === "cancelled" ? "destructive" :
-                          "default"
-                        }
-                        className="ml-2"
-                      >
-                        {delivery.status === "pending" && "Pendiente"}
-                        {delivery.status === "in_progress" && "En camino"}
-                        {delivery.status === "delivered" && "Entregado"}
-                        {delivery.status === "cancelled" && "Cancelado"}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-sm mt-3">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span className="text-muted-foreground">{delivery.scheduledTime}</span>
-                      </div>
-                      
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-muted-foreground">Total:</span>
-                        <span className="font-medium">${delivery.total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t flex flex-wrap gap-1">
-                      {delivery.products.map(product => (
-                        <span 
-                          key={`${delivery.id}-${product.id}`}
-                          className={`text-xs px-2 py-0.5 rounded-full ${
-                            darkMode 
-                              ? 'bg-gray-700' 
-                              : 'bg-gray-100'
-                          }`}
-                        >
-                          {product.quantity} × {product.name}
+              filteredDeliveries.map((delivery) => {
+                const config = STATUS_CONFIG[delivery.status];
+                const StatusIcon = config.icon;
+                const returnableProducts = delivery.products.filter((p) => p.isReturnable);
+                const pendingBottles =
+                  delivery.bottleReturns?.length > 0
+                    ? delivery.bottleReturns.reduce((t, br) => t + br.pendingQuantity, 0)
+                    : returnableProducts.reduce((t, p) => t + p.quantity, 0);
+
+                return (
+                  <button
+                    key={delivery.id}
+                    className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left active:scale-[0.98] transition-all"
+                    onClick={() => setLocation(`/mobile-app/entregas/${delivery.id}`)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        delivery.status === "delivered" ? "bg-emerald-100" :
+                        delivery.status === "cancelled" ? "bg-red-100" :
+                        delivery.status === "in_progress" ? "bg-blue-100" : "bg-amber-100"
+                      }`}>
+                        <span className={`text-sm font-bold ${
+                          delivery.status === "delivered" ? "text-emerald-700" :
+                          delivery.status === "cancelled" ? "text-red-700" :
+                          delivery.status === "in_progress" ? "text-blue-700" : "text-amber-700"
+                        }`}>
+                          {getInitials(delivery.customerName)}
                         </span>
-                      ))}
-                    </div>
-                    
-                    {/* Información de retornos de envases */}
-                    {(() => {
-                      // Verificar si hay productos retornables
-                      const returnableProducts = delivery.products.filter(p => p.isReturnable);
-                      
-                      if (returnableProducts.length > 0) {
-                        // Calcular envases pendientes de retornar
-                        const pendingBottles = delivery.bottleReturns && delivery.bottleReturns.length > 0
-                          ? delivery.bottleReturns.reduce((total, br) => total + br.pendingQuantity, 0)
-                          : returnableProducts.reduce((total, p) => total + p.quantity, 0);
-                        
-                        return (
-                          <div className="mt-2 pt-2 border-t">
-                            <div className="flex items-center text-xs text-muted-foreground mb-1">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              <span>Envases por retornar: {pendingBottles}</span>
-                            </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-semibold text-sm text-gray-900 truncate">{delivery.customerName}</p>
+                          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold flex-shrink-0 ${config.color}`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {config.label}
+                          </span>
+                        </div>
+
+                        {delivery.address && (
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{delivery.address}</span>
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            {delivery.scheduledTime}
                           </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </CardContent>
-                </Card>
-              ))
+                          <p className="text-sm font-bold text-gray-900">RD$ {delivery.total.toFixed(2)}</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {delivery.products.map((product) => (
+                            <span
+                              key={`${delivery.id}-${product.id}`}
+                              className="text-[11px] px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-medium"
+                            >
+                              {product.quantity} × {product.name}
+                            </span>
+                          ))}
+                        </div>
+
+                        {returnableProducts.length > 0 && pendingBottles > 0 && (
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="font-medium">{pendingBottles} envases por retornar</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <ChevronRight className="h-5 w-5 text-gray-300 flex-shrink-0 mt-3" />
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
       </main>
-      
-      <MobileFooter darkMode={darkMode} />
+
+      <MobileFooter />
     </div>
   );
 }
