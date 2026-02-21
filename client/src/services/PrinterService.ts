@@ -1289,7 +1289,6 @@ export class PrinterService {
    */
   static async printOrder(order: any, items: any[], customer: any, settings: any, products: any[]): Promise<void> {
     try {
-      // Crear contenido HTML para impresión
       const printContent = document.createElement('div');
       printContent.className = 'order-print-content';
       printContent.style.width = '80mm';
@@ -1297,28 +1296,14 @@ export class PrinterService {
       printContent.style.padding = '5mm';
       printContent.style.fontFamily = 'Arial, sans-serif';
       printContent.style.fontSize = '10px';
-      
-      // Encabezado con datos de la empresa
+
       const companyName = settings?.name || 'Empresa';
       const rnc = settings?.rnc || '';
       const companyAddr = PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '');
       const companyLocation = PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '');
       const contactPhone = settings?.contactPhone || '';
       const email = settings?.email || '';
-      
-      printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
-          ${companyAddr ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyAddr}</div>` : ''}
-          ${companyLocation ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyLocation}</div>` : ''}
-          <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
-        </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-      `;
-      
-      // Información del pedido
+
       let formattedDate = '';
       try {
         formattedDate = formatDateRD(order.date, {
@@ -1329,7 +1314,7 @@ export class PrinterService {
       } catch (e) {
         formattedDate = 'Fecha no disponible';
       }
-      
+
       const businessname = customer?.businessname || order?.customerName || "Cliente";
       const customerPhone = customer?.phone || order?.customerPhone || "";
       const customerStreet = customer?.street || order?.customerAddress || "";
@@ -1338,26 +1323,13 @@ export class PrinterService {
       const fullAddress = [customerStreet, customerStreetNumber, customerSector].filter(Boolean).join(" ");
       const orderMunicipalityName = customer?.municipalityName || order?.municipalityName || "";
       const orderProvinceName = customer?.provinceName || order?.provinceName || "";
-      
-      printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order?.id || 'N/A'}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${fullAddress}</div>
-        ${PrinterService.buildLocationLine(orderMunicipalityName, orderProvinceName) ? `<div style="margin-bottom: 3px; padding-left: 15px;">${PrinterService.buildLocationLine(orderMunicipalityName, orderProvinceName)}</div>` : ''}
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-          <tr style="border-bottom: 1px solid #ddd;">
-            <th style="text-align: left; padding: 3px;">Producto</th>
-            <th style="text-align: center; padding: 3px;">Cant.</th>
-            <th style="text-align: right; padding: 3px;">Precio</th>
-            <th style="text-align: right; padding: 3px;">Total</th>
-          </tr>
-      `;
-      
-      // Productos ordenados por nombre
+      const locationLine = PrinterService.buildLocationLine(orderMunicipalityName, orderProvinceName);
+
+      let productRows = '';
+      let subtotal = 0;
+      let itbis = 0;
+      let total = 0;
+
       if (Array.isArray(items) && items.length > 0) {
         const sortedItems = [...items].filter(Boolean).sort((a: any, b: any) => {
           const nameA = products?.find((p: any) => p?.id === a?.productId)?.name || "Producto";
@@ -1369,89 +1341,94 @@ export class PrinterService {
           const productName = product?.name || "Producto";
           const quantity = item?.quantity || 0;
           const price = parseFloat(item?.unitPrice || item?.price || 0);
-          const total = price * quantity;
-          
-          printContent.innerHTML += `
+          const itemTotal = price * quantity;
+
+          productRows += `
             <tr style="border-bottom: 1px solid #eee;">
               <td style="text-align: left; padding: 3px;">${productName}</td>
               <td style="text-align: center; padding: 3px;">${quantity}</td>
               <td style="text-align: right; padding: 3px;">RD$${price.toFixed(2)}</td>
-              <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
+              <td style="text-align: right; padding: 3px;">RD$${itemTotal.toFixed(2)}</td>
             </tr>
           `;
         });
       } else {
-        printContent.innerHTML += `
-          <tr><td colspan="4" style="text-align: center; padding: 5px;">No hay productos</td></tr>
-        `;
+        productRows = `<tr><td colspan="4" style="text-align: center; padding: 5px;">No hay productos</td></tr>`;
       }
-      
-      printContent.innerHTML += `</table>`;
-      
-      // Separador
-      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 10px 0;"></div>`;
-      
-      // Calcular totales
-      let subtotal = 0;
-      let itbis = 0;
-      let total = 0;
-      
+
       try {
-        // Calcular subtotal sumando los totales de todos los items
         if (Array.isArray(items) && items.length > 0) {
           subtotal = items.reduce((sum, item) => {
             const itemTotal = parseFloat(item?.total || 0);
             return sum + itemTotal;
           }, 0);
         }
-        
-        // Calcular ITBIS usando la tasa de impuesto de la configuración
         const taxRate = parseFloat(settings?.tax || "0") / 100;
         itbis = subtotal * taxRate;
-        
-        // El total es subtotal + ITBIS
         total = subtotal + itbis;
       } catch (e) {
         console.error("Error calculando totales:", e);
       }
-      
-      // Totales
-      printContent.innerHTML += `
-        <div style="margin-top: 10px; font-size: 11px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
-            <span style="flex: 1; text-align: center;">RD$ ${subtotal.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="flex: 1; text-align: left;">ITBIS:</span>
-            <span style="flex: 1; text-align: center;">RD$ ${itbis.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
-            <span style="flex: 1; text-align: left;">TOTAL:</span>
-            <span style="flex: 1; text-align: center;">RD$ ${total.toFixed(2)}</span>
-          </div>
-        </div>
-      `;
-      
-      // Notas (si hay)
+
+      let notesHtml = '';
       if (order.notes) {
-        printContent.innerHTML += `
+        notesHtml = `
           <div style="margin-top: 10px; font-size: 10px;">
             <div style="font-weight: bold; margin-bottom: 3px;">Nota del Pedido:</div>
             <div>${order.notes}</div>
           </div>
         `;
       }
-      
-      // Separador final
-      printContent.innerHTML += `
+
+      printContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
+          <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
+          ${companyAddr ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyAddr}</div>` : ''}
+          ${companyLocation ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyLocation}</div>` : ''}
+          <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
+          <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order?.id || 'N/A'}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
+        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${fullAddress}</div>
+        ${locationLine ? `<div style="margin-bottom: 3px; padding-left: 15px;">${locationLine}</div>` : ''}
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <tr style="border-bottom: 1px solid #ddd;">
+            <th style="text-align: left; padding: 3px;">Producto</th>
+            <th style="text-align: center; padding: 3px;">Cant.</th>
+            <th style="text-align: right; padding: 3px;">Precio</th>
+            <th style="text-align: right; padding: 3px;">Total</th>
+          </tr>
+          ${productRows}
+        </table>
+        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="margin-top: 10px; font-size: 11px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
+            <span style="flex: 1; text-align: right;">RD$ ${subtotal.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="flex: 1; text-align: left;">ITBIS:</span>
+            <span style="flex: 1; text-align: right;">RD$ ${itbis.toFixed(2)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
+            <span style="flex: 1; text-align: left;">TOTAL:</span>
+            <span style="flex: 1; text-align: right;">RD$ ${total.toFixed(2)}</span>
+          </div>
+        </div>
+        ${notesHtml}
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
         <div style="text-align: center; margin-top: 10px; font-size: 11px;">
           ¡Gracias por su compra!
         </div>
       `;
-      
-      // Imprimir usando el método genérico
+
       await this.printDocument(printContent, {
         title: `Pedido #${order.id || 'N/A'}`,
         size: [80, 200],
