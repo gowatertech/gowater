@@ -135,11 +135,14 @@ export const printOrderTicket = (
       <tbody>
     `;
     
-    // Asegurarse de que orderItems es un array
+    // Asegurarse de que orderItems es un array y ordenar por nombre de producto
     if (Array.isArray(orderItems)) {
-      orderItems.forEach((item: any) => {
-        if (!item) return; // Saltar items nulos
-        
+      const sortedItems = [...orderItems].filter(Boolean).sort((a: any, b: any) => {
+        const nameA = products?.find((p: any) => p?.id === a?.productId)?.name || "Producto";
+        const nameB = products?.find((p: any) => p?.id === b?.productId)?.name || "Producto";
+        return nameA.localeCompare(nameB);
+      });
+      sortedItems.forEach((item: any) => {
         const product = products?.find((p: any) => p?.id === item?.productId);
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
@@ -460,18 +463,20 @@ export const generateOrderPdf = (
     // Productos
     doc.setFont('helvetica', 'normal');
     
-    // Asegurarse de que orderItems es un array válido
+    // Asegurarse de que orderItems es un array válido y ordenar por nombre de producto
     if (Array.isArray(orderItems) && orderItems.length > 0) {
-      orderItems.forEach((item: any) => {
-        if (!item) return; // Saltar items nulos
-        
+      const sortedItems = [...orderItems].filter(Boolean).sort((a: any, b: any) => {
+        const nameA = products?.find((p: any) => p?.id === a?.productId)?.name || "Producto";
+        const nameB = products?.find((p: any) => p?.id === b?.productId)?.name || "Producto";
+        return nameA.localeCompare(nameB);
+      });
+      sortedItems.forEach((item: any) => {
         const product = products?.find((p: any) => p?.id === item?.productId);
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
         const price = parseFloat(item?.unitPrice || item?.price || 0);
         const total = parseFloat(item?.total || (price * quantity).toString());
         
-        // Asegurar que el texto del producto no exceda el ancho disponible
         let displayName = productName;
         if (displayName.length > 18) {
           displayName = displayName.substring(0, 16) + "...";
