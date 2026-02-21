@@ -29,6 +29,24 @@ export enum DocumentType {
  * con soporte para móvil y escritorio
  */
 export class PrinterService {
+  private static buildCompanyAddress(street: string, streetNumber: string): string {
+    if (!street && !streetNumber) return '';
+    if (!streetNumber) return street;
+    if (street.toLowerCase().includes(streetNumber.toLowerCase())) return street;
+    return `${street} ${streetNumber}`;
+  }
+
+  private static buildLocationLine(municipality: string, province: string): string {
+    return [municipality, province].filter(Boolean).join(', ');
+  }
+
+  private static buildCustomerAddress(customer: any): string {
+    const street = customer?.street || '';
+    const streetNumber = customer?.streetnumber || '';
+    const sector = customer?.sector || '';
+    return [street, streetNumber, sector].filter(Boolean).join(' ');
+  }
+
   /**
    * Detecta si el dispositivo es móvil
    */
@@ -220,26 +238,23 @@ export class PrinterService {
         const settings = extraData.settings;
         const companyName = settings.name || 'Empresa';
         const rnc = settings.rnc || '';
-        const street = settings.street || '';
-        const streetNumber = settings.streetNumber || '';
-        const companyMunicipality = settings.municipalityName || '';
-        const companyProvince = settings.provinceName || '';
+        const companyAddr = PrinterService.buildCompanyAddress(settings.street || '', settings.streetNumber || '');
+        const companyLocation = PrinterService.buildLocationLine(settings.municipalityName || '', settings.provinceName || '');
         const contactPhone = settings.contactPhone || '';
         const email = settings.email || '';
         
-        // Encabezado: Nombre de la empresa
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text(companyName, 40, 10, { align: 'center' });
         
-        // Información de la empresa
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text(`RNC: ${rnc}`, 40, 15, { align: 'center' });
-        doc.text(`${street} ${streetNumber}`, 40, 19, { align: 'center' });
-        doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
-        doc.text(`Tel: ${contactPhone}`, 40, 27, { align: 'center' });
-        doc.text(`Email: ${email}`, 40, 31, { align: 'center' });
+        let hY = 15;
+        doc.text(`RNC: ${rnc}`, 40, hY, { align: 'center' }); hY += 4;
+        if (companyAddr) { doc.text(companyAddr, 40, hY, { align: 'center' }); hY += 4; }
+        if (companyLocation) { doc.text(companyLocation, 40, hY, { align: 'center' }); hY += 4; }
+        doc.text(`Tel: ${contactPhone}`, 40, hY, { align: 'center' }); hY += 4;
+        doc.text(`Email: ${email}`, 40, hY, { align: 'center' });
         
         // Línea separadora
         doc.setDrawColor(200);
@@ -336,9 +351,11 @@ export class PrinterService {
     // Cliente
     const customer = extraData.customer;
     const businessName = customer?.businessname || "Cliente";
-    const address = customer?.address || "";
-    const municipality = customer?.municipality || "Cotuí";
-    const province = customer?.province || "Sánchez Ramírez";
+    const custAddr = PrinterService.buildCustomerAddress(customer);
+    const custLocation = PrinterService.buildLocationLine(
+      customer?.municipalityName || customer?.municipality || "",
+      customer?.provinceName || customer?.province || ""
+    );
     const phone = customer?.phone || "";
     
     // Método de pago
@@ -347,11 +364,10 @@ export class PrinterService {
       invoice.paymentMethod === 'credit' ? 'Crédito' : 
       invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
     
-    // Añadir información del cliente
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
-    doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
+    if (custAddr) { doc.text(`Dirección: ${custAddr}`, 10, yPos); yPos += 4; }
+    if (custLocation) { doc.text(custLocation, 10, yPos); yPos += 4; }
     doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     doc.text(`Método de pago: ${paymentMethod}`, 10, yPos); yPos += 4;
     
@@ -520,8 +536,9 @@ export class PrinterService {
     // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    doc.text(`Dirección: ${fullAddress}`, 10, yPos); yPos += 4;
-    doc.text(`${municipality}, ${province}`, 10, yPos); yPos += 4;
+    if (fullAddress) { doc.text(`Dirección: ${fullAddress}`, 10, yPos); yPos += 4; }
+    const locationLine = PrinterService.buildLocationLine(municipality, province);
+    if (locationLine) { doc.text(locationLine, 10, yPos); yPos += 4; }
     doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     
     // Línea separadora
@@ -698,9 +715,11 @@ export class PrinterService {
     // Cliente - convertimos todos los valores a String para prevenir errores
     const customer = extraData.customer || {};
     const businessName = String(customer?.businessname || safePayment.customerName);
-    const address = String(customer?.address || "");
-    const municipality = String(customer?.municipality || "");
-    const province = String(customer?.province || "");
+    const paymentCustAddr = PrinterService.buildCustomerAddress(customer);
+    const paymentCustLocation = PrinterService.buildLocationLine(
+      String(customer?.municipalityName || customer?.municipality || ""),
+      String(customer?.provinceName || customer?.province || "")
+    );
     const phone = String(customer?.phone || "");
     
     // Método de pago
@@ -710,13 +729,10 @@ export class PrinterService {
       safePayment.paymentMethod === 'check' ? 'Cheque' : 
       safePayment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
     
-    // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    doc.text(`Dirección: ${address}${municipality ? `, ${municipality}` : ''}`, 10, yPos); yPos += 4;
-    if (province) {
-      doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
-    }
+    if (paymentCustAddr) { doc.text(`Dirección: ${paymentCustAddr}`, 10, yPos); yPos += 4; }
+    if (paymentCustLocation) { doc.text(paymentCustLocation, 10, yPos); yPos += 4; }
     if (phone) {
       doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     }
@@ -944,8 +960,8 @@ export class PrinterService {
         <div style="text-align: center; margin-bottom: 10px;">
           <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
           <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${settings?.rnc || ''}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityName || ''}, ${settings?.provinceName || ''}</div>
+          ${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '')}</div>` : ''}
+          ${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '')}</div>` : ''}
           <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
           <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
         </div>
@@ -953,7 +969,8 @@ export class PrinterService {
         <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 10px;">FACTURA #${invoice.id}</div>
       `;
       
-      // Información del cliente y factura
+      const invoiceCustomerAddr = PrinterService.buildCustomerAddress(customer);
+      const invoiceCustomerLocation = PrinterService.buildLocationLine(customer?.municipalityName || customer?.municipality || '', customer?.provinceName || customer?.province || '');
       printContent.innerHTML += `
         <div style="margin-bottom: 10px; font-size: 12px;">
           <div><strong>Fecha:</strong> ${formatDateRD(invoice.date, {
@@ -962,8 +979,8 @@ export class PrinterService {
             year: 'numeric'
           })}</div>
           <div><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
-          <div><strong>Dirección:</strong> ${customer?.address || ''}, ${customer?.municipality || ''}</div>
-          <div><strong>Provincia:</strong> ${customer?.province || ''}</div>
+          <div><strong>Dirección:</strong> ${invoiceCustomerAddr}</div>
+          ${invoiceCustomerLocation ? `<div>${invoiceCustomerLocation}</div>` : ''}
           <div><strong>Teléfono:</strong> ${customer?.phone || ''}</div>
           <div><strong>Método de pago:</strong> ${
             invoice.paymentMethod === 'cash' ? 'Efectivo' : 
@@ -1114,8 +1131,8 @@ export class PrinterService {
           <div style="text-align: center; margin-bottom: 20px;">
             <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
             <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${settings?.rnc || ''}</div>
-            <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
-            <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityName || ''}, ${settings?.provinceName || ''}</div>
+            ${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '')}</div>` : ''}
+            ${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '') ? `<div style="font-size: 11px; margin-bottom: 2px;">${PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '')}</div>` : ''}
             <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
             <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
           </div>
@@ -1123,7 +1140,8 @@ export class PrinterService {
           <div style="text-align: center; font-weight: bold; font-size: 18px; margin: 20px 0;">FACTURA</div>
         `;
         
-        // Información del cliente y factura
+        const pdfInvCustAddr = PrinterService.buildCustomerAddress(customer);
+        const pdfInvCustLocation = PrinterService.buildLocationLine(customer?.municipalityName || customer?.municipality || '', customer?.provinceName || customer?.province || '');
         pdfContent.innerHTML += `
           <div style="margin-bottom: 20px; font-size: 14px;">
             <div style="margin-bottom: 8px;"><strong>Factura #:</strong> ${invoice.id}</div>
@@ -1133,8 +1151,8 @@ export class PrinterService {
               year: 'numeric'
             })}</div>
             <div style="margin-bottom: 8px;"><strong>Cliente:</strong> ${customer?.businessname || 'Cliente'}</div>
-            <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${customer?.address || ''}, ${customer?.municipality || ''}</div>
-            <div style="margin-bottom: 8px;"><strong>Provincia:</strong> ${customer?.province || ''}</div>
+            <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${pdfInvCustAddr}</div>
+            ${pdfInvCustLocation ? `<div style="margin-bottom: 8px;">${pdfInvCustLocation}</div>` : ''}
             <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${customer?.phone || ''}</div>
             <div style="margin-bottom: 8px;"><strong>Método de pago:</strong> ${
               invoice.paymentMethod === 'cash' ? 'Efectivo' : 
@@ -1270,10 +1288,8 @@ export class PrinterService {
       // Encabezado con datos de la empresa
       const companyName = settings?.name || 'Empresa';
       const rnc = settings?.rnc || '';
-      const street = settings?.street || '';
-      const streetNumber = settings?.streetNumber || '';
-      const municipalityName = settings?.municipalityName || '';
-      const provinceName = settings?.provinceName || '';
+      const companyAddr = PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '');
+      const companyLocation = PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '');
       const contactPhone = settings?.contactPhone || '';
       const email = settings?.email || '';
       
@@ -1281,8 +1297,8 @@ export class PrinterService {
         <div style="text-align: center; margin-bottom: 10px;">
           <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
           <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${street} ${streetNumber}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${municipalityName}, ${provinceName}</div>
+          ${companyAddr ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyAddr}</div>` : ''}
+          ${companyLocation ? `<div style="font-size: 11px; margin-bottom: 2px;">${companyLocation}</div>` : ''}
           <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
           <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
         </div>
@@ -1316,7 +1332,7 @@ export class PrinterService {
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
         <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${fullAddress}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;">${orderMunicipalityName}, ${orderProvinceName}</div>
+        ${PrinterService.buildLocationLine(orderMunicipalityName, orderProvinceName) ? `<div style="margin-bottom: 3px; padding-left: 15px;">${PrinterService.buildLocationLine(orderMunicipalityName, orderProvinceName)}</div>` : ''}
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
         <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
         <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
@@ -1554,10 +1570,8 @@ export class PrinterService {
       // Encabezado con datos de la empresa
       const companyName = settings?.name || 'Empresa';
       const rnc = settings?.rnc || '';
-      const street = settings?.street || '';
-      const streetNumber = settings?.streetNumber || '';
-      const municipalityName = settings?.municipalityName || '';
-      const provinceName = settings?.provinceName || '';
+      const companyAddr = PrinterService.buildCompanyAddress(settings?.street || '', settings?.streetNumber || '');
+      const companyLocation = PrinterService.buildLocationLine(settings?.municipalityName || '', settings?.provinceName || '');
       const contactPhone = settings?.contactPhone || '';
       const email = settings?.email || '';
       
@@ -1565,8 +1579,8 @@ export class PrinterService {
         <div style="text-align: center; margin-bottom: 10px;">
           <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
           <div style="font-size: 10px; margin-bottom: 1px;">RNC: ${rnc}</div>
-          <div style="font-size: 10px; margin-bottom: 1px;">${street} ${streetNumber}</div>
-          <div style="font-size: 10px; margin-bottom: 1px;">${municipalityName}, ${provinceName}</div>
+          ${companyAddr ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyAddr}</div>` : ''}
+          ${companyLocation ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyLocation}</div>` : ''}
           <div style="font-size: 10px; margin-bottom: 1px;">Tel: ${contactPhone}</div>
           <div style="font-size: 10px; margin-bottom: 1px;">Email: ${email}</div>
         </div>
@@ -1585,14 +1599,14 @@ export class PrinterService {
         formattedDate = 'Fecha no disponible';
       }
       
-      // Datos del cliente (ya sanitizados)
       const businessname = customerData.businessname;
       const customerPhone = customerData.phone;
-      const customerAddress = customerData.address;
-      const customerMunicipality = customerData.municipality;
-      const customerProvince = customerData.province;
+      const rcptCustAddr = PrinterService.buildCustomerAddress(customer);
+      const rcptCustLocation = PrinterService.buildLocationLine(
+        customer?.municipalityName || customer?.municipality || '',
+        customer?.provinceName || customer?.province || ''
+      );
       
-      // Método de pago
       const paymentMethod = 
         paymentData.paymentMethod === 'cash' ? 'Efectivo' : 
         paymentData.paymentMethod === 'bank_transfer' ? 'Transferencia' : 
@@ -1604,8 +1618,8 @@ export class PrinterService {
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Fecha:</strong> ${formattedDate}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Cliente:</strong> ${businessname}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Teléfono:</strong> ${customerPhone}</div>
-        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Dirección:</strong> ${customerAddress}</div>
-        <div style="margin-bottom: 2px; font-size: 9px;">${customerMunicipality}, ${customerProvince}</div>
+        ${rcptCustAddr ? `<div style="margin-bottom: 2px; font-size: 9px;"><strong>Dirección:</strong> ${rcptCustAddr}</div>` : ''}
+        ${rcptCustLocation ? `<div style="margin-bottom: 2px; font-size: 9px;">${rcptCustLocation}</div>` : ''}
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
       `;
       
@@ -1761,10 +1775,8 @@ export class PrinterService {
       if (settings) {
         const companyName = settings.name || 'Empresa';
         const rnc = settings.rnc || '';
-        const street = settings.street || '';
-        const streetNumber = settings.streetNumber || '';
-        const companyMunicipality = settings.municipalityName || '';
-        const companyProvince = settings.provinceName || '';
+        const companyAddr = PrinterService.buildCompanyAddress(settings.street || '', settings.streetNumber || '');
+        const companyLocation = PrinterService.buildLocationLine(settings.municipalityName || '', settings.provinceName || '');
         const contactPhone = settings.contactPhone || '';
         const email = settings.email || '';
         
@@ -1772,8 +1784,8 @@ export class PrinterService {
           <div style="text-align: center; margin-bottom: 10px;">
             <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
             <div style="font-size: 9px;">RNC: ${rnc}</div>
-            <div style="font-size: 9px;">${street} ${streetNumber}</div>
-            <div style="font-size: 9px;">${companyMunicipality}, ${companyProvince}</div>
+            ${companyAddr ? `<div style="font-size: 9px;">${companyAddr}</div>` : ''}
+            ${companyLocation ? `<div style="font-size: 9px;">${companyLocation}</div>` : ''}
             <div style="font-size: 9px;">Tel: ${contactPhone}</div>
             <div style="font-size: 9px;">Email: ${email}</div>
           </div>
@@ -1992,31 +2004,27 @@ export class PrinterService {
       if (settings) {
         const companyName = settings.name || 'Empresa';
         const rnc = settings.rnc || '';
-        const street = settings.street || '';
-        const streetNumber = settings.streetNumber || '';
-        const companyMunicipality = settings.municipalityName || '';
-        const companyProvince = settings.provinceName || '';
+        const companyAddr = PrinterService.buildCompanyAddress(settings.street || '', settings.streetNumber || '');
+        const companyLocation = PrinterService.buildLocationLine(settings.municipalityName || '', settings.provinceName || '');
         const contactPhone = settings.contactPhone || '';
         const email = settings.email || '';
 
-        // Encabezado: Nombre de la empresa
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.text(companyName, 40, yPos, { align: 'center' });
 
-        // Información de la empresa
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text(`RNC: ${rnc}`, 40, yPos + 5, { align: 'center' });
-        doc.text(`${street} ${streetNumber}`, 40, yPos + 9, { align: 'center' });
-        doc.text(`${companyMunicipality}, ${companyProvince}`, 40, yPos + 13, { align: 'center' });
-        doc.text(`Tel: ${contactPhone}`, 40, yPos + 17, { align: 'center' });
-        doc.text(`Email: ${email}`, 40, yPos + 21, { align: 'center' });
+        let cY = yPos + 5;
+        doc.text(`RNC: ${rnc}`, 40, cY, { align: 'center' }); cY += 4;
+        if (companyAddr) { doc.text(companyAddr, 40, cY, { align: 'center' }); cY += 4; }
+        if (companyLocation) { doc.text(companyLocation, 40, cY, { align: 'center' }); cY += 4; }
+        doc.text(`Tel: ${contactPhone}`, 40, cY, { align: 'center' }); cY += 4;
+        doc.text(`Email: ${email}`, 40, cY, { align: 'center' }); cY += 3;
 
-        // Línea separadora
         doc.setDrawColor(200);
-        doc.line(5, yPos + 24, 75, yPos + 24);
-        yPos += 28;
+        doc.line(5, cY, 75, cY);
+        yPos = cY + 4;
       }
 
       // Título
