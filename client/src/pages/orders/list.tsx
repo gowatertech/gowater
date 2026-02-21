@@ -25,11 +25,13 @@ import {
   Calendar,
   SearchX,
   Printer,
-  Download,
+  FileDown,
   DollarSign,
   PackageX,
-  Edit
+  Edit,
+  MessageCircle
 } from "lucide-react";
+import { WhatsAppDialog } from "@/components/WhatsAppDialog";
 
 // Componentes UI
 import { Input } from "@/components/ui/input";
@@ -81,6 +83,10 @@ export default function OrdersList() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Estado para WhatsApp
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappOrder, setWhatsappOrder] = useState<any>(null);
 
   // Obtener los pedidos
   const { data: orders = [] } = useQuery<any[]>({
@@ -408,6 +414,12 @@ export default function OrdersList() {
     setShowPaymentDialog(true);
   };
 
+  // Abrir diálogo de WhatsApp para un pedido
+  const openWhatsAppDialog = (order: any) => {
+    setWhatsappOrder(order);
+    setWhatsappDialogOpen(true);
+  };
+
   // Procesar pago prepagado
   const handleCreatePrepaidInvoice = async () => {
     if (!selectedOrder) return;
@@ -624,65 +636,73 @@ export default function OrdersList() {
                           )}
                         </div>
                         <div className="flex gap-1 flex-wrap justify-end">
-                          {/* Bot\u00f3n Editar - solo para pedidos editables */}
                           {(['pending', 'in_transit'].includes(order.status) && !order.invoiceId) && (
                             <Button
                               variant="default"
-                              size="sm"
-                              className="h-8 text-xs"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => setLocation(`/orders/edit/${order.id}`)}
                               data-testid={`button-edit-order-${order.id}`}
+                              title="Editar"
                             >
-                              <Edit className="h-3.5 w-3.5 mr-1" />
-                              Editar
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => setLocation(`/orders/details/${order.id}`)}
+                            title="Ver detalles"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            Ver
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => setLocation(`/orders/status/${order.id}`)}
+                            title="Cambiar estado"
                           >
-                            <Tag className="h-3.5 w-3.5 mr-1" />
-                            Estado
+                            <Tag className="h-3.5 w-3.5" />
                           </Button>
                           {order.status === "pending" && !order.invoiceId && !customers?.find((c: any) => c.id === order.customerId)?.isCharity && (
                             <Button
                               variant="default"
-                              size="sm"
-                              className="h-8 text-xs bg-green-600 hover:bg-green-700"
+                              size="icon"
+                              className="h-8 w-8 bg-green-600 hover:bg-green-700"
                               onClick={() => handleOpenPaymentDialog(order)}
+                              title="Pagar"
                             >
-                              <DollarSign className="h-3.5 w-3.5 mr-1" />
-                              Pagar
+                              <DollarSign className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => handlePrint(order.id)}
+                            title="Imprimir"
                           >
-                            <Printer className="h-3.5 w-3.5 mr-1" />
-                            Imprimir
+                            <Printer className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => handleGeneratePdf(order.id)}
+                            title="Descargar PDF"
                           >
-                            <Download className="h-3.5 w-3.5 mr-1" />
-                            PDF
+                            <FileDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => openWhatsAppDialog(order)}
+                            title="Enviar por WhatsApp"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </div>
@@ -746,65 +766,73 @@ export default function OrdersList() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            {/* Bot\u00f3n Editar - solo para pedidos editables */}
                             {(['pending', 'in_transit'].includes(order.status) && !order.invoiceId) && (
                               <Button
                                 variant="default"
-                                size="sm"
-                                className="h-8"
+                                size="icon"
+                                className="h-8 w-8"
                                 onClick={() => setLocation(`/orders/edit/${order.id}`)}
                                 data-testid={`button-edit-order-${order.id}`}
+                                title="Editar"
                               >
-                                <Edit className="h-3.5 w-3.5 mr-1" />
-                                Editar
+                                <Edit className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-8"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => setLocation(`/orders/details/${order.id}`)}
+                              title="Ver detalles"
                             >
-                              <Eye className="h-3.5 w-3.5 mr-1" />
-                              Ver
+                              <Eye className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-8"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => setLocation(`/orders/status/${order.id}`)}
+                              title="Cambiar estado"
                             >
-                              <Tag className="h-3.5 w-3.5 mr-1" />
-                              Estado
+                              <Tag className="h-3.5 w-3.5" />
                             </Button>
                             {order.status === "pending" && !order.invoiceId && !customers?.find((c: any) => c.id === order.customerId)?.isCharity && (
                               <Button
                                 variant="default"
-                                size="sm"
-                                className="h-8 bg-green-600 hover:bg-green-700"
+                                size="icon"
+                                className="h-8 w-8 bg-green-600 hover:bg-green-700"
                                 onClick={() => handleOpenPaymentDialog(order)}
+                                title="Pagar"
                               >
-                                <DollarSign className="h-3.5 w-3.5 mr-1" />
-                                Pagar
+                                <DollarSign className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-8"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => handlePrint(order.id)}
+                              title="Imprimir"
                             >
-                              <Printer className="h-3.5 w-3.5 mr-1" />
-                              Imprimir
+                              <Printer className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="h-8"
+                              size="icon"
+                              className="h-8 w-8"
                               onClick={() => handleGeneratePdf(order.id)}
+                              title="Descargar PDF"
                             >
-                              <Download className="h-3.5 w-3.5 mr-1" />
-                              PDF
+                              <FileDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              onClick={() => openWhatsAppDialog(order)}
+                              title="Enviar por WhatsApp"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
@@ -817,6 +845,20 @@ export default function OrdersList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Diálogo de WhatsApp */}
+      {whatsappOrder && (
+        <WhatsAppDialog
+          open={whatsappDialogOpen}
+          onOpenChange={setWhatsappDialogOpen}
+          type="invoice"
+          customerName={customers?.find((c: any) => c.id === whatsappOrder.customerId)?.businessname || "Cliente"}
+          customerPhone={customers?.find((c: any) => c.id === whatsappOrder.customerId)?.phone || ""}
+          companyName={companySettings?.name || ""}
+          amount={parseFloat(whatsappOrder.total?.toString() || "0").toFixed(2)}
+          onGeneratePDF={async () => { await handleGeneratePdf(whatsappOrder.id); }}
+        />
+      )}
 
       {/* Diálogo de pago prepagado */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
