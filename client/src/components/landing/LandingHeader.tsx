@@ -60,15 +60,9 @@ export function LandingHeader() {
           <Link href="/soporte">
             <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/soporte") ? "bg-white/15" : ""}`}>Soporte</Button>
           </Link>
-          <a href="#app-mobile" onClick={(e) => {
-              e.preventDefault();
-              const element = document.getElementById('app-mobile');
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}>
-            <Button variant="ghost" className="font-medium text-white hover:bg-white/10 hover:text-white">App Móvil</Button>
-          </a>
+          <Link href="/mobile-app/login">
+            <Button variant="ghost" className={`font-medium text-white hover:bg-white/10 hover:text-white ${isActive("/mobile-app") ? "bg-white/15" : ""}`}>App Móvil</Button>
+          </Link>
           <Link href="/contact">
             <Button 
               variant="ghost" 
@@ -112,17 +106,9 @@ export function LandingHeader() {
                     <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/soporte") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Soporte</div>
                   </Link>
                   <SheetClose asChild>
-                    <a href="#app-mobile" onClick={(e) => {
-                        e.preventDefault();
-                        setTimeout(() => {
-                          const element = document.getElementById('app-mobile');
-                          if (element) {
-                            element.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }, 100);
-                      }}>
-                      <div className="block p-3 text-base font-medium hover:bg-gray-50 rounded-xl transition-colors">App Móvil</div>
-                    </a>
+                    <Link href="/mobile-app/login">
+                      <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/mobile-app") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>App Móvil</div>
+                    </Link>
                   </SheetClose>
                   <Link href="/contact">
                     <div className={`block p-3 text-base font-medium rounded-xl transition-colors ${isActive("/contact") && !location.includes("demo") ? "bg-blue-50 text-blue-600" : "hover:bg-gray-50"}`}>Contáctanos</div>
