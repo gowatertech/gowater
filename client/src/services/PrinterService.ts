@@ -720,11 +720,11 @@ export class PrinterService {
     
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    if (paymentCustAddr) { doc.text(`Dirección: ${paymentCustAddr}`, 10, yPos); yPos += 4; }
-    if (paymentCustLocation) { doc.text(paymentCustLocation, 10, yPos); yPos += 4; }
     if (phone) {
       doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     }
+    if (paymentCustAddr) { doc.text(`Dirección: ${paymentCustAddr}`, 10, yPos); yPos += 4; }
+    if (paymentCustLocation) { doc.text(paymentCustLocation, 10, yPos); yPos += 4; }
     
     // Línea separadora
     yPos += 2;
@@ -775,11 +775,10 @@ export class PrinterService {
     if (safePayment.notes) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text("Nota:", 5, yPos);
+      doc.text("Nota del Pago:", 5, yPos);
       yPos += 4;
       
-      // Dividir notas en líneas si son muy largas
-      const maxWidth = 70; // Ancho máximo en mm para notas
+      const maxWidth = 70;
       const splitNotes = doc.splitTextToSize(safePayment.notes, maxWidth);
       
       doc.text(splitNotes, 5, yPos);
@@ -1392,18 +1391,6 @@ export class PrinterService {
       const contactPhone = settings?.contactPhone || '';
       const email = settings?.email || '';
       
-      printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
-          <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
-          <div style="font-size: 10px; margin-bottom: 1px;">RNC: ${rnc}</div>
-          ${companyAddr ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyAddr}</div>` : ''}
-          ${companyLocation ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyLocation}</div>` : ''}
-          <div style="font-size: 10px; margin-bottom: 1px;">Tel: ${contactPhone}</div>
-          <div style="font-size: 10px; margin-bottom: 1px;">Email: ${email}</div>
-        </div>
-        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-      `;
-      
       // Información del pago
       let formattedDate = '';
       try {
@@ -1430,7 +1417,18 @@ export class PrinterService {
         paymentData.paymentMethod === 'check' ? 'Cheque' : 
         paymentData.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
       
-      printContent.innerHTML += `
+      const amount = parseFloat(paymentData.amount || 0);
+      
+      let html = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">RNC: ${rnc}</div>
+          ${companyAddr ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyAddr}</div>` : ''}
+          ${companyLocation ? `<div style="font-size: 10px; margin-bottom: 1px;">${companyLocation}</div>` : ''}
+          <div style="font-size: 10px; margin-bottom: 1px;">Tel: ${contactPhone}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">Email: ${email}</div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
         <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px;">RECIBO DE PAGO #${paymentData.id}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Fecha:</strong> ${formattedDate}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Cliente:</strong> ${businessname}</div>
@@ -1438,68 +1436,31 @@ export class PrinterService {
         ${rcptCustAddr ? `<div style="margin-bottom: 2px; font-size: 9px;"><strong>Dirección:</strong> ${rcptCustAddr}</div>` : ''}
         ${rcptCustLocation ? `<div style="margin-bottom: 2px; font-size: 9px;">${rcptCustLocation}</div>` : ''}
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-      `;
-      
-      // Detalles del pago
-      printContent.innerHTML += `
         <div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 4px;">DETALLES DEL PAGO</div>
-      `;
-      
-      // Datos de factura/s
-      if (paymentData.invoiceId) {
-        printContent.innerHTML += `
-          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Factura:</strong> #${paymentData.invoiceId}</div>
-        `;
-      }
-      
-      // Método y referencia
-      printContent.innerHTML += `
+        ${paymentData.invoiceId ? `<div style="margin-bottom: 2px; font-size: 9px;"><strong>Factura:</strong> #${paymentData.invoiceId}</div>` : ''}
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Método:</strong> ${paymentMethod}</div>
-      `;
-      
-      if (paymentData.reference) {
-        printContent.innerHTML += `
-          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Referencia:</strong> ${paymentData.reference}</div>
-        `;
-      }
-      
-      // Separador
-      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
-      
-      // Monto
-      const amount = parseFloat(paymentData.amount || 0);
-      
-      printContent.innerHTML += `
+        ${paymentData.reference ? `<div style="margin-bottom: 2px; font-size: 9px;"><strong>Referencia:</strong> ${paymentData.reference}</div>` : ''}
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
         <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 5px 0;">
           MONTO PAGADO: RD$ ${amount.toFixed(2)}
         </div>
-      `;
-      
-      // Notas (si hay)
-      if (paymentData.notes) {
-        printContent.innerHTML += `
+        ${paymentData.notes ? `
           <div style="margin-top: 5px; font-size: 8px;">
-            <div style="font-weight: bold; margin-bottom: 2px;">Nota:</div>
+            <div style="font-weight: bold; margin-bottom: 2px;">Nota del Pago:</div>
             <div>${paymentData.notes}</div>
           </div>
-        `;
-      }
-      
-      // Espacio para firma
-      printContent.innerHTML += `
+        ` : ''}
         <div style="margin-top: 15px; text-align: center;">
           <div style="margin-bottom: 10px;">____________________________</div>
           <div style="font-size: 9px;">Firma</div>
         </div>
-      `;
-      
-      // Separador final
-      printContent.innerHTML += `
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
         <div style="text-align: center; margin-top: 5px; font-size: 9px;">
           ¡Gracias por su compra!
         </div>
       `;
+      
+      printContent.innerHTML = html;
       
       // Imprimir usando el método genérico
       await this.printDocument(printContent, {
